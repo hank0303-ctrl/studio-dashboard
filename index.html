@@ -1601,24 +1601,31 @@ async function syncFromSheet() {
       const cols = row.c;
       if (!cols || !cols[0]) return;
 
-      // 欄位順序：購買日期, 會員姓名, 方案名稱, 金額, 寫入時間
-      const rawDate = cols[0]?.v;
-      const student = cols[1]?.v?.toString().trim() || '';
-      const plan    = cols[2]?.v?.toString().trim() || '';
-      const amount  = parseInt(cols[3]?.v) || 0;
+      // 欄位順序：購買日期, 會員姓名, 方案名稱, 金額, 啟用日期, 到期日期, 方案時長, 堂數, 寫入時間
+      const rawDate      = cols[0]?.v;
+      const student      = cols[1]?.v?.toString().trim() || '';
+      const plan         = cols[2]?.v?.toString().trim() || '';
+      const amount       = parseInt(cols[3]?.v) || 0;
+      const rawStartDate = cols[4]?.v;
+      const rawEndDate   = cols[5]?.v;
+      const sessions     = parseInt(cols[7]?.v) || 0;
 
       if (!student || !plan) return;
 
-      // 轉換日期格式 (Google Sheets 回傳 Date(yyyy,mm,dd) 或字串)
-      let dateStr = '';
-      if (typeof rawDate === 'string' && rawDate.startsWith('Date(')) {
-        const parts = rawDate.replace('Date(','').replace(')','').split(',');
-        const y = parts[0], m = String(parseInt(parts[1])+1).padStart(2,'0'), d = String(parts[2]).padStart(2,'0');
-        dateStr = `${y}-${m}-${d}`;
-      } else if (typeof rawDate === 'string') {
-        // yyyy/MM/dd → yyyy-MM-dd
-        dateStr = rawDate.replace(/\//g, '-');
+      // 轉換日期格式：Date(yyyy,mm,dd) 或 yyyy/MM/dd → yyyy-MM-dd
+      function parseSheetDate(raw) {
+        if (!raw) return '';
+        if (typeof raw === 'string' && raw.startsWith('Date(')) {
+          const parts = raw.replace('Date(','').replace(')','').split(',');
+          return `${parts[0]}-${String(parseInt(parts[1])+1).padStart(2,'0')}-${String(parts[2]).padStart(2,'0')}`;
+        }
+        if (typeof raw === 'string') return raw.replace(/\//g, '-');
+        return '';
       }
+
+      const dateStr      = parseSheetDate(rawDate);
+      const startDateStr = parseSheetDate(rawStartDate) || dateStr;
+      const endDateStr   = parseSheetDate(rawEndDate);
 
       if (!dateStr) return;
 
@@ -1632,9 +1639,9 @@ async function syncFromSheet() {
         student,
         plan,
         amount,
-        startDate: dateStr,
-        endDate: '',
-        sessions: 0,
+        startDate: startDateStr,
+        endDate: endDateStr,
+        sessions,
         note: '📥 試算表匯入',
       });
       added++;
