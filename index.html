@@ -1364,12 +1364,20 @@ function switchStudentTab(tab, el) {
 
 function renderStudentPage() {
   const today = todayStr();
+  const thisMonth = today.slice(0,7);
   const active = purchases.filter(p=>p.endDate>=today);
   const expired = purchases.filter(p=>p.endDate && p.endDate<today);
-  const totalRevenue = purchases.reduce((s,p)=>s+p.amount,0);
+  const monthPurchases = purchases.filter(p=>p.date && p.date.slice(0,7)===thisMonth);
+  const monthRevenue = monthPurchases.reduce((s,p)=>s+p.amount,0);
+  const now = new Date();
+  const monthLabel = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}`;
 
   document.getElementById('studentStats').innerHTML = `
-    <div class="stat-card gold"><div class="stat-num">${fmtMoney(totalRevenue)}</div><div class="stat-label">累計總營收</div></div>
+    <div class="stat-card gold">
+      <div class="stat-num">${fmtMoney(monthRevenue)}</div>
+      <div class="stat-label">本月方案營收</div>
+      <div class="stat-sub">${monthLabel} · ${monthPurchases.length} 筆成交</div>
+    </div>
     <div class="stat-card green"><div class="stat-num">${active.length}</div><div class="stat-label">有效方案數</div></div>
     <div class="stat-card red"><div class="stat-num">${expired.length}</div><div class="stat-label">已到期方案</div></div>
   `;
