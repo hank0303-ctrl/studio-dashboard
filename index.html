@@ -325,13 +325,19 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 <div class="page" id="page-class">
   <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
     <div style="font-size:24px;font-weight:900">課程管理</div>
-    <button class="btn btn-primary" onclick="openModal('addClassModal')">＋ 新增課程</button>
+    <div class="flex gap-8 flex-wrap">
+      <label class="btn btn-secondary" style="cursor:pointer">
+        📂 上傳 Excel 報表
+        <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importClassExcel(this)">
+      </label>
+      <button class="btn btn-primary" onclick="openModal('addClassModal')">＋ 新增課程</button>
+    </div>
   </div>
 
   <div class="tab-row" id="classMonthTabs"></div>
 
   <div class="card">
-    <div class="flex flex-wrap gap-8 mb-16">
+    <div class="flex flex-wrap gap-8 mb-16" style="align-items:center">
       <select id="filterTeacher" onchange="renderClassTable()" style="min-width:120px">
         <option value="">全部老師</option>
       </select>
@@ -341,6 +347,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
         <option value="停課">停課</option>
         <option value="滿班">滿班</option>
       </select>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)">
+        排序：
+        <select id="classSortBy" onchange="renderClassTable()" style="min-width:120px">
+          <option value="date_desc">日期（新→舊）</option>
+          <option value="date_asc">日期（舊→新）</option>
+          <option value="rate_desc">預約率（高→低）</option>
+          <option value="rate_asc">預約率（低→高）</option>
+          <option value="booked_desc">預約人數（多→少）</option>
+          <option value="attended_desc">到課人數（多→少）</option>
+        </select>
+      </div>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -525,7 +542,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
 <!-- 新增老師 -->
 <div class="modal-overlay" id="addTeacherModal">
-  <div class="modal">
+  <div class="modal" style="max-width:640px">
     <div class="modal-title">新增老師</div>
     <div class="form-row">
       <div class="form-group" style="flex:1">
@@ -533,28 +550,33 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
         <input type="text" id="tch_name" placeholder="如：塔塔">
       </div>
       <div class="form-group" style="flex:1">
-        <label>每堂基本課費 ($)</label>
-        <input type="number" id="tch_pay" value="800">
+        <label>開課最低人數（未達不計費）</label>
+        <input type="number" id="tch_minPeople" value="1" min="1">
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group" style="flex:1">
-        <label>開課最低人數</label>
-        <input type="number" id="tch_minPeople" value="7" min="1" placeholder="到達此人數開始計課費">
-      </div>
-      <div class="form-group" style="flex:1">
-        <label>滿額加給起始人數</label>
-        <input type="number" id="tch_bonusMinPeople" value="7" min="0" placeholder="0=不加給">
-      </div>
-      <div class="form-group" style="flex:1">
-        <label>滿額加給金額 ($)</label>
-        <input type="number" id="tch_bonusPerPerson" value="100" min="0" placeholder="每超過加多少">
-      </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px;margin-top:4px">
+      每人數對應課費（留空=不設定）
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px" id="tch_payGrid">
+      <div class="form-group"><label>1 人</label><input type="number" id="tch_p1" placeholder="$" min="0"></div>
+      <div class="form-group"><label>2 人</label><input type="number" id="tch_p2" placeholder="$" min="0"></div>
+      <div class="form-group"><label>3 人</label><input type="number" id="tch_p3" placeholder="$" min="0"></div>
+      <div class="form-group"><label>4 人</label><input type="number" id="tch_p4" placeholder="$" min="0"></div>
+      <div class="form-group"><label>5 人</label><input type="number" id="tch_p5" placeholder="$" min="0"></div>
+      <div class="form-group"><label>6 人</label><input type="number" id="tch_p6" placeholder="$" min="0"></div>
+      <div class="form-group"><label>7 人</label><input type="number" id="tch_p7" placeholder="$" min="0"></div>
+      <div class="form-group"><label>8 人</label><input type="number" id="tch_p8" placeholder="$" min="0"></div>
+      <div class="form-group"><label>9 人</label><input type="number" id="tch_p9" placeholder="$" min="0"></div>
+      <div class="form-group"><label>10 人</label><input type="number" id="tch_p10" placeholder="$" min="0"></div>
+      <div class="form-group"><label>11 人</label><input type="number" id="tch_p11" placeholder="$" min="0"></div>
+      <div class="form-group"><label>12 人</label><input type="number" id="tch_p12" placeholder="$" min="0"></div>
+      <div class="form-group"><label>13 人</label><input type="number" id="tch_p13" placeholder="$" min="0"></div>
+      <div class="form-group"><label>14人以上</label><input type="number" id="tch_p14plus" placeholder="$" min="0"></div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:1">
         <label>滿班加給 ($)</label>
-        <input type="number" id="tch_fullBonus" value="100" min="0" placeholder="滿班額外加給">
+        <input type="number" id="tch_fullBonus" value="0" min="0" placeholder="滿班額外加給">
       </div>
       <div class="form-group" style="flex:2">
         <label>備註說明</label>
@@ -686,7 +708,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
 <!-- 編輯老師 -->
 <div class="modal-overlay" id="editTeacherModal">
-  <div class="modal">
+  <div class="modal" style="max-width:640px">
     <div class="modal-title">編輯老師</div>
     <input type="hidden" id="edit_tch_id">
     <div class="form-row">
@@ -695,28 +717,33 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
         <input type="text" id="edit_tch_name">
       </div>
       <div class="form-group" style="flex:1">
-        <label>每堂基本課費 ($)</label>
-        <input type="number" id="edit_tch_pay">
+        <label>開課最低人數（未達不計費）</label>
+        <input type="number" id="edit_tch_minPeople" min="1">
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group" style="flex:1">
-        <label>開課最低人數</label>
-        <input type="number" id="edit_tch_minPeople">
-      </div>
-      <div class="form-group" style="flex:1">
-        <label>滿額加給起始人數</label>
-        <input type="number" id="edit_tch_bonusMinPeople">
-      </div>
-      <div class="form-group" style="flex:1">
-        <label>滿額加給金額 ($)</label>
-        <input type="number" id="edit_tch_bonusPerPerson">
-      </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px;margin-top:4px">
+      每人數對應課費（留空=不設定）
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+      <div class="form-group"><label>1 人</label><input type="number" id="edit_tch_p1" placeholder="$" min="0"></div>
+      <div class="form-group"><label>2 人</label><input type="number" id="edit_tch_p2" placeholder="$" min="0"></div>
+      <div class="form-group"><label>3 人</label><input type="number" id="edit_tch_p3" placeholder="$" min="0"></div>
+      <div class="form-group"><label>4 人</label><input type="number" id="edit_tch_p4" placeholder="$" min="0"></div>
+      <div class="form-group"><label>5 人</label><input type="number" id="edit_tch_p5" placeholder="$" min="0"></div>
+      <div class="form-group"><label>6 人</label><input type="number" id="edit_tch_p6" placeholder="$" min="0"></div>
+      <div class="form-group"><label>7 人</label><input type="number" id="edit_tch_p7" placeholder="$" min="0"></div>
+      <div class="form-group"><label>8 人</label><input type="number" id="edit_tch_p8" placeholder="$" min="0"></div>
+      <div class="form-group"><label>9 人</label><input type="number" id="edit_tch_p9" placeholder="$" min="0"></div>
+      <div class="form-group"><label>10 人</label><input type="number" id="edit_tch_p10" placeholder="$" min="0"></div>
+      <div class="form-group"><label>11 人</label><input type="number" id="edit_tch_p11" placeholder="$" min="0"></div>
+      <div class="form-group"><label>12 人</label><input type="number" id="edit_tch_p12" placeholder="$" min="0"></div>
+      <div class="form-group"><label>13 人</label><input type="number" id="edit_tch_p13" placeholder="$" min="0"></div>
+      <div class="form-group"><label>14人以上</label><input type="number" id="edit_tch_p14plus" placeholder="$" min="0"></div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:1">
         <label>滿班加給 ($)</label>
-        <input type="number" id="edit_tch_fullBonus">
+        <input type="number" id="edit_tch_fullBonus" min="0">
       </div>
       <div class="form-group" style="flex:2">
         <label>備註</label>
@@ -975,16 +1002,54 @@ function deleteClass(id) {
 // ═══════════════════════════════
 //  TEACHERS CRUD
 // ═══════════════════════════════
+function getPayGrid(prefix) {
+  const grid = {};
+  for (let i=1;i<=13;i++) {
+    const v = parseInt(document.getElementById(`${prefix}p${i}`)?.value);
+    if (!isNaN(v) && v>=0) grid[i] = v;
+  }
+  const vp = parseInt(document.getElementById(`${prefix}p14plus`)?.value);
+  if (!isNaN(vp) && vp>=0) grid['14plus'] = vp;
+  return grid;
+}
+
+function setPayGrid(prefix, grid) {
+  for (let i=1;i<=13;i++) {
+    const el = document.getElementById(`${prefix}p${i}`);
+    if (el) el.value = grid?.[i] ?? '';
+  }
+  const elp = document.getElementById(`${prefix}p14plus`);
+  if (elp) elp.value = grid?.['14plus'] ?? '';
+}
+
+function calcPayByGrid(teacher, attended) {
+  if (!teacher.payGrid || Object.keys(teacher.payGrid).length === 0) {
+    // 舊版相容
+    return teacher.pay || 0;
+  }
+  const n = attended;
+  if (teacher.payGrid[n] !== undefined) return teacher.payGrid[n];
+  // 找最接近的較小人數
+  let best = 0, bestPay = teacher.pay || 0;
+  for (const k in teacher.payGrid) {
+    if (k === '14plus') continue;
+    const ki = parseInt(k);
+    if (ki <= n && ki > best) { best = ki; bestPay = teacher.payGrid[k]; }
+  }
+  if (n >= 14 && teacher.payGrid['14plus'] !== undefined) return teacher.payGrid['14plus'];
+  return bestPay;
+}
+
 function saveTeacher() {
   const t = {
     id: uid(),
     name: document.getElementById('tch_name').value.trim(),
-    pay: parseInt(document.getElementById('tch_pay').value)||0,
-    minPeople: parseInt(document.getElementById('tch_minPeople').value)||0,
-    bonusMinPeople: parseInt(document.getElementById('tch_bonusMinPeople').value)||0,
-    bonusPerPerson: parseInt(document.getElementById('tch_bonusPerPerson').value)||0,
+    pay: 0,
+    minPeople: parseInt(document.getElementById('tch_minPeople').value)||1,
+    bonusMinPeople: 0, bonusPerPerson: 0,
     fullBonus: parseInt(document.getElementById('tch_fullBonus').value)||0,
     note: document.getElementById('tch_note').value.trim(),
+    payGrid: getPayGrid('tch_'),
   };
   if (!t.name) return alert('請填寫老師姓名');
   teachers.push(t);
@@ -998,12 +1063,10 @@ function editTeacher(id) {
   if (!t) return;
   document.getElementById('edit_tch_id').value = t.id;
   document.getElementById('edit_tch_name').value = t.name;
-  document.getElementById('edit_tch_pay').value = t.pay;
-  document.getElementById('edit_tch_minPeople').value = t.minPeople;
-  document.getElementById('edit_tch_bonusMinPeople').value = t.bonusMinPeople;
-  document.getElementById('edit_tch_bonusPerPerson').value = t.bonusPerPerson;
-  document.getElementById('edit_tch_fullBonus').value = t.fullBonus;
-  document.getElementById('edit_tch_note').value = t.note;
+  document.getElementById('edit_tch_minPeople').value = t.minPeople||1;
+  document.getElementById('edit_tch_fullBonus').value = t.fullBonus||0;
+  document.getElementById('edit_tch_note').value = t.note||'';
+  setPayGrid('edit_tch_', t.payGrid||{});
   openModal('editTeacherModal');
 }
 
@@ -1014,12 +1077,12 @@ function updateTeacher() {
   teachers[idx] = {
     ...teachers[idx],
     name: document.getElementById('edit_tch_name').value.trim(),
-    pay: parseInt(document.getElementById('edit_tch_pay').value)||0,
-    minPeople: parseInt(document.getElementById('edit_tch_minPeople').value)||0,
-    bonusMinPeople: parseInt(document.getElementById('edit_tch_bonusMinPeople').value)||0,
-    bonusPerPerson: parseInt(document.getElementById('edit_tch_bonusPerPerson').value)||0,
+    pay: 0,
+    minPeople: parseInt(document.getElementById('edit_tch_minPeople').value)||1,
+    bonusMinPeople: 0, bonusPerPerson: 0,
     fullBonus: parseInt(document.getElementById('edit_tch_fullBonus').value)||0,
     note: document.getElementById('edit_tch_note').value.trim(),
+    payGrid: getPayGrid('edit_tch_'),
   };
   save(KEYS.teachers, teachers);
   closeModal('editTeacherModal');
@@ -1103,16 +1166,8 @@ function deletePurchase(id) {
 //  CALC TEACHER PAY
 // ═══════════════════════════════
 function calcTeacherPay(teacher, cls) {
-  // base pay
-  let pay = teacher.pay;
-  // bonus per person above threshold
-  if (teacher.bonusMinPeople > 0 && teacher.bonusPerPerson > 0 && cls.attended >= teacher.bonusMinPeople) {
-    pay += cls.attended * teacher.bonusPerPerson;
-  }
-  // full class bonus
-  if (teacher.fullBonus > 0 && cls.status === '滿班') {
-    pay += teacher.fullBonus;
-  }
+  let pay = calcPayByGrid(teacher, cls.attended);
+  if (teacher.fullBonus > 0 && cls.status === '滿班') pay += teacher.fullBonus;
   return pay;
 }
 
@@ -1259,11 +1314,21 @@ function renderClassTable() {
   const tFilter = document.getElementById('filterTeacher').value;
   const sFilter = document.getElementById('filterStatus').value;
 
+  const sortBy = document.getElementById('classSortBy')?.value || 'date_desc';
   const filtered = classes
     .filter(c => c.date.slice(0,7) === classPageMonth)
     .filter(c => !tFilter || c.teacher===tFilter)
     .filter(c => !sFilter || c.status===sFilter)
-    .sort((a,b) => b.date.localeCompare(a.date) || a.timeStart.localeCompare(b.timeStart));
+    .sort((a,b) => {
+      const rateA = a.max>0?a.booked/a.max:0, rateB = b.max>0?b.booked/b.max:0;
+      if (sortBy==='date_desc') return b.date.localeCompare(a.date)||a.timeStart.localeCompare(b.timeStart);
+      if (sortBy==='date_asc')  return a.date.localeCompare(b.date)||a.timeStart.localeCompare(b.timeStart);
+      if (sortBy==='rate_desc') return rateB-rateA;
+      if (sortBy==='rate_asc')  return rateA-rateB;
+      if (sortBy==='booked_desc') return b.booked-a.booked;
+      if (sortBy==='attended_desc') return b.attended-a.attended;
+      return 0;
+    });
 
   const tbody = document.getElementById('classTableTbody');
   if (!filtered.length) {
@@ -1328,9 +1393,16 @@ function renderTeacherPage() {
     const avgRate = totalMax > 0 ? Math.round(totalBooked/totalMax*100) : 0;
     const totalPay = tClasses.reduce((s,c)=>s+calcTeacherPay(t,c),0);
 
-    const payDesc = `基本 ${fmtMoney(t.pay)}/堂` +
-      (t.bonusPerPerson>0?` · ${t.bonusMinPeople}人以上每人+${fmtMoney(t.bonusPerPerson)}`:'') +
-      (t.fullBonus>0?` · 滿班+${fmtMoney(t.fullBonus)}`:'');
+    let payDesc = '';
+    if (t.payGrid && Object.keys(t.payGrid).length > 0) {
+      const entries = [];
+      for (let i=1;i<=13;i++) { if (t.payGrid[i]!==undefined) entries.push(`${i}人 ${fmtMoney(t.payGrid[i])}`); }
+      if (t.payGrid['14plus']!==undefined) entries.push(`14人以上 ${fmtMoney(t.payGrid['14plus'])}`);
+      payDesc = entries.join(' · ');
+    } else {
+      payDesc = `基本 ${fmtMoney(t.pay)}/堂`;
+    }
+    if (t.fullBonus>0) payDesc += ` · 滿班+${fmtMoney(t.fullBonus)}`;
 
     return `<div class="teacher-card">
       <div class="flex items-center justify-between">
@@ -1485,14 +1557,10 @@ function renderMonthly() {
     const tBooked = tClasses.reduce((s,c)=>s+(c.booked||0),0);
     const tMax = tClasses.reduce((s,c)=>s+c.max,0);
     const rate = tMax>0?Math.round(tBooked/tMax*100):0;
-    const basePay = t.pay * totalC;
-    const bonusPay = tClasses.reduce((s,c)=>{
-      let b = 0;
-      if (t.bonusPerPerson>0 && t.bonusMinPeople>0 && c.attended>=t.bonusMinPeople) b += c.attended*t.bonusPerPerson;
-      return s+b;
-    },0);
-    const fullPay = fullC * t.fullBonus;
-    const totalPay = basePay + bonusPay + fullPay;
+    const basePay = tClasses.reduce((s,c)=>s+calcPayByGrid(t,c.attended),0);
+    const bonusPay = 0;
+    const fullPay = fullC * (t.fullBonus||0);
+    const totalPay = basePay + fullPay;
     return `<tr>
       <td style="font-weight:700">${t.name}</td>
       <td>${totalC}</td>
@@ -1688,6 +1756,89 @@ async function syncFromSheet() {
     btn.textContent = '🔄 同步試算表';
     btn.disabled = false;
   }
+}
+
+// ═══════════════════════════════
+//  匯入 BookFast Excel 報表
+// ═══════════════════════════════
+function importClassExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      // 動態載入 SheetJS
+      if (!window.XLSX) {
+        await new Promise((res,rej)=>{
+          const s=document.createElement('script');
+          s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+          s.onload=res; s.onerror=rej;
+          document.head.appendChild(s);
+        });
+      }
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1});
+
+      // 找標題列（包含「課程日期」的那列）
+      let headerIdx = -1;
+      for (let i=0;i<rows.length;i++) {
+        if (rows[i].some(c=>String(c).includes('課程日期'))) { headerIdx=i; break; }
+      }
+      if (headerIdx<0) { showToast('❌ 找不到課程資料，請確認是 BookFast 團體課報表', 'error'); return; }
+
+      const headers = rows[headerIdx];
+      const getCol = (name) => headers.findIndex(h=>String(h||'').includes(name));
+
+      const colDate     = getCol('課程日期');
+      const colTime     = getCol('課程時間');
+      const colName     = getCol('課程名稱');
+      const colStatus   = getCol('課程狀態');
+      const colTeacher  = getCol('授課老師');
+      const colMax      = getCol('開課名額');
+      const colBooked   = getCol('預約總人數');
+      const colAttended = getCol('到課總人數');
+
+      let added=0, skipped=0;
+      for (let i=headerIdx+1;i<rows.length;i++) {
+        const row = rows[i];
+        if (!row || !row[colDate]) continue;
+
+        const rawDate = String(row[colDate]||'');
+        const dateStr = rawDate.replace(/\//g,'-');
+        if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) continue;
+
+        const rawTime  = String(row[colTime]||'');
+        const timeParts = rawTime.split(/[~～\-]/);
+        const timeStart = timeParts[0]?.trim()||'';
+        const timeEnd   = timeParts[1]?.trim()||'';
+        const name      = String(row[colName]||'').trim();
+        const teacher   = String(row[colTeacher]||'').trim();
+        const status    = String(row[colStatus]||'正常').trim();
+        const max       = parseInt(row[colMax])||0;
+        const booked    = parseInt(row[colBooked])||0;
+        const attended  = parseInt(row[colAttended])||0;
+
+        if (!name || !dateStr) continue;
+
+        // 防重複
+        const exists = classes.some(c=>c.date===dateStr&&c.timeStart===timeStart&&c.name===name);
+        if (exists) { skipped++; continue; }
+
+        classes.push({ id:uid(), date:dateStr, timeStart, timeEnd, name, teacher, room:'', max, booked, attended, status, note:'📂 Excel匯入' });
+        added++;
+      }
+
+      save(KEYS.classes, classes);
+      showToast(`✅ 匯入完成！新增 ${added} 筆，跳過 ${skipped} 筆重複`, 'success');
+      renderClassPage();
+    } catch(err) {
+      console.error(err);
+      showToast('❌ 匯入失敗：' + err.message, 'error');
+    }
+    input.value='';
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 // ═══════════════════════════════
