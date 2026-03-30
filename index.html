@@ -1375,7 +1375,10 @@ function renderTeacherPage() {
     <div class="tab ${m===teacherPageMonth?'active':''}" onclick="teacherPageMonth='${m}';renderTeacherPage()">${m}</div>
   `).join('');
 
-  const monthClasses = classes.filter(c => c.date.slice(0,7)===teacherPageMonth && c.status !== '停課');
+  // 所有課（含停課，用於顯示停課數）
+  const allMonthClasses = classes.filter(c => c.date.slice(0,7)===teacherPageMonth);
+  // 計費只算非停課
+  const monthClasses = allMonthClasses.filter(c => c.status !== '停課');
 
   const container = document.getElementById('teacherCardsContainer');
   if (!teachers.length) {
@@ -1383,15 +1386,17 @@ function renderTeacherPage() {
     return;
   }
 
-  container.innerHTML = `<div class="grid-3">` + teachers.map(t => {
-    const tClasses = monthClasses.filter(c=>c.teacher===t.name);
+  container.innerHTML = teachers.map(t => {
+    const tAllClasses  = allMonthClasses.filter(c=>c.teacher===t.name).sort((a,b)=>a.date.localeCompare(b.date)||a.timeStart.localeCompare(b.timeStart));
+    const tClasses     = tAllClasses.filter(c=>c.status!=='停課');
+    const stopClasses  = tAllClasses.filter(c=>c.status==='停課');
     const totalClasses = tClasses.length;
-    const fullClasses = tClasses.filter(c=>c.status==='滿班').length;
-    const totalStudents = tClasses.reduce((s,c)=>s+(c.attended||0),0);
-    const totalBooked = tClasses.reduce((s,c)=>s+(c.booked||0),0);
-    const totalMax = tClasses.reduce((s,c)=>s+c.max,0);
-    const avgRate = totalMax > 0 ? Math.round(totalBooked/totalMax*100) : 0;
-    const totalPay = tClasses.reduce((s,c)=>s+calcTeacherPay(t,c),0);
+    const stopCount    = stopClasses.length;
+    const fullClasses  = tClasses.filter(c=>c.status==='滿班').length;
+    const totalBooked  = tClasses.reduce((s,c)=>s+(c.booked||0),0);
+    const totalMax     = tClasses.reduce((s,c)=>s+c.max,0);
+    const avgRate      = totalMax > 0 ? Math.round(totalBooked/totalMax*100) : 0;
+    const totalPay     = tClasses.reduce((s,c)=>s+calcTeacherPay(t,c),0);
 
     let payDesc = '';
     if (t.payGrid && Object.keys(t.payGrid).length > 0) {
@@ -1404,25 +1409,132 @@ function renderTeacherPage() {
     }
     if (t.fullBonus>0) payDesc += ` · 滿班+${fmtMoney(t.fullBonus)}`;
 
-    return `<div class="teacher-card">
-      <div class="flex items-center justify-between">
-        <div class="teacher-name">${t.name}</div>
-        <button class="btn btn-secondary btn-sm" onclick="editTeacher('${t.id}')">⚙️ 設定</button>
+    // 明細表列
+    const detailRows = tAllClasses.map(c => {
+      const isCancelled = c.status === '停課';
+      const pay = isCancelled ? 0 : calcTeacherPay(t,c);
+      const rate = c.max>0 ? Math.round(c.booked/c.max*100) : 0;
+      const statusChip = c.status==='滿班'
+        ? `<span style="background:rgba(74,222,128,0.15);color:var(--green);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">滿班</span>`
+        : isCancelled
+        ? `<span style="background:rgba(248,113,113,0.15);color:var(--red);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">停課</span>`
+        : `<span style="background:rgba(124,111,205,0.15);color:var(--accent2);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">正常</span>`;
+      return `<tr style="opacity:${isCancelled?'0.45':'1'}">
+        <td style="font-family:'DM Mono',monospace;font-size:11px;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap">${fmtDate(c.date)}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:11px;padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2)">${c.timeStart}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-weight:600;font-size:12px">${c.name}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;font-size:12px">${c.max}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;font-size:12px">${c.booked}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;font-size:12px">${c.attended}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;font-size:11px;font-family:'DM Mono',monospace">${isCancelled?'-':rate+'%'}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${statusChip}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${isCancelled?'var(--text3)':'var(--accent)'};font-size:12px">${isCancelled?'－':fmtMoney(pay)}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="card" style="margin-bottom:20px">
+      <!-- 老師標題列 -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:20px;font-weight:900;margin-bottom:4px">${t.name}</div>
+          <div style="font-size:12px;color:var(--text2)">${payDesc}</div>
+          ${t.note ? `<div style="font-size:11px;color:var(--accent);margin-top:4px">${t.note}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-secondary btn-sm" onclick="copyTeacherDetail('${t.id}','${teacherPageMonth}')">📋 複製明細</button>
+          <button class="btn btn-secondary btn-sm" onclick="editTeacher('${t.id}')">⚙️ 設定</button>
+        </div>
       </div>
-      <div class="teacher-pay">${payDesc}</div>
-      ${t.note ? `<div style="font-size:11px;color:var(--accent);background:rgba(200,169,110,0.08);padding:6px 10px;border-radius:6px">${t.note}</div>` : ''}
-      <div class="teacher-stats">
-        <div class="teacher-stat"><div class="teacher-stat-val">${totalClasses}</div><div class="teacher-stat-label">開課數</div></div>
-        <div class="teacher-stat"><div class="teacher-stat-val">${fullClasses}</div><div class="teacher-stat-label">滿班數</div></div>
-        <div class="teacher-stat"><div class="teacher-stat-val">${totalStudents}</div><div class="teacher-stat-label">到課人次</div></div>
-        <div class="teacher-stat"><div class="teacher-stat-val">${avgRate}%</div><div class="teacher-stat-label">平均預約率</div></div>
+      <!-- 統計數字 -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
+        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px 6px">
+          <div style="font-size:22px;font-weight:800;color:var(--accent);font-family:'DM Mono',monospace">${totalClasses}</div>
+          <div style="font-size:11px;color:var(--text3)">開課數</div>
+        </div>
+        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px 6px">
+          <div style="font-size:22px;font-weight:800;color:var(--red);font-family:'DM Mono',monospace">${stopCount}</div>
+          <div style="font-size:11px;color:var(--text3)">停課數</div>
+        </div>
+        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px 6px">
+          <div style="font-size:22px;font-weight:800;color:var(--green);font-family:'DM Mono',monospace">${fullClasses}</div>
+          <div style="font-size:11px;color:var(--text3)">滿班數</div>
+        </div>
+        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px 6px">
+          <div style="font-size:22px;font-weight:800;color:var(--accent2);font-family:'DM Mono',monospace">${avgRate}%</div>
+          <div style="font-size:11px;color:var(--text3)">平均預約率</div>
+        </div>
+        <div style="text-align:center;background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.2);border-radius:8px;padding:10px 6px">
+          <div style="font-size:22px;font-weight:800;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(totalPay)}</div>
+          <div style="font-size:11px;color:var(--text3)">${teacherPageMonth} 課費</div>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(200,169,110,0.08);border-radius:8px;padding:10px 14px">
-        <div style="font-size:12px;color:var(--text2)">${teacherPageMonth} 課費合計</div>
-        <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:800;color:var(--accent)">${fmtMoney(totalPay)}</div>
-      </div>
+      <!-- 明細表 -->
+      ${tAllClasses.length > 0 ? `
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:var(--surface2)">
+              <th style="padding:8px 10px;text-align:left;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">日期</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">時間</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">課程</th>
+              <th style="padding:8px 10px;text-align:center;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">上限</th>
+              <th style="padding:8px 10px;text-align:center;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">預約</th>
+              <th style="padding:8px 10px;text-align:center;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">到課</th>
+              <th style="padding:8px 10px;text-align:center;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">預約率</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">狀態</th>
+              <th style="padding:8px 10px;text-align:right;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">課費</th>
+            </tr>
+          </thead>
+          <tbody>${detailRows}</tbody>
+          <tfoot>
+            <tr style="background:var(--surface2)">
+              <td colspan="8" style="padding:10px 10px;font-weight:700;font-size:12px;color:var(--text2)">合計（停課不計費）</td>
+              <td style="padding:10px 10px;text-align:right;font-weight:900;font-size:15px;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(totalPay)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>` : `<div style="color:var(--text3);font-size:13px;padding:10px 0">本月無課程記錄</div>`}
     </div>`;
-  }).join('') + `</div>`;
+  }).join('');
+}
+
+// 複製老師明細給老師核對
+function copyTeacherDetail(teacherId, month) {
+  const t = teachers.find(x=>x.id===teacherId);
+  if (!t) return;
+  const allC = classes.filter(c=>c.teacher===t.name && c.date.slice(0,7)===month)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  const activeC = allC.filter(c=>c.status!=='停課');
+  const totalPay = activeC.reduce((s,c)=>s+calcTeacherPay(t,c),0);
+
+  let payDesc = '';
+  if (t.payGrid && Object.keys(t.payGrid).length > 0) {
+    const entries = [];
+    for (let i=1;i<=13;i++) { if (t.payGrid[i]!==undefined) entries.push(`${i}人 $${t.payGrid[i]}`); }
+    if (t.payGrid['14plus']!==undefined) entries.push(`14人以上 $${t.payGrid['14plus']}`);
+    payDesc = entries.join('、');
+  } else { payDesc = `$${t.pay}/堂`; }
+
+  let lines = [];
+  lines.push(`【${month} 課費明細】${t.name} 老師`);
+  lines.push(`課費：${payDesc}${t.fullBonus>0?' · 滿班+$'+t.fullBonus:''}`);
+  lines.push(`開課數：${activeC.length}｜停課數：${allC.filter(c=>c.status==='停課').length}｜滿班數：${activeC.filter(c=>c.status==='滿班').length}`);
+  lines.push('────────────────────');
+  allC.forEach(c=>{
+    const isCancelled = c.status==='停課';
+    const pay = isCancelled ? 0 : calcTeacherPay(t,c);
+    const rate = c.max>0?Math.round(c.booked/c.max*100):0;
+    lines.push(`${fmtDate(c.date)} ${c.timeStart}  ${c.name}  到課${c.attended}人  預約率${isCancelled?'-':rate+'%'}  ${isCancelled?'停課（不計費）':'$'+pay}`);
+  });
+  lines.push('────────────────────');
+  lines.push(`本月課費合計：$${totalPay}`);
+
+  navigator.clipboard.writeText(lines.join('
+')).then(()=>{
+    showToast('✅ 已複製！可直接貼給 '+t.name+' 老師', 'success');
+  }).catch(()=>{
+    showToast('❌ 複製失敗，請手動截圖', 'error');
+  });
 }
 
 // ═══════════════════════════════
