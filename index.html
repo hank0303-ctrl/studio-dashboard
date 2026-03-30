@@ -1529,8 +1529,7 @@ function copyTeacherDetail(teacherId, month) {
   lines.push('────────────────────');
   lines.push(`本月課費合計：$${totalPay}`);
 
-  navigator.clipboard.writeText(lines.join('
-')).then(()=>{
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>{
     showToast('✅ 已複製！可直接貼給 '+t.name+' 老師', 'success');
   }).catch(()=>{
     showToast('❌ 複製失敗，請手動截圖', 'error');
