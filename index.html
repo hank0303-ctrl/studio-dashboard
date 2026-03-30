@@ -1377,6 +1377,44 @@ function renderTeacherPage() {
 
   // 所有課（含停課，用於顯示停課數）
   const allMonthClasses = classes.filter(c => c.date.slice(0,7)===teacherPageMonth);
+  // 月份總計統計
+  const _allC   = allMonthClasses;
+  const _activeC = _allC.filter(c=>c.status!=='停課');
+  const _stopC   = _allC.filter(c=>c.status==='停課');
+  const _totalPay = teachers.reduce((s,t)=>{
+    return s + _activeC.filter(c=>c.teacher===t.name).reduce((ss,c)=>ss+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
+  },0);
+  const _stopRate = _allC.length>0 ? Math.round(_stopC.length/_allC.length*100) : 0;
+
+  // 插入月份總計列（若已存在則替換）
+  let summaryEl = document.getElementById('teacherMonthlySummary');
+  if (!summaryEl) {
+    summaryEl = document.createElement('div');
+    summaryEl.id = 'teacherMonthlySummary';
+    summaryEl.style.marginBottom = '20px';
+    const tabsEl = document.getElementById('teacherMonthTabs');
+    tabsEl.parentNode.insertBefore(summaryEl, tabsEl.nextSibling);
+  }
+  summaryEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px">
+      <div class="stat-card gold">
+        <div class="stat-num">${fmtMoney(_totalPay)}</div>
+        <div class="stat-label">${teacherPageMonth} 總課費</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-num">${_activeC.length}</div>
+        <div class="stat-label">總開課堂數</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-num">${_stopC.length}</div>
+        <div class="stat-label">總停課數</div>
+      </div>
+      <div class="stat-card" style="border-top:3px solid var(--yellow)">
+        <div class="stat-num" style="color:var(--yellow)">${_stopRate}%</div>
+        <div class="stat-label">停課率</div>
+        <div class="stat-sub">共 ${_allC.length} 堂課</div>
+      </div>
+    </div>`;
   // 計費只算非停課
   const monthClasses = allMonthClasses.filter(c => c.status !== '停課');
 
@@ -1396,7 +1434,7 @@ function renderTeacherPage() {
     const totalBooked  = tClasses.reduce((s,c)=>s+(c.booked||0),0);
     const totalMax     = tClasses.reduce((s,c)=>s+c.max,0);
     const avgRate      = totalMax > 0 ? Math.round(totalBooked/totalMax*100) : 0;
-    const totalPay     = tClasses.reduce((s,c)=>s+calcTeacherPay(t,c),0);
+    const totalPay     = tClasses.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
 
     let payDesc = '';
     if (t.payGrid && Object.keys(t.payGrid).length > 0) {
@@ -1412,7 +1450,7 @@ function renderTeacherPage() {
     // 明細表列
     const detailRows = tAllClasses.map(c => {
       const isCancelled = c.status === '停課';
-      const pay = isCancelled ? 0 : calcTeacherPay(t,c);
+      const pay = isCancelled ? 0 : (c.customPay !== undefined ? c.customPay : calcTeacherPay(t,c));
       const rate = c.max>0 ? Math.round(c.booked/c.max*100) : 0;
       const statusChip = c.status==='滿班'
         ? `<span style="background:rgba(74,222,128,0.15);color:var(--green);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">滿班</span>`
@@ -1425,10 +1463,22 @@ function renderTeacherPage() {
         <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-weight:600;font-size:12px">${c.name}</td>
         <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;font-size:12px">${c.max}</td>
         <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;font-size:12px">${c.booked}</td>
-        <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;font-size:12px">${c.attended}</td>
+        <td style="padding:4px 10px;border-bottom:1px solid var(--border);text-align:center">
+          <input type="number" value="${c.attended}" min="0" max="${c.max}"
+            style="width:52px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:3px 4px;font-family:'DM Mono',monospace"
+            onchange="updateClassAttended('${c.id}',this.value)"
+            ${isCancelled?'disabled':''}
+          >
+        </td>
         <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;font-size:11px;font-family:'DM Mono',monospace">${isCancelled?'-':rate+'%'}</td>
         <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${statusChip}</td>
-        <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${isCancelled?'var(--text3)':'var(--accent)'};font-size:12px">${isCancelled?'－':fmtMoney(pay)}</td>
+        <td style="padding:4px 10px;border-bottom:1px solid var(--border);text-align:right">
+          ${isCancelled ? `<span style="color:var(--text3);font-size:12px">－</span>` :
+          `<input type="number" value="${pay}" min="0"
+            style="width:80px;text-align:right;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:13px;font-weight:700;padding:3px 6px;font-family:'DM Mono',monospace"
+            onchange="updateClassCustomPay('${c.id}',this.value)"
+          >`}
+        </td>
       </tr>`;
     }).join('');
 
@@ -1488,8 +1538,8 @@ function renderTeacherPage() {
           <tbody>${detailRows}</tbody>
           <tfoot>
             <tr style="background:var(--surface2)">
-              <td colspan="8" style="padding:10px 10px;font-weight:700;font-size:12px;color:var(--text2)">合計（停課不計費）</td>
-              <td style="padding:10px 10px;text-align:right;font-weight:900;font-size:15px;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(totalPay)}</td>
+              <td colspan="8" style="padding:14px 10px;font-weight:700;font-size:13px;color:var(--text2)">本月課費合計（停課不計費）</td>
+              <td style="padding:14px 10px;text-align:right;font-weight:900;font-size:22px;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(totalPay)}</td>
             </tr>
           </tfoot>
         </table>
@@ -1522,7 +1572,7 @@ function copyTeacherDetail(teacherId, month) {
   lines.push('────────────────────');
   allC.forEach(c=>{
     const isCancelled = c.status==='停課';
-    const pay = isCancelled ? 0 : calcTeacherPay(t,c);
+    const pay = isCancelled ? 0 : (c.customPay!==undefined?c.customPay:calcTeacherPay(t,c));
     const rate = c.max>0?Math.round(c.booked/c.max*100):0;
     lines.push(`${fmtDate(c.date)} ${c.timeStart}  ${c.name}  到課${c.attended}人  預約率${isCancelled?'-':rate+'%'}  ${isCancelled?'停課（不計費）':'$'+pay}`);
   });
@@ -1950,6 +2000,25 @@ function importClassExcel(input) {
     input.value='';
   };
   reader.readAsArrayBuffer(file);
+}
+
+// ═══════════════════════════════
+//  快速更新到課人數 & 課費
+// ═══════════════════════════════
+function updateClassAttended(classId, val) {
+  const idx = classes.findIndex(c=>c.id===classId);
+  if (idx<0) return;
+  classes[idx].attended = parseInt(val)||0;
+  save(KEYS.classes, classes);
+}
+
+function updateClassCustomPay(classId, val) {
+  const idx = classes.findIndex(c=>c.id===classId);
+  if (idx<0) return;
+  classes[idx].customPay = parseInt(val)||0;
+  save(KEYS.classes, classes);
+  // 重新計算合計顯示
+  renderTeacherPage();
 }
 
 // ═══════════════════════════════
