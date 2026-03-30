@@ -378,11 +378,12 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <button class="btn btn-primary" onclick="openModal('addPurchaseModal')">＋ 新增購買</button>
   </div>
 
-  <div class="grid-3 mb-16" id="studentStats"></div>
+  <div class="grid-4 mb-16" id="studentStats"></div>
 
   <div class="tab-row">
     <div class="tab active" onclick="switchStudentTab('all',this)">全部</div>
     <div class="tab" onclick="switchStudentTab('active',this)">有效中</div>
+    <div class="tab" onclick="switchStudentTab('expireSoon',this)">⚠️ 即將到期</div>
     <div class="tab" onclick="switchStudentTab('expired',this)">已到期</div>
   </div>
 
@@ -1369,6 +1370,11 @@ function renderStudentPage() {
   const expired = purchases.filter(p=>p.endDate && p.endDate<today);
   const monthPurchases = purchases.filter(p=>p.date && p.date.slice(0,7)===thisMonth);
   const monthRevenue = monthPurchases.reduce((s,p)=>s+p.amount,0);
+  const expireSoon = purchases.filter(p => {
+    if (!p.endDate || p.endDate < today) return false;
+    const daysLeft = Math.ceil((new Date(p.endDate) - new Date()) / 86400000);
+    return daysLeft <= 14;
+  });
   const now = new Date();
   const monthLabel = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}`;
 
@@ -1379,6 +1385,11 @@ function renderStudentPage() {
       <div class="stat-sub">${monthLabel} · ${monthPurchases.length} 筆成交</div>
     </div>
     <div class="stat-card green"><div class="stat-num">${active.length}</div><div class="stat-label">有效方案數</div></div>
+    <div class="stat-card yellow" style="border-top:3px solid var(--yellow)">
+      <div class="stat-num" style="color:var(--yellow)">${expireSoon.length}</div>
+      <div class="stat-label">14天內到期</div>
+      <div class="stat-sub">需要續約</div>
+    </div>
     <div class="stat-card red"><div class="stat-num">${expired.length}</div><div class="stat-label">已到期方案</div></div>
   `;
   renderStudentTable();
@@ -1390,6 +1401,11 @@ function renderStudentTable() {
   let list = [...purchases].sort((a,b)=>b.date.localeCompare(a.date));
 
   if (_currentStudentTab === 'active') list = list.filter(p=>!p.endDate||p.endDate>=today);
+  if (_currentStudentTab === 'expireSoon') list = list.filter(p => {
+    if (!p.endDate || p.endDate < today) return false;
+    const daysLeft = Math.ceil((new Date(p.endDate) - new Date()) / 86400000);
+    return daysLeft <= 14;
+  });
   if (_currentStudentTab === 'expired') list = list.filter(p=>p.endDate&&p.endDate<today);
   if (keyword) list = list.filter(p=>p.student.toLowerCase().includes(keyword)||p.plan.toLowerCase().includes(keyword));
 
