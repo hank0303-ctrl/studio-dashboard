@@ -306,11 +306,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     </div>
   </div>
 
-  <!-- 預約率排行 -->
+  <!-- 老師累計課費 + 今日購買 -->
   <div class="grid-2 mt-16">
     <div class="card">
-      <div class="card-title">📈 今日預約率排行</div>
-      <div id="todayRankList"></div>
+      <div class="card-title">👩‍🏫 老師本月累計課費</div>
+      <div id="todayTeacherPayList"></div>
     </div>
     <div class="card">
       <div class="card-title">💰 今日購買明細</div>
@@ -1247,25 +1247,46 @@ function renderToday() {
     }).join('');
   }
 
-  // Rank
-  const rankEl = document.getElementById('todayRankList');
-  const rankData = todayClasses
-    .filter(c=>c.max>0)
-    .map(c=>({ name: c.name, teacher: c.teacher, rate: Math.round(c.booked/c.max*100), booked: c.booked, max: c.max }))
-    .sort((a,b)=>b.rate-a.rate);
-  if (!rankData.length) {
-    rankEl.innerHTML = `<div class="empty-state" style="padding:20px">今日無課程</div>`;
+  // 老師本月累計課費
+  const thisMonth = todayStr().slice(0,7);
+  const monthActiveClasses = classes.filter(c => c.date.slice(0,7)===thisMonth && c.status!=='停課');
+  const teacherPayEl = document.getElementById('todayTeacherPayList');
+
+  if (!teachers.length) {
+    teacherPayEl.innerHTML = `<div class="empty-state" style="padding:20px">尚無老師資料</div>`;
   } else {
-    rankEl.innerHTML = rankData.map((r,i) => `
-      <div class="rank-item">
-        <div class="rank-num ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i+1}</div>
-        <div class="rank-info">
-          <div class="rank-name">${r.name}</div>
-          <div class="rank-meta">${r.teacher} · ${r.booked}/${r.max}</div>
+    // 計算每位老師本月累計課費（只算已上課的，即日期<=今天）
+    const today = todayStr();
+    const doneClasses = monthActiveClasses.filter(c => c.date <= today);
+    const teacherPayData = teachers.map(t => {
+      const tDone = doneClasses.filter(c => c.teacher===t.name);
+      const tAll  = monthActiveClasses.filter(c => c.teacher===t.name);
+      const paid  = tDone.reduce((s,c) => s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)), 0);
+      const total = tAll.reduce((s,c)  => s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)), 0);
+      return { name: t.name, doneCount: tDone.length, totalCount: tAll.length, paid, total };
+    }).filter(t => t.totalCount > 0).sort((a,b) => b.paid - a.paid);
+
+    if (!teacherPayData.length) {
+      teacherPayEl.innerHTML = `<div class="empty-state" style="padding:20px">本月無課程記錄</div>`;
+    } else {
+      const grandTotal = teacherPayData.reduce((s,t)=>s+t.paid,0);
+      teacherPayEl.innerHTML = teacherPayData.map(t => `
+        <div class="rank-item">
+          <div class="rank-info">
+            <div class="rank-name">${t.name}</div>
+            <div class="rank-meta">${t.doneCount}/${t.totalCount} 堂已上課</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:'DM Mono',monospace;font-weight:700;color:var(--accent);font-size:15px">${fmtMoney(t.paid)}</div>
+            ${t.total!==t.paid?`<div style="font-size:11px;color:var(--text3)">預計 ${fmtMoney(t.total)}</div>`:''}
+          </div>
         </div>
-        <div class="rank-val">${r.rate}%</div>
-      </div>
-    `).join('');
+      `).join('') + `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;border-top:1px solid var(--border);margin-top:8px">
+          <div style="font-size:12px;font-weight:700;color:var(--text2)">${thisMonth} 已累計課費</div>
+          <div style="font-family:'DM Mono',monospace;font-weight:900;font-size:18px;color:var(--accent)">${fmtMoney(grandTotal)}</div>
+        </div>`;
+    }
   }
 
   // Today purchases
