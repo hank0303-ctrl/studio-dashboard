@@ -1883,7 +1883,7 @@ async function syncFromSheet() {
       if (!dateStr) return;
 
       // 檢查是否已存在（同日期+學員+方案）
-      const exists = purchases.some(p => p.date === dateStr && p.student === student && p.plan === plan);
+      const exists = purchases.some(p => p.date === dateStr && p.student === student && p.plan === plan && p.amount === amount);
       if (exists) { skipped++; return; }
 
       purchases.push({
