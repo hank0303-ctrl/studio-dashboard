@@ -1185,6 +1185,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
           <input type="number" id="bill_classCount" min="0" value="0" oninput="updateBillTotal()">
         </div>
       </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>上課日期（提供給家長參考）</label>
+        <input type="text" id="bill_classDates" placeholder="如：4/1、4/8、4/15、4/22">
+      </div>
     </div>
 
     <!-- 按天數模式：日曆選擇 -->
@@ -2916,6 +2920,7 @@ function openBillModal(kidId) {
   } else if (k.feeType === 'perClass') {
     document.getElementById('bill_perClassFee').value = existing.mainFee !== undefined ? existing.mainFee : k.baseFee;
     document.getElementById('bill_classCount').value = existing.count || 0;
+    document.getElementById('bill_classDates').value = existing.classDates || '';
   } else if (k.feeType === 'perDay') {
     document.getElementById('bill_perDayFee').value = existing.mainFee !== undefined ? existing.mainFee : k.baseFee;
     renderDayCalendar(month, existing.selectedDays || []);
@@ -3106,6 +3111,7 @@ function saveBillAndCopy() {
   } else if (k.feeType === 'perClass') {
     mainFee = parseInt(document.getElementById('bill_perClassFee').value)||0;
     count   = parseInt(document.getElementById('bill_classCount').value)||0;
+    selectedDays = document.getElementById('bill_classDates').value.trim();
   } else if (k.feeType === 'perDay') {
     mainFee = parseInt(document.getElementById('bill_perDayFee').value)||0;
     selectedDays = getSelectedDays();
@@ -3117,7 +3123,8 @@ function saveBillAndCopy() {
 
   // 儲存
   const billKey = kidId + '_' + month;
-  kidBills[billKey] = { mainFee, count, selectedDays, extraItems };
+  const classDates = k.feeType==='perClass' ? (document.getElementById('bill_classDates').value.trim()) : '';
+  kidBills[billKey] = { mainFee, count, selectedDays, classDates, extraItems };
   save(KEYS.kidBills, kidBills);
 
   // 計算總額
@@ -3133,8 +3140,13 @@ function saveBillAndCopy() {
 
   // 費用明細行
   let detailLines = '';
-  const feeTypeLabel = k.feeType==='monthly'?'月費':k.feeType==='perClass'?`${count}堂`:k.feeType==='perDay'?`${count}天（${selectedDays.map(d=>parseInt(d.split('-')[2])+'日').join('、')}）`:k.feeType==='mixed'?'月費':'費用';
+  const perDayDates = Array.isArray(selectedDays) ? selectedDays.map(d=>parseInt(d.split('-')[2])+'日').join('、') : '';
+  const feeTypeLabel = k.feeType==='monthly'?'月費':k.feeType==='perClass'?`${count}堂`:k.feeType==='perDay'?`${count}天`:k.feeType==='mixed'?'月費':'費用';
   detailLines += `▪️ ${mNum}月${feeTypeLabel === '月費' || feeTypeLabel === '費用' ? '' : '（'+feeTypeLabel+'）'}：NT$${base.toLocaleString()}
+`;
+  if (k.feeType==='perClass' && classDates) detailLines += `   📅 上課日期：${classDates}
+`;
+  if (k.feeType==='perDay' && perDayDates) detailLines += `   📅 上課日期：${perDayDates}
 `;
   extraItems.forEach(e => {
     detailLines += `▪️ ${e.name}：NT$${e.amount.toLocaleString()}
@@ -3282,8 +3294,14 @@ function copyKidBill(kidId, month) {
   const extraTotal = extraItems.reduce((s,e)=>s+e.amount,0);
   const total = base + extraTotal;
 
-  const selectedDays = bill.selectedDays||[]; const feeTypeLabel = k.feeType==='monthly'?'月費':k.feeType==='perClass'?`${bill.count}堂`:k.feeType==='perDay'?`${bill.count}天（${selectedDays.map(d=>parseInt(d.split('-')[2])+'日').join('、')}）`:'月費';
+  const selectedDays = bill.selectedDays||[]; 
+  const classDates3 = bill.classDates||'';
+  const feeTypeLabel = k.feeType==='monthly'?'月費':k.feeType==='perClass'?`${bill.count}堂`:k.feeType==='perDay'?`${bill.count}天（${Array.isArray(selectedDays)?selectedDays.map(d=>parseInt(d.split('-')[2])+'日').join('、'):''}）`:'月費';
   let detailLines = `▪️ ${mNum}月${feeTypeLabel==='月費'?'':' （'+feeTypeLabel+'）'}：NT$${base.toLocaleString()}
+`;
+  if (k.feeType==='perClass' && classDates3) detailLines += `   📅 上課日期：${classDates3}
+`;
+  if (k.feeType==='perDay' && Array.isArray(selectedDays) && selectedDays.length) detailLines += `   📅 上課日期：${selectedDays.map(d=>parseInt(d.split('-')[2])+'日').join('、')}
 `;
   extraItems.forEach(e => { detailLines += `▪️ ${e.name}：NT$${e.amount.toLocaleString()}
 `; });
