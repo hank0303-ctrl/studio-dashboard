@@ -513,6 +513,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
         📂 上傳 Excel 報表
         <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importClassExcel(this)">
       </label>
+      <button class="btn btn-secondary" onclick="deduplicateClasses()">🧹 清除重複課程</button>
       <button class="btn btn-primary" onclick="openModal('addClassModal')">＋ 新增課程</button>
     </div>
   </div>
@@ -2491,7 +2492,7 @@ function importClassExcel(input) {
 
         function saveCourse(c) {
           if (!c.date || !c.name) return;
-          const exists = classes.some(x => x.date===c.date && x.timeStart===c.timeStart && x.name===c.name);
+          const exists = classes.some(x => x.date===c.date && x.timeStart===c.timeStart && x.name===c.name && (x.teacher===c.teacher||!x.teacher||!c.teacher));
           if (exists) { skipped++; return; }
           // 嘗試從現有資料找上限
           const existing = classes.find(x => x.name===c.name && x.teacher===c.teacher);
@@ -2580,7 +2581,7 @@ function importScheduleExcel(input) {
 
       function saveCourse(c) {
         if (!c || !c.date || !c.name) return;
-        const existIdx = classes.findIndex(x => x.date===c.date && x.timeStart===c.timeStart && x.name===c.name);
+        const existIdx = classes.findIndex(x => x.date===c.date && x.timeStart===c.timeStart && x.name===c.name && (x.teacher===c.teacher || !x.teacher || !c.teacher));
         if (existIdx >= 0) {
           // 更新預約人數
           if (classes[existIdx].booked !== c.booked) {
@@ -3332,6 +3333,25 @@ ${k.bank||'台北富邦銀行（代碼 012）中壢分行'}
   }).catch(()=>{
     prompt('複製以下文案：', text);
   });
+}
+
+
+// ═══════════════════════════════
+//  清除重複課程工具
+// ═══════════════════════════════
+function deduplicateClasses() {
+  const seen = new Set();
+  const before = classes.length;
+  classes = classes.filter(c => {
+    const key = `${c.date}_${c.timeStart}_${c.name}_${c.teacher||''}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const removed = before - classes.length;
+  save(KEYS.classes, classes);
+  showToast(`✅ 已清除 ${removed} 筆重複課程`, 'success');
+  refreshCurrentPage();
 }
 
 // ═══════════════════════════════
