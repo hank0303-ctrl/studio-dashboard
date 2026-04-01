@@ -427,6 +427,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   <button class="nav-btn" onclick="showPage('teacher')">👩‍🏫 老師管理</button>
   <button class="nav-btn" onclick="showPage('student')">🎫 學員方案</button>
   <button class="nav-btn" onclick="showPage('monthly')">📅 月結報表</button>
+  <button class="nav-btn" onclick="showPage('kids')">👧 兒童收費</button>
   <div class="nav-spacer"></div>
   <button class="btn btn-secondary btn-sm" onclick="syncFromSheet()" id="syncBtn" style="font-size:12px;padding:5px 12px">🔄 同步試算表</button>
   <div class="nav-date" id="navDate" style="margin-left:8px"></div>
@@ -991,6 +992,208 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════
+     PAGE 兒童收費
+════════════════════════════════════════════ -->
+<div class="page" id="page-kids">
+  <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
+    <div>
+      <div style="font-size:24px;font-weight:900;margin-bottom:4px">👧 兒童收費</div>
+      <div style="color:var(--text3);font-size:13px">每月費用計算與家長通知</div>
+    </div>
+    <div class="flex gap-8 flex-wrap">
+      <select id="kidsMonthSelect" onchange="renderKidsPage()" style="min-width:130px"></select>
+      <button class="btn btn-primary" onclick="openModal('addKidModal')">＋ 新增學童</button>
+    </div>
+  </div>
+
+  <!-- 月份統計 -->
+  <div class="grid-4 mb-16" id="kidsStats"></div>
+
+  <!-- 學童列表 -->
+  <div id="kidsContainer"></div>
+</div>
+
+<!-- 新增/編輯學童 Modal -->
+<div class="modal-overlay" id="addKidModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title">新增學童</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>學童姓名</label>
+        <input type="text" id="kid_name" placeholder="如：曹彥璟">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>班級/年齡</label>
+        <input type="text" id="kid_class" placeholder="如：國小三年級">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>課程名稱</label>
+        <input type="text" id="kid_course" placeholder="如：課後才藝班">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>負責老師</label>
+        <input type="text" id="kid_teacher" placeholder="如：莊佳雯">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>收費方式</label>
+        <select id="kid_feeType">
+          <option value="monthly">月費（固定金額）</option>
+          <option value="perClass">按堂數計算</option>
+          <option value="perDay">按天數計算</option>
+          <option value="mixed">混合（月費+額外項目）</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>基本費用 ($)</label>
+        <input type="number" id="kid_baseFee" value="0" min="0" placeholder="月費或每堂/每天單價">
+      </div>
+    </div>
+    <div class="form-group mb-16" id="kid_extraFeeGroup">
+      <label>額外費用項目（格式：項目名稱:金額，每行一個）</label>
+      <textarea id="kid_extraItems" rows="3" placeholder="評量:780&#10;教材費:500&#10;活動費:300" style="width:100%;resize:vertical"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>家長匯款銀行</label>
+        <input type="text" id="kid_bank" value="台北富邦銀行（代碼 012）中壢分行">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>匯款帳號</label>
+        <input type="text" id="kid_account" value="82120000015649">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>戶名</label>
+        <input type="text" id="kid_accountName" value="運武樂有限公司">
+      </div>
+    </div>
+    <div class="form-group mb-16">
+      <label>備註</label>
+      <input type="text" id="kid_note" placeholder="選填">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addKidModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveKid()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯學童 Modal -->
+<div class="modal-overlay" id="editKidModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title" id="editKidTitle">編輯學童</div>
+    <input type="hidden" id="edit_kid_id">
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>學童姓名</label>
+        <input type="text" id="edit_kid_name">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>班級/年齡</label>
+        <input type="text" id="edit_kid_class">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>課程名稱</label>
+        <input type="text" id="edit_kid_course">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>負責老師</label>
+        <input type="text" id="edit_kid_teacher">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>收費方式</label>
+        <select id="edit_kid_feeType">
+          <option value="monthly">月費（固定金額）</option>
+          <option value="perClass">按堂數計算</option>
+          <option value="perDay">按天數計算</option>
+          <option value="mixed">混合（月費+額外項目）</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>基本費用 ($)</label>
+        <input type="number" id="edit_kid_baseFee" min="0">
+      </div>
+    </div>
+    <div class="form-group mb-16">
+      <label>額外費用項目（格式：項目名稱:金額，每行一個）</label>
+      <textarea id="edit_kid_extraItems" rows="3" style="width:100%;resize:vertical"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label>匯款銀行</label>
+        <input type="text" id="edit_kid_bank">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>匯款帳號</label>
+        <input type="text" id="edit_kid_account">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>戶名</label>
+        <input type="text" id="edit_kid_accountName">
+      </div>
+    </div>
+    <div class="form-group mb-16">
+      <label>備註</label>
+      <input type="text" id="edit_kid_note">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" onclick="deleteKid(document.getElementById('edit_kid_id').value)">刪除</button>
+      <button class="btn btn-secondary" onclick="closeModal('editKidModal')">取消</button>
+      <button class="btn btn-primary" onclick="updateKid()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 月費明細編輯 Modal -->
+<div class="modal-overlay" id="kidBillModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="kidBillTitle">編輯本月費用明細</div>
+    <input type="hidden" id="bill_kid_id">
+    <input type="hidden" id="bill_month">
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">調整後系統自動計算總金額並產生家長通知文案</div>
+
+    <!-- 主要費用 -->
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label id="bill_main_label">月費金額 ($)</label>
+        <input type="number" id="bill_mainFee" min="0">
+      </div>
+      <div class="form-group" style="flex:1" id="bill_count_group" style="display:none">
+        <label id="bill_count_label">堂數/天數</label>
+        <input type="number" id="bill_count" min="0" value="0">
+      </div>
+    </div>
+
+    <!-- 額外項目 -->
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">額外費用項目</div>
+    <div id="bill_extra_items"></div>
+    <button class="btn btn-secondary btn-sm mt-16" onclick="addBillExtraItem()" style="margin-bottom:16px">＋ 新增項目</button>
+
+    <!-- 預覽 -->
+    <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:700">總金額預覽</div>
+      <div id="bill_total_preview" style="font-size:28px;font-weight:900;color:var(--accent);font-family:'DM Mono',monospace"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('kidBillModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveBillAndCopy()">💾 儲存並複製文案</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════
 //  DATA LAYER
@@ -1065,7 +1268,7 @@ function showPage(name) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   const btns = document.querySelectorAll('.nav-btn');
-  const idx = ['today','week','class','teacher','student','monthly'].indexOf(name);
+  const idx = ['today','week','class','teacher','student','monthly','kids'].indexOf(name);
   if (idx >= 0) btns[idx].classList.add('active');
   if (name==='today') renderToday();
   if (name==='week') renderWeekFull();
@@ -1073,6 +1276,7 @@ function showPage(name) {
   if (name==='teacher') renderTeacherPage();
   if (name==='student') renderStudentPage();
   if (name==='monthly') renderMonthlyPage();
+  if (name==='kids') renderKidsPage();
 }
 
 // ═══════════════════════════════
@@ -2561,6 +2765,407 @@ function renderWeekFull() {
   const fmt = d => `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
   document.getElementById('weekFullRangeLabel').textContent = `${fmt(start)} – ${fmt(end)}`;
   document.getElementById('weekTableFull').innerHTML = buildWeekGrid(weekDays, false);
+}
+
+
+// ═══════════════════════════════
+//  兒童收費
+// ═══════════════════════════════
+KEYS.kids  = 'studio_kids';
+KEYS.kidBills = 'studio_kid_bills';
+
+let kids     = load(KEYS.kids);
+let kidBills = load(KEYS.kidBills); // { "kidId_yyyy-MM": { mainFee, count, extraItems:[{name,amount}] } }
+
+// ── CRUD ──
+function saveKid() {
+  const k = {
+    id: uid(),
+    name:        document.getElementById('kid_name').value.trim(),
+    grade:       document.getElementById('kid_class').value.trim(),
+    course:      document.getElementById('kid_course').value.trim(),
+    teacher:     document.getElementById('kid_teacher').value.trim(),
+    feeType:     document.getElementById('kid_feeType').value,
+    baseFee:     parseInt(document.getElementById('kid_baseFee').value)||0,
+    extraItems:  parseExtraItems(document.getElementById('kid_extraItems').value),
+    bank:        document.getElementById('kid_bank').value.trim(),
+    account:     document.getElementById('kid_account').value.trim(),
+    accountName: document.getElementById('kid_accountName').value.trim(),
+    note:        document.getElementById('kid_note').value.trim(),
+  };
+  if (!k.name) return alert('請填寫學童姓名');
+  kids.push(k);
+  save(KEYS.kids, kids);
+  closeModal('addKidModal');
+  renderKidsPage();
+}
+
+function editKid(id) {
+  const k = kids.find(x=>x.id===id);
+  if (!k) return;
+  document.getElementById('edit_kid_id').value        = k.id;
+  document.getElementById('edit_kid_name').value      = k.name;
+  document.getElementById('edit_kid_class').value     = k.grade||'';
+  document.getElementById('edit_kid_course').value    = k.course||'';
+  document.getElementById('edit_kid_teacher').value   = k.teacher||'';
+  document.getElementById('edit_kid_feeType').value   = k.feeType||'monthly';
+  document.getElementById('edit_kid_baseFee').value   = k.baseFee||0;
+  document.getElementById('edit_kid_extraItems').value = (k.extraItems||[]).map(e=>e.name+':'+e.amount).join('
+');
+  document.getElementById('edit_kid_bank').value        = k.bank||'台北富邦銀行（代碼 012）中壢分行';
+  document.getElementById('edit_kid_account').value     = k.account||'82120000015649';
+  document.getElementById('edit_kid_accountName').value = k.accountName||'運武樂有限公司';
+  document.getElementById('edit_kid_note').value        = k.note||'';
+  openModal('editKidModal');
+}
+
+function updateKid() {
+  const id = document.getElementById('edit_kid_id').value;
+  const idx = kids.findIndex(x=>x.id===id);
+  if (idx<0) return;
+  kids[idx] = { ...kids[idx],
+    name:        document.getElementById('edit_kid_name').value.trim(),
+    grade:       document.getElementById('edit_kid_class').value.trim(),
+    course:      document.getElementById('edit_kid_course').value.trim(),
+    teacher:     document.getElementById('edit_kid_teacher').value.trim(),
+    feeType:     document.getElementById('edit_kid_feeType').value,
+    baseFee:     parseInt(document.getElementById('edit_kid_baseFee').value)||0,
+    extraItems:  parseExtraItems(document.getElementById('edit_kid_extraItems').value),
+    bank:        document.getElementById('edit_kid_bank').value.trim(),
+    account:     document.getElementById('edit_kid_account').value.trim(),
+    accountName: document.getElementById('edit_kid_accountName').value.trim(),
+    note:        document.getElementById('edit_kid_note').value.trim(),
+  };
+  save(KEYS.kids, kids);
+  closeModal('editKidModal');
+  renderKidsPage();
+}
+
+function deleteKid(id) {
+  if (!confirm('確定刪除這位學童？')) return;
+  kids = kids.filter(x=>x.id!==id);
+  save(KEYS.kids, kids);
+  closeModal('editKidModal');
+  renderKidsPage();
+}
+
+function parseExtraItems(text) {
+  if (!text) return [];
+  return text.split('
+').map(line => {
+    const parts = line.split(':');
+    if (parts.length < 2) return null;
+    const amount = parseInt(parts[parts.length-1].replace(/[^0-9]/g,''))||0;
+    const name = parts.slice(0,-1).join(':').trim();
+    return name ? { name, amount } : null;
+  }).filter(Boolean);
+}
+
+// ── 月費明細 Modal ──
+function openBillModal(kidId) {
+  const k = kids.find(x=>x.id===kidId);
+  if (!k) return;
+  const month = document.getElementById('kidsMonthSelect').value;
+  const billKey = kidId + '_' + month;
+  const existing = kidBills[billKey] || {};
+
+  document.getElementById('bill_kid_id').value = kidId;
+  document.getElementById('bill_month').value  = month;
+  document.getElementById('kidBillTitle').textContent = `${k.name} — ${month} 費用明細`;
+
+  // 主要費用
+  const feeLabels = { monthly:'月費金額 ($)', perClass:'每堂費用 × 堂數', perDay:'每天費用 × 天數', mixed:'月費金額 ($)' };
+  document.getElementById('bill_main_label').textContent = feeLabels[k.feeType] || '費用 ($)';
+  document.getElementById('bill_mainFee').value = existing.mainFee !== undefined ? existing.mainFee : k.baseFee;
+
+  const countGroup = document.getElementById('bill_count_group');
+  if (k.feeType === 'perClass' || k.feeType === 'perDay') {
+    countGroup.style.display = 'flex';
+    document.getElementById('bill_count_label').textContent = k.feeType==='perClass' ? '本月堂數' : '本月天數';
+    document.getElementById('bill_count').value = existing.count || 0;
+  } else {
+    countGroup.style.display = 'none';
+  }
+
+  // 額外項目
+  const extraItems = existing.extraItems !== undefined ? existing.extraItems : (k.extraItems||[]);
+  renderBillExtraItems(extraItems);
+  updateBillTotal();
+  openModal('kidBillModal');
+}
+
+function renderBillExtraItems(items) {
+  const container = document.getElementById('bill_extra_items');
+  container.innerHTML = items.map((item, i) => `
+    <div class="form-row" style="align-items:center;gap:8px;margin-bottom:8px" id="extra_item_${i}">
+      <div class="form-group" style="flex:2">
+        <input type="text" value="${item.name}" placeholder="項目名稱" oninput="updateBillTotal()" style="width:100%">
+      </div>
+      <div class="form-group" style="flex:1">
+        <input type="number" value="${item.amount}" placeholder="金額" min="0" oninput="updateBillTotal()" style="width:100%">
+      </div>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="removeBillExtraItem(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function addBillExtraItem() {
+  const container = document.getElementById('bill_extra_items');
+  const count = container.children.length;
+  const div = document.createElement('div');
+  div.className = 'form-row';
+  div.style.cssText = 'align-items:center;gap:8px;margin-bottom:8px';
+  div.id = `extra_item_${count}`;
+  div.innerHTML = `
+    <div class="form-group" style="flex:2">
+      <input type="text" placeholder="項目名稱" oninput="updateBillTotal()" style="width:100%">
+    </div>
+    <div class="form-group" style="flex:1">
+      <input type="number" placeholder="金額" min="0" value="0" oninput="updateBillTotal()" style="width:100%">
+    </div>
+    <button class="btn btn-danger btn-sm btn-icon" onclick="removeBillExtraItem(${count})">✕</button>
+  `;
+  container.appendChild(div);
+  updateBillTotal();
+}
+
+function removeBillExtraItem(idx) {
+  const el = document.getElementById('extra_item_' + idx);
+  if (el) el.remove();
+  updateBillTotal();
+}
+
+function getBillExtraItems() {
+  const container = document.getElementById('bill_extra_items');
+  const items = [];
+  container.querySelectorAll('[id^="extra_item_"]').forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const name   = inputs[0]?.value.trim();
+    const amount = parseInt(inputs[1]?.value)||0;
+    if (name) items.push({ name, amount });
+  });
+  return items;
+}
+
+function updateBillTotal() {
+  const kidId = document.getElementById('bill_kid_id').value;
+  const k = kids.find(x=>x.id===kidId);
+  if (!k) return;
+  const mainFee = parseInt(document.getElementById('bill_mainFee').value)||0;
+  const count   = parseInt(document.getElementById('bill_count').value)||0;
+  const extraItems = getBillExtraItems();
+  const extraTotal = extraItems.reduce((s,e)=>s+e.amount, 0);
+  let base = mainFee;
+  if (k.feeType==='perClass'||k.feeType==='perDay') base = mainFee * count;
+  const total = base + extraTotal;
+  document.getElementById('bill_total_preview').textContent = fmtMoney(total);
+}
+
+function saveBillAndCopy() {
+  const kidId = document.getElementById('bill_kid_id').value;
+  const month = document.getElementById('bill_month').value;
+  const k = kids.find(x=>x.id===kidId);
+  if (!k) return;
+
+  const mainFee    = parseInt(document.getElementById('bill_mainFee').value)||0;
+  const count      = parseInt(document.getElementById('bill_count').value)||0;
+  const extraItems = getBillExtraItems();
+
+  // 儲存
+  const billKey = kidId + '_' + month;
+  kidBills[billKey] = { mainFee, count, extraItems };
+  save(KEYS.kidBills, kidBills);
+
+  // 計算總額
+  let base = mainFee;
+  if (k.feeType==='perClass'||k.feeType==='perDay') base = mainFee * count;
+  const extraTotal = extraItems.reduce((s,e)=>s+e.amount, 0);
+  const total = base + extraTotal;
+
+  // 產生文案
+  const monthLabel = month.replace('-','年') + '月';
+  const [y, m] = month.split('-');
+  const mNum = parseInt(m);
+
+  // 費用明細行
+  let detailLines = '';
+  const feeTypeLabel = k.feeType==='monthly'?'月費':k.feeType==='perClass'?`${count}堂課`:k.feeType==='perDay'?`${count}天`:k.feeType==='mixed'?'月費':'費用';
+  detailLines += `▪️ ${mNum}月${feeTypeLabel === '月費' || feeTypeLabel === '費用' ? '' : '（'+feeTypeLabel+'）'}：NT$${base.toLocaleString()}
+`;
+  extraItems.forEach(e => {
+    detailLines += `▪️ ${e.name}：NT$${e.amount.toLocaleString()}
+`;
+  });
+
+  const text =
+`📢 親愛的家長您好
+
+提醒您繳交 ${k.name} ${mNum}月 ${k.course||'課後／才藝班'}費用：
+
+💰 應繳金額：NT$${total.toLocaleString()}
+
+📒 費用明細
+${detailLines.trim()}
+
+🏦 匯款資訊
+${k.bank||'台北富邦銀行（代碼 012）中壢分行'}
+帳號：${k.account||'82120000015649'}
+戶名：${k.accountName||'運武樂有限公司'}
+
+🔔 匯款完成後，請回傳帳號末五碼以便核對，感謝您的配合 🙏`;
+
+  navigator.clipboard.writeText(text).then(()=>{
+    showToast('✅ 已複製！可直接貼給 '+k.name+' 的家長', 'success');
+    closeModal('kidBillModal');
+    renderKidsPage();
+  }).catch(()=>{
+    // fallback: 顯示在 alert
+    prompt('複製以下文案：', text);
+  });
+}
+
+// ── 渲染 ──
+function renderKidsPage() {
+  // 月份選單
+  const now = new Date();
+  const months = [];
+  for (let i=0; i<6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  const sel = document.getElementById('kidsMonthSelect');
+  const cur = sel.value || months[0];
+  sel.innerHTML = months.map(m=>`<option value="${m}">${m}</option>`).join('');
+  sel.value = cur;
+
+  const month = sel.value;
+  const mNum = parseInt(month.split('-')[1]);
+
+  // 統計
+  const totalKids = kids.length;
+  const billedKids = kids.filter(k => kidBills[k.id+'_'+month]).length;
+  const totalAmount = kids.reduce((s,k) => {
+    const bill = kidBills[k.id+'_'+month];
+    if (!bill) return s;
+    let base = bill.mainFee||0;
+    if (k.feeType==='perClass'||k.feeType==='perDay') base = (bill.mainFee||0)*(bill.count||0);
+    const extra = (bill.extraItems||[]).reduce((ss,e)=>ss+e.amount,0);
+    return s + base + extra;
+  }, 0);
+
+  document.getElementById('kidsStats').innerHTML = `
+    <div class="stat-card gold"><div class="stat-num">${totalKids}</div><div class="stat-label">學童總數</div></div>
+    <div class="stat-card green"><div class="stat-num">${billedKids}</div><div class="stat-label">已完成費用計算</div><div class="stat-sub">${month}</div></div>
+    <div class="stat-card red"><div class="stat-num">${totalKids-billedKids}</div><div class="stat-label">尚未計算</div></div>
+    <div class="stat-card purple"><div class="stat-num">${fmtMoney(totalAmount)}</div><div class="stat-label">本月應收合計</div></div>
+  `;
+
+  // 學童卡片
+  const container = document.getElementById('kidsContainer');
+  if (!kids.length) {
+    container.innerHTML = `<div class="card empty-state">尚無學童資料，請新增學童</div>`;
+    return;
+  }
+
+  const feeTypeLabel = { monthly:'月費', perClass:'按堂數', perDay:'按天數', mixed:'混合' };
+
+  container.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px">` +
+    kids.map(k => {
+      const bill = kidBills[k.id+'_'+month];
+      let base = 0, extra = 0, total = 0;
+      if (bill) {
+        base = bill.mainFee||0;
+        if (k.feeType==='perClass'||k.feeType==='perDay') base = (bill.mainFee||0)*(bill.count||0);
+        extra = (bill.extraItems||[]).reduce((s,e)=>s+e.amount,0);
+        total = base + extra;
+      }
+      const hasBill = !!bill;
+
+      return `<div class="card" style="position:relative">
+        <div class="flex items-center justify-between mb-16" style="flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:18px;font-weight:900">${k.name}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">
+              ${k.grade||''} ${k.course ? '· '+k.course : ''} ${k.teacher ? '· '+k.teacher : ''}
+            </div>
+          </div>
+          <div class="flex gap-8">
+            <button class="btn btn-secondary btn-sm" onclick="editKid('${k.id}')">⚙️ 設定</button>
+            <button class="btn ${hasBill?'btn-secondary':'btn-primary'} btn-sm" onclick="openBillModal('${k.id}')">
+              ${hasBill?'✏️ 編輯費用':'📝 填寫費用'}
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+          <span class="badge badge-purple">${feeTypeLabel[k.feeType]||'月費'} · 基本 ${fmtMoney(k.baseFee)}</span>
+          ${k.note ? `<span class="badge badge-gold">${k.note}</span>` : ''}
+        </div>
+
+        ${hasBill ? `
+          <div style="background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.2);border-radius:10px;padding:14px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:700">${mNum}月費用明細</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.8">
+              ${bill.mainFee!==undefined ? `<div>月費：${fmtMoney(base)}</div>` : ''}
+              ${(bill.extraItems||[]).map(e=>`<div>${e.name}：${fmtMoney(e.amount)}</div>`).join('')}
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid rgba(200,169,110,0.2)">
+              <div style="font-size:13px;font-weight:700;color:var(--text2)">應繳合計</div>
+              <div style="font-size:22px;font-weight:900;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(total)}</div>
+            </div>
+            <button class="btn btn-primary" style="width:100%;margin-top:10px;justify-content:center" onclick="copyKidBill('${k.id}','${month}')">
+              📋 複製家長通知
+            </button>
+          </div>
+        ` : `
+          <div style="background:var(--surface2);border-radius:10px;padding:14px;text-align:center;color:var(--text3);font-size:13px">
+            尚未填寫 ${mNum}月費用，點「填寫費用」開始
+          </div>
+        `}
+      </div>`;
+    }).join('') + `</div>`;
+}
+
+function copyKidBill(kidId, month) {
+  const k = kids.find(x=>x.id===kidId);
+  const bill = kidBills[kidId+'_'+month];
+  if (!k || !bill) return;
+
+  const mNum = parseInt(month.split('-')[1]);
+  let base = bill.mainFee||0;
+  if (k.feeType==='perClass'||k.feeType==='perDay') base = (bill.mainFee||0)*(bill.count||0);
+  const extraItems = bill.extraItems||[];
+  const extraTotal = extraItems.reduce((s,e)=>s+e.amount,0);
+  const total = base + extraTotal;
+
+  const feeTypeLabel = k.feeType==='monthly'?'月費':k.feeType==='perClass'?`${bill.count}堂課`:k.feeType==='perDay'?`${bill.count}天`:'月費';
+  let detailLines = `▪️ ${mNum}月${feeTypeLabel==='月費'?'':' （'+feeTypeLabel+'）'}：NT$${base.toLocaleString()}
+`;
+  extraItems.forEach(e => { detailLines += `▪️ ${e.name}：NT$${e.amount.toLocaleString()}
+`; });
+
+  const text =
+`📢 親愛的家長您好
+
+提醒您繳交 ${k.name} ${mNum}月 ${k.course||'課後／才藝班'}費用：
+
+💰 應繳金額：NT$${total.toLocaleString()}
+
+📒 費用明細
+${detailLines.trim()}
+
+🏦 匯款資訊
+${k.bank||'台北富邦銀行（代碼 012）中壢分行'}
+帳號：${k.account||'82120000015649'}
+戶名：${k.accountName||'運武樂有限公司'}
+
+🔔 匯款完成後，請回傳帳號末五碼以便核對，感謝您的配合 🙏`;
+
+  navigator.clipboard.writeText(text).then(()=>{
+    showToast('✅ 已複製！可直接貼給 '+k.name+' 的家長', 'success');
+  }).catch(()=>{
+    prompt('複製以下文案：', text);
+  });
 }
 
 // ═══════════════════════════════
