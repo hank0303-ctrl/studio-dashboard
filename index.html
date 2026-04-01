@@ -2187,7 +2187,7 @@ async function syncBookingStats() {
 }
 
 // ═══════════════════════════════
-//  匯入 BookFast Excel 報表
+//  匯入 BookFast Excel 報表（支援兩種格式）
 // ═══════════════════════════════
 function importClassExcel(input) {
   const file = input.files[0];
@@ -2195,7 +2195,6 @@ function importClassExcel(input) {
   const reader = new FileReader();
   reader.onload = async e => {
     try {
-      // 動態載入 SheetJS
       if (!window.XLSX) {
         await new Promise((res,rej)=>{
           const s=document.createElement('script');
@@ -2206,60 +2205,88 @@ function importClassExcel(input) {
       }
       const wb = XLSX.read(e.target.result, {type:'array'});
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, {header:1});
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
 
-      // 找標題列（包含「課程日期」的那列）
-      let headerIdx = -1;
-      for (let i=0;i<rows.length;i++) {
-        if (rows[i].some(c=>String(c).includes('課程日期'))) { headerIdx=i; break; }
-      }
-      if (headerIdx<0) { showToast('❌ 找不到課程資料，請確認是 BookFast 團體課報表', 'error'); return; }
+      // 判斷格式：預約明細版 or 課程報表版
+      const firstCell = String(rows[1]?.[0] || '');
+      const isDetailFormat = /\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}~\d{2}:\d{2}__/.test(firstCell);
 
-      const headers = rows[headerIdx];
-      const getCol = (name) => headers.findIndex(h=>String(h||'').includes(name));
+      let added = 0, skipped = 0;
 
-      const colDate     = getCol('課程日期');
-      const colTime     = getCol('課程時間');
-      const colName     = getCol('課程名稱');
-      const colStatus   = getCol('課程狀態');
-      const colTeacher  = getCol('授課老師');
-      const colMax      = getCol('開課名額');
-      const colBooked   = getCol('預約總人數');
-      const colAttended = getCol('到課總人數');
+      if (isDetailFormat) {
+        // ── 格式二：預約明細簽到版 ──
+        let current = null;
+        rows.forEach(row => {
+          const cell0 = String(row[0] || '').trim();
+          const m = cell0.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}:\d{2})~(\d{2}:\d{2})__(.+?)_(.+?)\((\w+)\)_\d+分鐘_(\w+)_/);
+          if (m) {
+            if (current) saveCourse(current);
+            current = {
+              date: `${m[1]}-${m[2]}-${m[3]}`,
+              timeStart: m[4], timeEnd: m[5],
+              name: m[6], teacher: m[7],
+              status: m[9]==='停課'?'停課':'正常',
+              booked: 0, max: 0, attended: 0,
+            };
+          } else if (current && cell0 && cell0 !== '預約時間' && /^\d{4}\//.test(cell0)) {
+            const student = String(row[3] || '').trim();
+            if (student) current.booked++;
+          }
+        });
+        if (current) saveCourse(current);
 
-      let added=0, skipped=0;
-      for (let i=headerIdx+1;i<rows.length;i++) {
-        const row = rows[i];
-        if (!row || !row[colDate]) continue;
+        function saveCourse(c) {
+          if (!c.date || !c.name) return;
+          const exists = classes.some(x => x.date===c.date && x.timeStart===c.timeStart && x.name===c.name);
+          if (exists) { skipped++; return; }
+          // 嘗試從現有資料找上限
+          const existing = classes.find(x => x.name===c.name && x.teacher===c.teacher);
+          c.max = existing ? existing.max : 10;
+          classes.push({ id:uid(), ...c, room:'', note:'📂 Excel匯入' });
+          added++;
+        }
 
-        const rawDate = String(row[colDate]||'');
-        const dateStr = rawDate.replace(/\//g,'-');
-        if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) continue;
+      } else {
+        // ── 格式一：課程報表版（原有邏輯）──
+        let headerIdx = -1;
+        for (let i=0;i<rows.length;i++) {
+          if (rows[i].some(c=>String(c).includes('課程日期'))) { headerIdx=i; break; }
+        }
+        if (headerIdx<0) { showToast('❌ 無法識別檔案格式', 'error'); return; }
 
-        const rawTime  = String(row[colTime]||'');
-        const timeParts = rawTime.split(/[~～\-]/);
-        const timeStart = timeParts[0]?.trim()||'';
-        const timeEnd   = timeParts[1]?.trim()||'';
-        const name      = String(row[colName]||'').trim();
-        const teacher   = String(row[colTeacher]||'').trim();
-        const status    = String(row[colStatus]||'正常').trim();
-        const max       = parseInt(row[colMax])||0;
-        const booked    = parseInt(row[colBooked])||0;
-        const attended  = parseInt(row[colAttended])||0;
+        const headers = rows[headerIdx];
+        const getCol = name => headers.findIndex(h=>String(h||'').includes(name));
+        const colDate=getCol('課程日期'), colTime=getCol('課程時間'), colName=getCol('課程名稱');
+        const colStatus=getCol('課程狀態'), colTeacher=getCol('授課老師'), colMax=getCol('開課名額');
+        const colBooked=getCol('預約總人數'), colAttended=getCol('到課總人數');
 
-        if (!name || !dateStr) continue;
-
-        // 防重複
-        const exists = classes.some(c=>c.date===dateStr&&c.timeStart===timeStart&&c.name===name);
-        if (exists) { skipped++; continue; }
-
-        classes.push({ id:uid(), date:dateStr, timeStart, timeEnd, name, teacher, room:'', max, booked, attended, status, note:'📂 Excel匯入' });
-        added++;
+        for (let i=headerIdx+1;i<rows.length;i++) {
+          const row=rows[i];
+          if (!row||!row[colDate]) continue;
+          const rawDate=String(row[colDate]||'');
+          const dateStr=rawDate.replace(/\//g,'-');
+          if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) continue;
+          const timeParts=String(row[colTime]||'').split(/[~～\-]/);
+          const timeStart=timeParts[0]?.trim()||'';
+          const timeEnd=timeParts[1]?.trim()||'';
+          const name=String(row[colName]||'').trim();
+          const teacher=String(row[colTeacher]||'').trim();
+          const status=String(row[colStatus]||'正常').trim();
+          const max=parseInt(row[colMax])||0;
+          const booked=parseInt(row[colBooked])||0;
+          const attended=parseInt(row[colAttended])||0;
+          if (!name||!dateStr) continue;
+          const exists=classes.some(c=>c.date===dateStr&&c.timeStart===timeStart&&c.name===name);
+          if (exists){skipped++;continue;}
+          classes.push({id:uid(),date:dateStr,timeStart,timeEnd,name,teacher,room:'',max,booked,attended,status,note:'📂 Excel匯入'});
+          added++;
+        }
       }
 
       save(KEYS.classes, classes);
-      showToast(`✅ 匯入完成！新增 ${added} 筆，跳過 ${skipped} 筆重複`, 'success');
+      showToast(`✅ 匯入完成！新增 ${added} 堂，跳過 ${skipped} 筆重複`, 'success');
       renderClassPage();
+      if (document.getElementById('page-today').classList.contains('active')) renderToday();
     } catch(err) {
       console.error(err);
       showToast('❌ 匯入失敗：' + err.message, 'error');
