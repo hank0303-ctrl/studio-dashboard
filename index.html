@@ -1939,7 +1939,7 @@ function renderTeacherPage() {
           >`}
         </td>
         <td style="padding:4px 8px;border-bottom:1px solid var(--border)">
-          <input type="text" value="${c.note||''}" placeholder="備註"
+          <input type="text" value="${(c.note&&!c.note.includes('匯入')&&!c.note.includes('Excel'))?c.note:''}" placeholder="備註"
             style="width:120px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:12px;padding:3px 6px"
             onchange="updateClassNote('${c.id}',this.value)"
           >
@@ -2002,13 +2002,13 @@ function renderTeacherPage() {
               <th style="padding:8px 10px;text-align:left;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">狀態</th>
               <th style="padding:8px 10px;text-align:right;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">課費</th>
               <th style="padding:8px 10px;text-align:left;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">備註</th>
-              <th style="padding:8px 10px;width:32px"></th>
+              <th style="padding:8px 10px;width:28px"></th>
             </tr>
           </thead>
           <tbody>${detailRows}</tbody>
           <tfoot>
             <tr style="background:var(--surface2)">
-              <td colspan="8" style="padding:14px 10px;font-weight:700;font-size:13px;color:var(--text2)">本月課費合計（停課不計費）</td>
+              <td colspan="9" style="padding:14px 10px;font-weight:700;font-size:13px;color:var(--text2)">本月課費合計（停課不計費）</td>
               <td style="padding:14px 10px;text-align:right;font-weight:900;font-size:22px;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(totalPay)}</td>
             </tr>
           </tfoot>
@@ -3509,7 +3509,7 @@ async function downloadTeacherImage(teacherId, month) {
     const isFull      = c.status === '滿班';
     const pay = isCancelled ? 0 : (c.customPay !== undefined ? c.customPay : calcTeacherPay(t,c));
     const rate = c.max>0 ? Math.round(c.booked/c.max*100) : 0;
-    const noteText = c.note || '';
+    const noteText = (c.note && !c.note.includes('匯入') && !c.note.includes('Excel')) ? c.note : '';
 
     // 行背景
     ctx.fillStyle = idx%2===0 ? '#ffffff' : '#f9f9fc';
