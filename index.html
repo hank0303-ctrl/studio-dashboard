@@ -1158,33 +1158,72 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
 <!-- 月費明細編輯 Modal -->
 <div class="modal-overlay" id="kidBillModal">
-  <div class="modal" style="max-width:560px">
+  <div class="modal" style="max-width:580px">
     <div class="modal-title" id="kidBillTitle">編輯本月費用明細</div>
     <input type="hidden" id="bill_kid_id">
     <input type="hidden" id="bill_month">
-    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">調整後系統自動計算總金額並產生家長通知文案</div>
 
-    <!-- 主要費用 -->
-    <div class="form-row">
-      <div class="form-group" style="flex:1">
-        <label id="bill_main_label">月費金額 ($)</label>
-        <input type="number" id="bill_mainFee" min="0">
+    <!-- 月費模式 -->
+    <div id="bill_monthly_section">
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label>月費金額 ($)</label>
+          <input type="number" id="bill_mainFee" min="0" oninput="updateBillTotal()">
+        </div>
       </div>
-      <div class="form-group" style="flex:1" id="bill_count_group" style="display:none">
-        <label id="bill_count_label">堂數/天數</label>
-        <input type="number" id="bill_count" min="0" value="0">
+    </div>
+
+    <!-- 按堂數模式 -->
+    <div id="bill_perClass_section" style="display:none">
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label>每堂費用 ($)</label>
+          <input type="number" id="bill_perClassFee" min="0" oninput="updateBillTotal()">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>本月堂數</label>
+          <input type="number" id="bill_classCount" min="0" value="0" oninput="updateBillTotal()">
+        </div>
+      </div>
+    </div>
+
+    <!-- 按天數模式：日曆選擇 -->
+    <div id="bill_perDay_section" style="display:none">
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label>每天費用 ($)</label>
+          <input type="number" id="bill_perDayFee" min="0" oninput="updateBillTotal()">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label style="color:var(--accent)">已選 <span id="bill_day_count">0</span> 天</label>
+          <div style="font-size:13px;color:var(--accent);font-weight:700;padding:8px 0" id="bill_selected_days_preview">尚未選擇日期</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:700;letter-spacing:1px">點選有來上課的日期</div>
+      <div id="bill_day_calendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px"></div>
+    </div>
+
+    <!-- 混合模式 -->
+    <div id="bill_mixed_section" style="display:none">
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label>月費金額 ($)</label>
+          <input type="number" id="bill_mixedFee" min="0" oninput="updateBillTotal()">
+        </div>
       </div>
     </div>
 
     <!-- 額外項目 -->
-    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">額外費用項目</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin:12px 0 8px">額外費用項目</div>
     <div id="bill_extra_items"></div>
-    <button class="btn btn-secondary btn-sm mt-16" onclick="addBillExtraItem()" style="margin-bottom:16px">＋ 新增項目</button>
+    <button class="btn btn-secondary btn-sm" onclick="addBillExtraItem()" style="margin-bottom:16px">＋ 新增項目</button>
 
-    <!-- 預覽 -->
+    <!-- 總金額預覽 -->
     <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:16px">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:700">總金額預覽</div>
-      <div id="bill_total_preview" style="font-size:28px;font-weight:900;color:var(--accent);font-family:'DM Mono',monospace"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:12px;color:var(--text3);font-weight:700">應繳合計</div>
+        <div id="bill_total_preview" style="font-size:28px;font-weight:900;color:var(--accent);font-family:'DM Mono',monospace">$0</div>
+      </div>
     </div>
 
     <div class="modal-footer">
@@ -2867,25 +2906,115 @@ function openBillModal(kidId) {
   document.getElementById('bill_month').value  = month;
   document.getElementById('kidBillTitle').textContent = `${k.name} — ${month} 費用明細`;
 
-  // 主要費用
-  const feeLabels = { monthly:'月費金額 ($)', perClass:'每堂費用 × 堂數', perDay:'每天費用 × 天數', mixed:'月費金額 ($)' };
-  document.getElementById('bill_main_label').textContent = feeLabels[k.feeType] || '費用 ($)';
-  document.getElementById('bill_mainFee').value = existing.mainFee !== undefined ? existing.mainFee : k.baseFee;
+  // 顯示對應的費用區塊
+  ['monthly','perClass','perDay','mixed'].forEach(t => {
+    document.getElementById('bill_'+t+'_section').style.display = k.feeType===t ? 'block' : 'none';
+  });
 
-  const countGroup = document.getElementById('bill_count_group');
-  if (k.feeType === 'perClass' || k.feeType === 'perDay') {
-    countGroup.style.display = 'flex';
-    document.getElementById('bill_count_label').textContent = k.feeType==='perClass' ? '本月堂數' : '本月天數';
-    document.getElementById('bill_count').value = existing.count || 0;
-  } else {
-    countGroup.style.display = 'none';
+  if (k.feeType === 'monthly') {
+    document.getElementById('bill_mainFee').value = existing.mainFee !== undefined ? existing.mainFee : k.baseFee;
+  } else if (k.feeType === 'perClass') {
+    document.getElementById('bill_perClassFee').value = existing.mainFee !== undefined ? existing.mainFee : k.baseFee;
+    document.getElementById('bill_classCount').value = existing.count || 0;
+  } else if (k.feeType === 'perDay') {
+    document.getElementById('bill_perDayFee').value = existing.mainFee !== undefined ? existing.mainFee : k.baseFee;
+    renderDayCalendar(month, existing.selectedDays || []);
+  } else if (k.feeType === 'mixed') {
+    document.getElementById('bill_mixedFee').value = existing.mainFee !== undefined ? existing.mainFee : k.baseFee;
   }
 
-  // 額外項目
   const extraItems = existing.extraItems !== undefined ? existing.extraItems : (k.extraItems||[]);
   renderBillExtraItems(extraItems);
   updateBillTotal();
   openModal('kidBillModal');
+}
+
+// 渲染日曆選擇器
+function renderDayCalendar(month, selectedDays) {
+  const [y, m] = month.split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const firstDay = new Date(y, m-1, 1).getDay(); // 0=日
+  const dayNames = ['日','一','二','三','四','五','六'];
+  
+  let html = '';
+  // 星期標題
+  dayNames.forEach(d => {
+    html += `<div style="text-align:center;font-size:10px;color:var(--text3);font-weight:700;padding:4px 0">${d}</div>`;
+  });
+  // 空格
+  for (let i=0; i<firstDay; i++) {
+    html += '<div></div>';
+  }
+  // 日期
+  for (let d=1; d<=daysInMonth; d++) {
+    const dateStr = `${month}-${String(d).padStart(2,'0')}`;
+    const isSelected = selectedDays.includes(dateStr);
+    const dow = (firstDay + d - 1) % 7;
+    const isWeekend = dow === 0 || dow === 6;
+    html += `<div onclick="toggleDay('${dateStr}')" id="day_${dateStr}"
+      style="text-align:center;padding:6px 2px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:${isSelected?'800':'400'};
+      background:${isSelected?'var(--accent)':'transparent'};
+      color:${isSelected?'#1a1408':isWeekend?'var(--text3)':'var(--text)'};
+      border:1px solid ${isSelected?'var(--accent)':'var(--border)'};
+      transition:all .15s">${d}</div>`;
+  }
+  document.getElementById('bill_day_calendar').innerHTML = html;
+  updateDayCount(selectedDays);
+}
+
+function toggleDay(dateStr) {
+  const el = document.getElementById('day_'+dateStr);
+  if (!el) return;
+  const isSelected = el.style.background.includes('var(--accent)') || el.style.backgroundColor !== '';
+  
+  // 取得目前選中的日期
+  const cal = document.getElementById('bill_day_calendar');
+  const selected = [];
+  cal.querySelectorAll('[id^="day_"]').forEach(d => {
+    const ds = d.id.replace('day_','');
+    if (d.style.background.includes('var(--accent)') || d.dataset.selected==='1') selected.push(ds);
+  });
+  
+  if (el.dataset.selected === '1') {
+    el.dataset.selected = '0';
+    el.style.background = 'transparent';
+    el.style.color = 'var(--text)';
+    el.style.border = '1px solid var(--border)';
+    el.style.fontWeight = '400';
+  } else {
+    el.dataset.selected = '1';
+    el.style.background = 'var(--accent)';
+    el.style.color = '#1a1408';
+    el.style.border = '1px solid var(--accent)';
+    el.style.fontWeight = '800';
+  }
+  
+  // 更新天數顯示
+  const newSelected = getSelectedDays();
+  updateDayCount(newSelected);
+  updateBillTotal();
+}
+
+function getSelectedDays() {
+  const cal = document.getElementById('bill_day_calendar');
+  const selected = [];
+  cal.querySelectorAll('[id^="day_"]').forEach(d => {
+    if (d.dataset.selected === '1') selected.push(d.id.replace('day_',''));
+  });
+  return selected.sort();
+}
+
+function updateDayCount(days) {
+  const count = days.length;
+  document.getElementById('bill_day_count').textContent = count;
+  const preview = document.getElementById('bill_selected_days_preview');
+  if (count === 0) {
+    preview.textContent = '尚未選擇日期';
+  } else {
+    // 顯示日期（只顯示日）
+    const dayNums = days.map(d => parseInt(d.split('-')[2]) + '日').join('、');
+    preview.textContent = dayNums;
+  }
 }
 
 function renderBillExtraItems(items) {
@@ -2945,12 +3074,22 @@ function updateBillTotal() {
   const kidId = document.getElementById('bill_kid_id').value;
   const k = kids.find(x=>x.id===kidId);
   if (!k) return;
-  const mainFee = parseInt(document.getElementById('bill_mainFee').value)||0;
-  const count   = parseInt(document.getElementById('bill_count').value)||0;
+  let base = 0;
+  if (k.feeType === 'monthly') {
+    base = parseInt(document.getElementById('bill_mainFee').value)||0;
+  } else if (k.feeType === 'perClass') {
+    const fee = parseInt(document.getElementById('bill_perClassFee').value)||0;
+    const cnt = parseInt(document.getElementById('bill_classCount').value)||0;
+    base = fee * cnt;
+  } else if (k.feeType === 'perDay') {
+    const fee = parseInt(document.getElementById('bill_perDayFee').value)||0;
+    const days = getSelectedDays();
+    base = fee * days.length;
+  } else if (k.feeType === 'mixed') {
+    base = parseInt(document.getElementById('bill_mixedFee').value)||0;
+  }
   const extraItems = getBillExtraItems();
   const extraTotal = extraItems.reduce((s,e)=>s+e.amount, 0);
-  let base = mainFee;
-  if (k.feeType==='perClass'||k.feeType==='perDay') base = mainFee * count;
   const total = base + extraTotal;
   document.getElementById('bill_total_preview').textContent = fmtMoney(total);
 }
@@ -2961,13 +3100,24 @@ function saveBillAndCopy() {
   const k = kids.find(x=>x.id===kidId);
   if (!k) return;
 
-  const mainFee    = parseInt(document.getElementById('bill_mainFee').value)||0;
-  const count      = parseInt(document.getElementById('bill_count').value)||0;
+  let mainFee = 0, count = 0, selectedDays = [];
+  if (k.feeType === 'monthly') {
+    mainFee = parseInt(document.getElementById('bill_mainFee').value)||0;
+  } else if (k.feeType === 'perClass') {
+    mainFee = parseInt(document.getElementById('bill_perClassFee').value)||0;
+    count   = parseInt(document.getElementById('bill_classCount').value)||0;
+  } else if (k.feeType === 'perDay') {
+    mainFee = parseInt(document.getElementById('bill_perDayFee').value)||0;
+    selectedDays = getSelectedDays();
+    count = selectedDays.length;
+  } else if (k.feeType === 'mixed') {
+    mainFee = parseInt(document.getElementById('bill_mixedFee').value)||0;
+  }
   const extraItems = getBillExtraItems();
 
   // 儲存
   const billKey = kidId + '_' + month;
-  kidBills[billKey] = { mainFee, count, extraItems };
+  kidBills[billKey] = { mainFee, count, selectedDays, extraItems };
   save(KEYS.kidBills, kidBills);
 
   // 計算總額
@@ -2983,7 +3133,7 @@ function saveBillAndCopy() {
 
   // 費用明細行
   let detailLines = '';
-  const feeTypeLabel = k.feeType==='monthly'?'月費':k.feeType==='perClass'?`${count}堂課`:k.feeType==='perDay'?`${count}天`:k.feeType==='mixed'?'月費':'費用';
+  const feeTypeLabel = k.feeType==='monthly'?'月費':k.feeType==='perClass'?`${count}堂`:k.feeType==='perDay'?`${count}天（${selectedDays.map(d=>parseInt(d.split('-')[2])+'日').join('、')}）`:k.feeType==='mixed'?'月費':'費用';
   detailLines += `▪️ ${mNum}月${feeTypeLabel === '月費' || feeTypeLabel === '費用' ? '' : '（'+feeTypeLabel+'）'}：NT$${base.toLocaleString()}
 `;
   extraItems.forEach(e => {
@@ -3132,7 +3282,7 @@ function copyKidBill(kidId, month) {
   const extraTotal = extraItems.reduce((s,e)=>s+e.amount,0);
   const total = base + extraTotal;
 
-  const feeTypeLabel = k.feeType==='monthly'?'月費':k.feeType==='perClass'?`${bill.count}堂課`:k.feeType==='perDay'?`${bill.count}天`:'月費';
+  const selectedDays = bill.selectedDays||[]; const feeTypeLabel = k.feeType==='monthly'?'月費':k.feeType==='perClass'?`${bill.count}堂`:k.feeType==='perDay'?`${bill.count}天（${selectedDays.map(d=>parseInt(d.split('-')[2])+'日').join('、')}）`:'月費';
   let detailLines = `▪️ ${mNum}月${feeTypeLabel==='月費'?'':' （'+feeTypeLabel+'）'}：NT$${base.toLocaleString()}
 `;
   extraItems.forEach(e => { detailLines += `▪️ ${e.name}：NT$${e.amount.toLocaleString()}
