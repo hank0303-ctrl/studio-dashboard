@@ -1938,6 +1938,12 @@ function renderTeacherPage() {
             onchange="updateClassCustomPay('${c.id}',this.value)"
           >`}
         </td>
+        <td style="padding:4px 8px;border-bottom:1px solid var(--border)">
+          <input type="text" value="${c.note||''}" placeholder="備註"
+            style="width:120px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:12px;padding:3px 6px"
+            onchange="updateClassNote('${c.id}',this.value)"
+          >
+        </td>
         <td style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:center;width:32px">
           <button onclick="deleteClassFromTeacher('${c.id}')" class="btn btn-danger btn-sm btn-icon" style="padding:3px 6px;font-size:11px" title="刪除此課程">✕</button>
         </td>
@@ -1995,6 +2001,7 @@ function renderTeacherPage() {
               <th style="padding:8px 10px;text-align:center;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">預約率</th>
               <th style="padding:8px 10px;text-align:left;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">狀態</th>
               <th style="padding:8px 10px;text-align:right;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">課費</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;letter-spacing:1px;color:var(--text3);font-weight:700;text-transform:uppercase">備註</th>
               <th style="padding:8px 10px;width:32px"></th>
             </tr>
           </thead>
@@ -3381,104 +3388,124 @@ function downloadTeacherImage(teacherId, month) {
     const entries = [];
     for (let i=1;i<=13;i++) { if (t.payGrid[i]!==undefined) entries.push(`${i}人 $${t.payGrid[i]}`); }
     if (t.payGrid['14plus']!==undefined) entries.push(`14人以上 $${t.payGrid['14plus']}`);
-    payDesc = entries.join('　');
+    payDesc = entries.join('  ');
   } else {
     payDesc = `$${t.pay}/堂`;
   }
-  if (t.fullBonus > 0) payDesc += `　滿班+$${t.fullBonus}`;
+  if (t.fullBonus > 0) payDesc += `  滿班+$${t.fullBonus}`;
 
-  // 建立 Canvas
-  const rowH   = 36;
-  const headerH = 180;
-  const footerH = 60;
-  const padding = 32;
-  const colWidths = [110, 70, 160, 60, 60, 60, 80, 90];
-  const totalW = colWidths.reduce((s,w)=>s+w,0) + padding*2;
-  const totalH = headerH + allC.length * rowH + footerH + padding;
+  // Canvas 尺寸設定
+  const scale   = 2;
+  const W       = 760;
+  const rowH    = 44;
+  const headerH = 140;
+  const thH     = 40;
+  const footerH = 56;
+  const pad     = 36;
+  const cols    = [100, 68, 180, 52, 52, 52, 60, 80, 80, 'auto']; // 日期,時間,課程,上限,預約,到課,預約率,狀態,課費,備注
+  // 計算備注欄寬
+  const fixedW = cols.slice(0,-1).reduce((s,w)=>s+w,0);
+  const noteW  = W - pad*2 - fixedW;
+  const colsFinal = [...cols.slice(0,-1), noteW];
+  const H = headerH + thH + allC.length * rowH + footerH;
 
   const canvas = document.createElement('canvas');
-  canvas.width  = totalW * 2;  // retina
-  canvas.height = totalH * 2;
+  canvas.width  = W * scale;
+  canvas.height = H * scale;
   const ctx = canvas.getContext('2d');
-  ctx.scale(2, 2);
+  ctx.scale(scale, scale);
 
-  // 背景
+  // ── 背景 ──
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, totalW, totalH);
+  ctx.fillRect(0, 0, W, H);
 
-  // 標題區
-  ctx.fillStyle = '#1a1a2e';
-  ctx.fillRect(0, 0, totalW, headerH - 20);
+  // ── Header 深色區 ──
+  const hGrad = ctx.createLinearGradient(0,0,W,headerH);
+  hGrad.addColorStop(0, '#12122a');
+  hGrad.addColorStop(1, '#1e1e3a');
+  ctx.fillStyle = hGrad;
+  ctx.fillRect(0, 0, W, headerH);
 
-  // Logo 文字
+  // Logo
   ctx.fillStyle = '#c8a96e';
-  ctx.font = 'bold 18px "Noto Sans TC", sans-serif';
-  ctx.fillText('⚡ 武樂教室', padding, 36);
+  ctx.font = 'bold 13px sans-serif';
+  ctx.fillText('⚡ 武樂教室', pad, 28);
 
-  // 老師名稱
+  // 月份 tag（右上）
+  ctx.fillStyle = 'rgba(200,169,110,0.2)';
+  roundRect(ctx, W - pad - 110, 12, 110, 24, 6);
+  ctx.fill();
+  ctx.fillStyle = '#c8a96e';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.fillText(month + ' 課費明細', W - pad - 104, 28);
+
+  // 老師名字（大字）
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 26px "Noto Sans TC", sans-serif';
-  ctx.fillText(t.name + ' 老師', padding, 72);
-
-  // 月份
-  ctx.fillStyle = '#c8a96e';
-  ctx.font = '14px "Noto Sans TC", sans-serif';
-  ctx.fillText(month + ' 課費明細', padding, 95);
+  ctx.font = 'bold 36px sans-serif';
+  ctx.fillText(t.name + ' 老師', pad, 80);
 
   // 課費設定
-  ctx.fillStyle = '#aaaacc';
-  ctx.font = '12px "Noto Sans TC", sans-serif';
-  ctx.fillText('課費設定：' + payDesc, padding, 115);
+  ctx.fillStyle = '#8888aa';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('課費設定：' + payDesc, pad, 100);
 
-  // 統計數字
+  // 統計數字（右方同排）
   const stats = [
-    { label: '開課數', val: activeC.length, color: '#c8a96e' },
-    { label: '停課數', val: stopC.length,   color: '#f87171' },
-    { label: '滿班數', val: fullC.length,   color: '#4ade80' },
+    { label:'開課數', val: activeC.length, color:'#c8a96e' },
+    { label:'停課數', val: stopC.length,   color:'#f87171' },
+    { label:'滿班數', val: fullC.length,   color:'#4ade80' },
   ];
-  let sx = padding;
+  let sx = W - pad - 220;
   stats.forEach(s => {
+    // 數字
     ctx.fillStyle = s.color;
-    ctx.font = 'bold 22px "DM Mono", monospace';
-    ctx.fillText(s.val, sx, 148);
-    ctx.fillStyle = '#888888';
-    ctx.font = '11px "Noto Sans TC", sans-serif';
-    ctx.fillText(s.label, sx, 162);
-    sx += 80;
+    ctx.font = 'bold 28px sans-serif';
+    ctx.fillText(s.val, sx, 80);
+    // 標籤
+    ctx.fillStyle = '#8888aa';
+    ctx.font = '11px sans-serif';
+    ctx.fillText(s.label, sx, 98);
+    sx += 76;
   });
 
-  // 分隔線
-  ctx.fillStyle = '#e8e8f0';
-  ctx.fillRect(0, headerH - 20, totalW, 1);
+  // Header 底線
+  ctx.fillStyle = 'rgba(200,169,110,0.3)';
+  ctx.fillRect(0, headerH-1, W, 1);
 
-  // 表格標題
-  const headers = ['日期', '時間', '課程', '上限', '預約', '到課', '預約率', '課費'];
-  let x = padding;
-  ctx.fillStyle = '#f5f5f5';
-  ctx.fillRect(0, headerH - 18, totalW, rowH);
+  // ── 表格標題列 ──
+  ctx.fillStyle = '#f7f7fb';
+  ctx.fillRect(0, headerH, W, thH);
+  const headers = ['日期','時間','課程','上限','預約','到課','預約率','狀態','課費','備註'];
+  const aligns  = ['l','l','l','c','c','c','c','l','r','l'];
+  let cx = pad;
   headers.forEach((h, i) => {
-    ctx.fillStyle = '#555555';
-    ctx.font = 'bold 11px "Noto Sans TC", sans-serif';
-    ctx.fillText(h, x + 4, headerH + 8);
-    x += colWidths[i];
+    ctx.fillStyle = '#888888';
+    ctx.font = 'bold 11px sans-serif';
+    const cw = colsFinal[i];
+    if (aligns[i]==='c') ctx.fillText(h, cx + cw/2 - ctx.measureText(h).width/2, headerH + 26);
+    else if (aligns[i]==='r') ctx.fillText(h, cx + cw - ctx.measureText(h).width - 4, headerH + 26);
+    else ctx.fillText(h, cx + 4, headerH + 26);
+    cx += cw;
   });
 
-  // 表格資料
+  // ── 資料列 ──
   allC.forEach((c, idx) => {
-    const y  = headerH + (idx+1) * rowH;
+    const y = headerH + thH + idx * rowH;
     const isCancelled = c.status === '停課';
+    const isFull      = c.status === '滿班';
     const pay = isCancelled ? 0 : (c.customPay !== undefined ? c.customPay : calcTeacherPay(t,c));
     const rate = c.max>0 ? Math.round(c.booked/c.max*100) : 0;
+    const noteText = c.note || '';
 
-    // 交替背景
-    if (idx % 2 === 0) {
-      ctx.fillStyle = '#fafafa';
-      ctx.fillRect(0, y - 22, totalW, rowH);
-    }
-    if (isCancelled) {
-      ctx.fillStyle = 'rgba(248,113,113,0.06)';
-      ctx.fillRect(0, y - 22, totalW, rowH);
-    }
+    // 行背景
+    ctx.fillStyle = idx%2===0 ? '#ffffff' : '#f9f9fc';
+    ctx.fillRect(0, y, W, rowH);
+    if (isCancelled) { ctx.fillStyle = 'rgba(248,113,113,0.05)'; ctx.fillRect(0, y, W, rowH); }
+
+    // 左側色條
+    const barColor = isCancelled ? '#f87171' : isFull ? '#4ade80' : '#7c6fcd';
+    ctx.fillStyle = barColor;
+    ctx.fillRect(0, y+6, 3, rowH-12);
 
     const rowData = [
       fmtDate(c.date),
@@ -3487,44 +3514,61 @@ function downloadTeacherImage(teacherId, month) {
       String(c.max),
       String(c.booked),
       String(c.attended),
-      isCancelled ? '停課' : rate + '%',
-      isCancelled ? '－' : '$' + pay.toLocaleString(),
+      isCancelled ? '—' : rate+'%',
+      isCancelled ? '停課' : isFull ? '滿班' : '正常',
+      isCancelled ? '—' : '$'+pay.toLocaleString(),
+      noteText,
     ];
 
-    x = padding;
+    cx = pad;
     rowData.forEach((val, i) => {
-      ctx.fillStyle = isCancelled ? '#aaaaaa' :
-        i === 7 ? '#c8a96e' :
-        i === 6 && rate < 50 ? '#f87171' :
-        '#333333';
-      ctx.font = (i === 2 ? 'bold ' : '') + '12px "Noto Sans TC", sans-serif';
-      // 截斷長文字
+      const cw = colsFinal[i];
+      let color = '#333333';
+      if (isCancelled) color = '#aaaaaa';
+      else if (i===8) color = '#c8a96e'; // 課費金色
+      else if (i===7 && isFull) color = '#4ade80';
+      else if (i===6 && rate<50) color = '#f87171';
+      else if (i===9) color = '#888888'; // 備注灰色
+
+      ctx.fillStyle = color;
+      ctx.font = (i===2 ? 'bold ' : '') + '12px sans-serif';
+
+      // 截斷
       let text = val;
-      if (ctx.measureText(text).width > colWidths[i] - 8) {
-        while (ctx.measureText(text + '…').width > colWidths[i] - 8 && text.length > 0) text = text.slice(0,-1);
-        text += '…';
-      }
-      ctx.fillText(text, x + 4, y + 4);
-      x += colWidths[i];
+      const maxW = cw - 8;
+      while (text.length>0 && ctx.measureText(text).width > maxW) text = text.slice(0,-1);
+      if (text !== val) text = text.slice(0,-1) + '…';
+
+      const textY = y + rowH/2 + 5;
+      if (aligns[i]==='c') ctx.fillText(text, cx + cw/2 - ctx.measureText(text).width/2, textY);
+      else if (aligns[i]==='r') ctx.fillText(text, cx + cw - ctx.measureText(text).width - 4, textY);
+      else ctx.fillText(text, cx + 4, textY);
+      cx += cw;
     });
 
-    // 分隔線
+    // 行底線
     ctx.fillStyle = '#eeeeee';
-    ctx.fillRect(padding, y + rowH - 26, totalW - padding*2, 1);
+    ctx.fillRect(pad, y+rowH-1, W-pad*2, 1);
   });
 
-  // 合計列
-  const footerY = headerH + (allC.length + 1) * rowH;
-  ctx.fillStyle = '#1a1a2e';
-  ctx.fillRect(0, footerY - 22, totalW, footerH);
-  ctx.fillStyle = '#aaaacc';
-  ctx.font = 'bold 13px "Noto Sans TC", sans-serif';
-  ctx.fillText('本月課費合計（停課不計費）', padding, footerY + 8);
-  ctx.fillStyle = '#c8a96e';
-  ctx.font = 'bold 20px "DM Mono", monospace';
-  ctx.fillText('$' + totalPay.toLocaleString(), totalW - padding - ctx.measureText('$' + totalPay.toLocaleString()).width, footerY + 10);
+  // ── 合計列 ──
+  const footerY = headerH + thH + allC.length * rowH;
+  const fGrad = ctx.createLinearGradient(0,footerY,W,footerY+footerH);
+  fGrad.addColorStop(0, '#12122a');
+  fGrad.addColorStop(1, '#1e1e3a');
+  ctx.fillStyle = fGrad;
+  ctx.fillRect(0, footerY, W, footerH);
 
-  // 下載
+  ctx.fillStyle = '#8888aa';
+  ctx.font = 'bold 13px sans-serif';
+  ctx.fillText('本月課費合計（停課不計費）', pad, footerY + 34);
+
+  ctx.fillStyle = '#c8a96e';
+  ctx.font = 'bold 24px sans-serif';
+  const totalStr = '$' + totalPay.toLocaleString();
+  ctx.fillText(totalStr, W - pad - ctx.measureText(totalStr).width, footerY + 35);
+
+  // ── 下載 ──
   const link = document.createElement('a');
   link.download = `${month}_${t.name}_課費明細.png`;
   link.href = canvas.toDataURL('image/png');
@@ -3532,60 +3576,18 @@ function downloadTeacherImage(teacherId, month) {
   showToast('✅ 圖片已下載！', 'success');
 }
 
-// ═══════════════════════════════
-//  快速更新到課人數 & 課費
-// ═══════════════════════════════
-function updateClassAttended(classId, val) {
-  const idx = classes.findIndex(c=>c.id===classId);
-  if (idx<0) return;
-  classes[idx].attended = parseInt(val)||0;
-  save(KEYS.classes, classes);
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
 }
 
-function updateClassCustomPay(classId, val) {
-  const idx = classes.findIndex(c=>c.id===classId);
-  if (idx<0) return;
-  classes[idx].customPay = parseInt(val)||0;
-  save(KEYS.classes, classes);
-  // 重新計算合計顯示
-  renderTeacherPage();
-}
 
-// ═══════════════════════════════
-//  REFRESH
-// ═══════════════════════════════
-function refreshCurrentPage() {
-  const active = document.querySelector('.page.active');
-  if (!active) return;
-  const id = active.id.replace('page-','');
-  if (id==='today') renderToday();
-  if (id==='class') renderClassPage();
-  if (id==='teacher') renderTeacherPage();
-  if (id==='student') renderStudentPage();
-  if (id==='monthly') renderMonthlyPage();
-}
-
-// ═══════════════════════════════
-//  INIT
-// ═══════════════════════════════
-function init() {
-  seedIfEmpty();
-  // update nav date
-  const now = new Date();
-  const days = ['日','一','二','三','四','五','六'];
-  // 手機版日期
-  const mobileDate = document.getElementById('mobileDate');
-  if (mobileDate) mobileDate.textContent = `\${now.getFullYear()}/\${String(now.getMonth()+1).padStart(2,'0')}/\${String(now.getDate()).padStart(2,'0')} (\${days[now.getDay()]})`;
-  document.getElementById('navDate').textContent =
-    `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`;
-  document.getElementById('todayDateLabel').textContent =
-    `${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日（星期${days[now.getDay()]}）`;
-  renderToday();
-  // 每次開啟自動同步一次
-  setTimeout(syncFromSheet, 1200);
-}
-
-init();
-</script>
-</body>
-</html>
