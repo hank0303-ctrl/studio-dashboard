@@ -2040,6 +2040,7 @@ async function syncFromSheet() {
   btn.disabled = true;
 
   try {
+    // 同步購買記錄
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('無法連線');
@@ -2108,6 +2109,9 @@ async function syncFromSheet() {
 
     save(KEYS.purchases, purchases);
 
+    // 同步預約統計（更新課程預約人數）
+    await syncBookingStats();
+
     if (added > 0) {
       showToast(`✅ 同步完成！新增 ${added} 筆，跳過 ${skipped} 筆重複`, 'success');
     } else {
@@ -2122,6 +2126,61 @@ async function syncFromSheet() {
   } finally {
     btn.textContent = '🔄 同步試算表';
     btn.disabled = false;
+  }
+}
+
+// 從試算表同步預約統計到課程資料
+async function syncBookingStats() {
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent('課程預約統計')}`;
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const text = await res.text();
+    const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+    if (!match) return;
+    const json = JSON.parse(match[1]);
+    const rows = json.table?.rows;
+    if (!rows || rows.length === 0) return;
+
+    let updated = 0;
+    rows.forEach(row => {
+      const cols = row.c;
+      if (!cols || !cols[0]) return;
+
+      function parseSheetDate(raw) {
+        if (!raw) return '';
+        if (typeof raw === 'string' && raw.startsWith('Date(')) {
+          const parts = raw.replace('Date(','').replace(')','').split(',');
+          return `${parts[0]}-${String(parseInt(parts[1])+1).padStart(2,'0')}-${String(parts[2]).padStart(2,'0')}`;
+        }
+        return typeof raw === 'string' ? raw.replace(/\//g,'-') : '';
+      }
+
+      const courseDate = parseSheetDate(cols[0]?.v);
+      const courseTime = cols[1]?.v?.toString().trim() || '';
+      const className  = cols[2]?.v?.toString().trim() || '';
+      const netBooked  = parseInt(cols[5]?.v) || 0; // 淨預約人數
+
+      if (!courseDate || !className) return;
+
+      // 找對應的課程，更新預約人數
+      const idx = classes.findIndex(c =>
+        c.date === courseDate &&
+        c.timeStart === courseTime &&
+        c.name === className
+      );
+      if (idx >= 0 && classes[idx].booked !== netBooked) {
+        classes[idx].booked = Math.max(0, netBooked);
+        updated++;
+      }
+    });
+
+    if (updated > 0) {
+      save(KEYS.classes, classes);
+      console.log(`預約人數更新：${updated} 堂課`);
+    }
+  } catch(e) {
+    console.warn('預約統計同步失敗:', e);
   }
 }
 
