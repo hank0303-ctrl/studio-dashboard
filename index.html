@@ -1390,10 +1390,11 @@ function renderToday() {
     </div>
   `;
 
-  // Class table
+  // Class table（已改為週課表，此區塊保留相容性）
   const tbody = document.getElementById('todayClassTbody');
-  if (!todayClasses.length) {
-    tbody.innerHTML = `<tr><td colspan="9" class="empty-state">今日無課程，請新增課程</td></tr>`;
+  if (tbody) {
+    if (!todayClasses.length) {
+      tbody.innerHTML = `<tr><td colspan="9" class="empty-state">今日無課程，請新增課程</td></tr>`;
   } else {
     const sorted = [...todayClasses].sort((a,b)=>a.timeStart.localeCompare(b.timeStart));
     tbody.innerHTML = sorted.map(c => {
@@ -1425,6 +1426,7 @@ function renderToday() {
       </tr>`;
     }).join('');
   }
+  } // end if(tbody)
 
   // 老師本月累計課費
   const thisMonth = todayStr().slice(0,7);
@@ -2121,8 +2123,8 @@ async function syncFromSheet() {
     refreshCurrentPage();
 
   } catch(e) {
-    console.error(e);
-    showToast('❌ 同步失敗，請確認試算表已設為公開', 'error');
+    console.error('同步錯誤:', e);
+    showToast('❌ ' + (e.message || '同步失敗'), 'error');
   } finally {
     btn.textContent = '🔄 同步試算表';
     btn.disabled = false;
