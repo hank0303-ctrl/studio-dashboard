@@ -78,7 +78,95 @@ body {
 }
 @media(max-width:600px){
   .grid-4,.grid-3,.grid-2 { grid-template-columns: 1fr; }
-  .page { padding: 16px; }
+  .page { padding: 12px; }
+}
+
+/* ══ 手機版完整優化 ══ */
+@media(max-width:768px){
+  /* Nav 改成底部 tab bar */
+  .nav {
+    position: fixed; bottom: 0; top: auto;
+    left: 0; right: 0; height: 60px;
+    padding: 0 4px;
+    justify-content: space-around;
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+    z-index: 200;
+  }
+  .nav-logo { display: none; }
+  .nav-spacer { display: none; }
+  .nav-date { display: none; }
+  #syncBtn { display: none; }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 10px; padding: 4px 2px;
+    gap: 2px; border-radius: 8px;
+  }
+  .nav-btn::before { font-size: 20px; line-height: 1; }
+  .nav-btn:nth-child(1)::before { content: "📊"; }
+  .nav-btn:nth-child(2)::before { content: "📋"; }
+  .nav-btn:nth-child(3)::before { content: "👩‍🏫"; }
+  .nav-btn:nth-child(4)::before { content: "🎫"; }
+  .nav-btn:nth-child(5)::before { content: "📅"; }
+
+  /* 頁面底部加 padding 避免被 tab bar 蓋住 */
+  .page { padding: 12px 12px 80px; }
+
+  /* 頂部加同步按鈕 */
+  .mobile-top-bar {
+    display: flex !important;
+    align-items: center; justify-content: space-between;
+    padding: 10px 12px 0;
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg);
+  }
+
+  /* 表格改成卡片式 */
+  .tbl-wrap table thead { display: none; }
+  .tbl-wrap table tr {
+    display: block;
+    background: var(--surface2);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    padding: 12px;
+    border: 1px solid var(--border);
+  }
+  .tbl-wrap table td {
+    display: flex; justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 13px;
+  }
+  .tbl-wrap table td:last-child { border-bottom: none; }
+  .tbl-wrap table td::before {
+    content: attr(data-label);
+    font-size: 11px; color: var(--text3);
+    font-weight: 700; letter-spacing: 0.5px;
+    min-width: 70px;
+  }
+
+  /* stat-num 縮小 */
+  .stat-num { font-size: 26px; }
+
+  /* modal 全螢幕 */
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal {
+    max-width: 100% !important; width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 90vh;
+  }
+
+  /* 老師卡片簡化 */
+  .teacher-card { padding: 14px; }
+
+  /* grid 2 改成 1 欄 */
+  .grid-2 { grid-template-columns: 1fr; }
+
+  /* rank-item 字體調整 */
+  .rank-val { font-size: 13px; }
+  .rank-name { font-size: 14px; }
 }
 
 /* ── STAT CARD ── */
@@ -270,6 +358,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   <button class="btn btn-secondary btn-sm" onclick="syncFromSheet()" id="syncBtn" style="font-size:12px;padding:5px 12px">🔄 同步試算表</button>
   <div class="nav-date" id="navDate" style="margin-left:8px"></div>
 </nav>
+<!-- 手機版頂部工具列 -->
+<div class="mobile-top-bar" style="display:none">
+  <div style="font-size:16px;font-weight:900;color:var(--accent)">⚡ 武樂</div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <div id="mobileDate" style="font-size:11px;color:var(--text3)"></div>
+    <button class="btn btn-secondary btn-sm" onclick="syncFromSheet()" style="font-size:11px;padding:4px 10px">🔄 同步</button>
+  </div>
+</div>
 <div id="syncToast" style="display:none;position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.5)"></div>
 
 <!-- ═══════════════════════════════════════════
@@ -2064,6 +2160,9 @@ function init() {
   // update nav date
   const now = new Date();
   const days = ['日','一','二','三','四','五','六'];
+  // 手機版日期
+  const mobileDate = document.getElementById('mobileDate');
+  if (mobileDate) mobileDate.textContent = `\${now.getFullYear()}/\${String(now.getMonth()+1).padStart(2,'0')}/\${String(now.getDate()).padStart(2,'0')} (\${days[now.getDay()]})`;
   document.getElementById('navDate').textContent =
     `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`;
   document.getElementById('todayDateLabel').textContent =
