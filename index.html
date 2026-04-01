@@ -3623,6 +3623,41 @@ function roundRect(ctx, x, y, w, h, r) {
 
 
 
+// ═══════════════════════════════
+//  REFRESH
+// ═══════════════════════════════
+function refreshCurrentPage() {
+  const active = document.querySelector('.page.active');
+  if (!active) return;
+  const id = active.id.replace('page-','');
+  if (id==='today') renderToday();
+  if (id==='week') renderWeekFull();
+  if (id==='class') renderClassPage();
+  if (id==='teacher') renderTeacherPage();
+  if (id==='student') renderStudentPage();
+  if (id==='monthly') renderMonthlyPage();
+  if (id==='kids') renderKidsPage();
+}
+
+// ═══════════════════════════════
+//  INIT
+// ═══════════════════════════════
+function init() {
+  seedIfEmpty();
+  const now = new Date();
+  const days = ['日','一','二','三','四','五','六'];
+  const mobileDate = document.getElementById('mobileDate');
+  if (mobileDate) mobileDate.textContent = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`;
+  document.getElementById('navDate').textContent =
+    `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`;
+  document.getElementById('todayDateLabel').textContent =
+    `${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日（星期${days[now.getDay()]}）`;
+  renderToday();
+  setTimeout(syncFromSheet, 1200);
+}
+
+init();
+
 </script>
 </body>
 </html>
