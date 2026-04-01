@@ -1198,7 +1198,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 // ═══════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════
-const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases' };
+const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills' };
 
 function load(key) {
   try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
@@ -1210,7 +1210,6 @@ function save(key, data) {
 let teachers = load(KEYS.teachers);
 let classes  = load(KEYS.classes);
 let purchases = load(KEYS.purchases);
-
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
 // seed demo data if empty
@@ -2771,9 +2770,6 @@ function renderWeekFull() {
 // ═══════════════════════════════
 //  兒童收費
 // ═══════════════════════════════
-KEYS.kids  = 'studio_kids';
-KEYS.kidBills = 'studio_kid_bills';
-
 let kids     = load(KEYS.kids);
 let kidBills = load(KEYS.kidBills); // { "kidId_yyyy-MM": { mainFee, count, extraItems:[{name,amount}] } }
 
