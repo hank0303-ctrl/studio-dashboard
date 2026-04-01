@@ -1941,7 +1941,7 @@ function renderTeacherPage() {
         <td style="padding:4px 8px;border-bottom:1px solid var(--border)">
           <input type="text" value="${(c.note&&!c.note.includes('匯入')&&!c.note.includes('Excel'))?c.note:''}" placeholder="備註"
             style="width:120px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:12px;padding:3px 6px"
-            onchange="updateClassNote('${c.id}',this.value)"
+            oninput="updateClassNote('${c.id}',this.value)"
           >
         </td>
         <td style="padding:4px 6px;border-bottom:1px solid var(--border);text-align:center;width:32px">
@@ -3359,6 +3359,31 @@ function deduplicateClasses() {
   save(KEYS.classes, classes);
   showToast(`✅ 已清除 ${removed} 筆重複課程`, 'success');
   refreshCurrentPage();
+}
+
+// ═══════════════════════════════
+//  快速更新到課人數 & 課費 & 備注
+// ═══════════════════════════════
+function updateClassAttended(classId, val) {
+  const idx = classes.findIndex(c=>c.id===classId);
+  if (idx<0) return;
+  classes[idx].attended = parseInt(val)||0;
+  save(KEYS.classes, classes);
+}
+
+function updateClassCustomPay(classId, val) {
+  const idx = classes.findIndex(c=>c.id===classId);
+  if (idx<0) return;
+  classes[idx].customPay = parseInt(val)||0;
+  save(KEYS.classes, classes);
+  renderTeacherPage();
+}
+
+function updateClassNote(classId, val) {
+  const idx = classes.findIndex(c=>c.id===classId);
+  if (idx<0) return;
+  classes[idx].note = val.trim();
+  save(KEYS.classes, classes);
 }
 
 // ═══════════════════════════════
