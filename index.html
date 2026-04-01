@@ -2806,8 +2806,7 @@ function editKid(id) {
   document.getElementById('edit_kid_teacher').value   = k.teacher||'';
   document.getElementById('edit_kid_feeType').value   = k.feeType||'monthly';
   document.getElementById('edit_kid_baseFee').value   = k.baseFee||0;
-  document.getElementById('edit_kid_extraItems').value = (k.extraItems||[]).map(e=>e.name+':'+e.amount).join('
-');
+  document.getElementById('edit_kid_extraItems').value = (k.extraItems||[]).map(e=>e.name+':'+e.amount).join('\n');
   document.getElementById('edit_kid_bank').value        = k.bank||'台北富邦銀行（代碼 012）中壢分行';
   document.getElementById('edit_kid_account').value     = k.account||'82120000015649';
   document.getElementById('edit_kid_accountName').value = k.accountName||'運武樂有限公司';
@@ -2847,8 +2846,7 @@ function deleteKid(id) {
 
 function parseExtraItems(text) {
   if (!text) return [];
-  return text.split('
-').map(line => {
+  return text.split('\n').map(line => {
     const parts = line.split(':');
     if (parts.length < 2) return null;
     const amount = parseInt(parts[parts.length-1].replace(/[^0-9]/g,''))||0;
