@@ -492,6 +492,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
       <button class="btn btn-secondary" onclick="changeWeek(-1)">← 上週</button>
       <button class="btn btn-secondary" onclick="changeWeek(0)">本週</button>
       <button class="btn btn-secondary" onclick="changeWeek(1)">下週 →</button>
+      <label class="btn btn-primary" style="cursor:pointer">
+        📂 匯入課表
+        <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importScheduleExcel(this)">
+      </label>
     </div>
   </div>
   <div id="weekTableFull" style="overflow-x:auto"></div>
@@ -2292,6 +2296,99 @@ function importClassExcel(input) {
       showToast('❌ 匯入失敗：' + err.message, 'error');
     }
     input.value='';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ═══════════════════════════════
+//  匯入課表 Excel（週課表專用）
+// ═══════════════════════════════
+function importScheduleExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      if (!window.XLSX) {
+        await new Promise((res,rej)=>{
+          const s=document.createElement('script');
+          s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+          s.onload=res; s.onerror=rej;
+          document.head.appendChild(s);
+        });
+      }
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+      let added = 0, updated = 0, skipped = 0;
+      let current = null;
+
+      // 課程行 regex：2026/04/30 20:20~21:20__課程名稱_老師(狀態)_60分鐘_狀態_武樂武術
+      const courseReg = /^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}:\d{2})~(\d{2}:\d{2})__(.+?)_(.+?)\((\w+)\)_\d+分鐘_(\w+)_/;
+      const studentReg = /^\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}/;
+
+      function saveCourse(c) {
+        if (!c || !c.date || !c.name) return;
+        const existIdx = classes.findIndex(x => x.date===c.date && x.timeStart===c.timeStart && x.name===c.name);
+        if (existIdx >= 0) {
+          // 更新預約人數
+          if (classes[existIdx].booked !== c.booked) {
+            classes[existIdx].booked = c.booked;
+            classes[existIdx].teacher = c.teacher || classes[existIdx].teacher;
+            classes[existIdx].status = c.status;
+            updated++;
+          } else {
+            skipped++;
+          }
+        } else {
+          // 找同課程取得 max
+          const similar = classes.find(x => x.name===c.name && x.teacher===c.teacher);
+          classes.push({
+            id: uid(),
+            date: c.date,
+            timeStart: c.timeStart,
+            timeEnd: c.timeEnd,
+            name: c.name,
+            teacher: c.teacher,
+            room: '',
+            max: similar ? similar.max : 10,
+            booked: c.booked,
+            attended: 0,
+            status: c.status,
+            note: '📂 課表匯入',
+          });
+          added++;
+        }
+      }
+
+      rows.forEach(row => {
+        const cell0 = String(row[0] || '').trim();
+        const m = cell0.match(courseReg);
+        if (m) {
+          if (current) saveCourse(current);
+          current = {
+            date: `${m[1]}-${m[2]}-${m[3]}`,
+            timeStart: m[4], timeEnd: m[5],
+            name: m[6].trim(), teacher: m[7].trim(),
+            status: m[9]==='停課' ? '停課' : '正常',
+            booked: 0,
+          };
+        } else if (current && cell0 && cell0 !== '預約時間' && studentReg.test(cell0)) {
+          const student = String(row[3] || '').trim();
+          if (student) current.booked++;
+        }
+      });
+      if (current) saveCourse(current);
+
+      save(KEYS.classes, classes);
+      showToast(`✅ 課表匯入完成！新增 ${added} 堂，更新 ${updated} 堂預約人數，跳過 ${skipped} 筆`, 'success');
+      renderWeekFull();
+    } catch(err) {
+      console.error(err);
+      showToast('❌ 匯入失敗：' + err.message, 'error');
+    }
+    input.value = '';
   };
   reader.readAsArrayBuffer(file);
 }
