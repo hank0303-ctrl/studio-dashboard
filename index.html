@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>\u6b66\u6a02\u6559\u5ba4\u7ba1\u7406\u7cfb\u7d71</title>
+<title>武樂教室管理系統</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -30,7 +30,7 @@ body {
   font-size: 14px;
   min-height: 100vh;
 }
-/* \u2500\u2500 NAV \u2500\u2500 */
+/* ── NAV ── */
 .nav {
   position: sticky; top: 0; z-index: 100;
   background: rgba(15,15,19,0.95);
@@ -55,11 +55,11 @@ body {
 .nav-spacer { flex: 1; }
 .nav-date { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text3); }
 
-/* \u2500\u2500 LAYOUT \u2500\u2500 */
+/* ── LAYOUT ── */
 .page { display: none; padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
 .page.active { display: block; }
 
-/* \u2500\u2500 CARDS \u2500\u2500 */
+/* ── CARDS ── */
 .card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 20px;
@@ -69,7 +69,7 @@ body {
   text-transform: uppercase; color: var(--text3); margin-bottom: 12px;
 }
 
-/* \u2500\u2500 GRID \u2500\u2500 */
+/* ── GRID ── */
 .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
 .grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
@@ -81,7 +81,7 @@ body {
   .page { padding: 16px; }
 }
 
-/* \u2500\u2500 STAT CARD \u2500\u2500 */
+/* ── STAT CARD ── */
 .stat-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden;
@@ -104,7 +104,7 @@ body {
 .stat-label { font-size: 12px; color: var(--text2); font-weight: 500; }
 .stat-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
 
-/* \u2500\u2500 SECTION TITLE \u2500\u2500 */
+/* ── SECTION TITLE ── */
 .section-title {
   font-size: 16px; font-weight: 700; margin-bottom: 16px; margin-top: 28px;
   display: flex; align-items: center; gap: 10px;
@@ -113,7 +113,7 @@ body {
   content: ''; flex: 1; height: 1px; background: var(--border);
 }
 
-/* \u2500\u2500 TABLE \u2500\u2500 */
+/* ── TABLE ── */
 .tbl-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th {
@@ -129,7 +129,7 @@ td {
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: rgba(255,255,255,0.02); }
 
-/* \u2500\u2500 BADGE \u2500\u2500 */
+/* ── BADGE ── */
 .badge {
   display: inline-block; padding: 2px 8px; border-radius: 20px;
   font-size: 11px; font-weight: 700;
@@ -140,13 +140,13 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .badge-purple { background: rgba(124,111,205,0.12); color: var(--accent2); }
 .badge-gold { background: rgba(200,169,110,0.12); color: var(--accent); }
 
-/* \u2500\u2500 PROGRESS \u2500\u2500 */
+/* ── PROGRESS ── */
 .progress-bar {
   height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
 }
 .progress-fill { height: 100%; border-radius: 3px; transition: width .4s; }
 
-/* \u2500\u2500 FORM \u2500\u2500 */
+/* ── FORM ── */
 .form-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
 .form-group { display: flex; flex-direction: column; gap: 5px; }
 .form-group label { font-size: 11px; font-weight: 700; letter-spacing: 0.8px; color: var(--text3); text-transform: uppercase; }
@@ -160,7 +160,7 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus { border-color: var(--accent2); }
 select option { background: var(--bg); }
 
-/* \u2500\u2500 BTN \u2500\u2500 */
+/* ── BTN ── */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 9px 18px; border-radius: 8px; border: none;
@@ -176,7 +176,7 @@ select option { background: var(--bg); }
 .btn-sm { padding: 5px 12px; font-size: 12px; }
 .btn-icon { padding: 6px; border-radius: 6px; }
 
-/* \u2500\u2500 MODAL \u2500\u2500 */
+/* ── MODAL ── */
 .modal-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.7); z-index: 999;
@@ -192,7 +192,7 @@ select option { background: var(--bg); }
 .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; color: var(--accent); }
 .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
-/* \u2500\u2500 RANK \u2500\u2500 */
+/* ── RANK ── */
 .rank-item {
   display: flex; align-items: center; gap: 14px;
   padding: 12px 0; border-bottom: 1px solid var(--border);
@@ -210,7 +210,7 @@ select option { background: var(--bg); }
 .rank-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
 .rank-val { font-family: 'DM Mono', monospace; font-weight: 700; color: var(--green); font-size: 15px; }
 
-/* \u2500\u2500 TEACHER CARD \u2500\u2500 */
+/* ── TEACHER CARD ── */
 .teacher-card {
   background: var(--surface2); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 18px;
@@ -223,7 +223,7 @@ select option { background: var(--bg); }
 .teacher-stat-val { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 700; color: var(--accent); }
 .teacher-stat-label { font-size: 11px; color: var(--text3); }
 
-/* \u2500\u2500 MISC \u2500\u2500 */
+/* ── MISC ── */
 .empty-state { text-align: center; padding: 40px; color: var(--text3); }
 .gap-12 { gap: 12px; }
 .mb-16 { margin-bottom: 16px; }
@@ -260,43 +260,43 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
 <!-- NAV -->
 <nav class="nav">
-  <div class="nav-logo">\u26a1 \u6b66\u6a02</div>
-  <button class="nav-btn active" onclick="showPage('today')">\ud83d\udcca \u4eca\u65e5\u7e3d\u89bd</button>
-  <button class="nav-btn" onclick="showPage('class')">\ud83d\udccb \u8ab2\u7a0b\u7ba1\u7406</button>
-  <button class="nav-btn" onclick="showPage('teacher')">\ud83d\udc69\u200d\ud83c\udfeb \u8001\u5e2b\u7ba1\u7406</button>
-  <button class="nav-btn" onclick="showPage('student')">\ud83c\udfab \u5b78\u54e1\u65b9\u6848</button>
-  <button class="nav-btn" onclick="showPage('monthly')">\ud83d\udcc5 \u6708\u7d50\u5831\u8868</button>
+  <div class="nav-logo">⚡ 武樂</div>
+  <button class="nav-btn active" onclick="showPage('today')">\ud83d\udcca 今日總覽</button>
+  <button class="nav-btn" onclick="showPage('class')">\ud83d\udccb 課程管理</button>
+  <button class="nav-btn" onclick="showPage('teacher')">\ud83d\udc69‍\ud83c\udfeb 老師管理</button>
+  <button class="nav-btn" onclick="showPage('student')">\ud83c\udfab 學員方案</button>
+  <button class="nav-btn" onclick="showPage('monthly')">\ud83d\udcc5 月結報表</button>
   <div class="nav-spacer"></div>
   <div class="nav-date" id="navDate"></div>
 </nav>
 
-<!-- \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-     PAGE 1: \u4eca\u65e5\u7e3d\u89bd
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 -->
+<!-- ═══════════════════════════════════════════
+     PAGE 1: 今日總覽
+════════════════════════════════════════════ -->
 <div class="page active" id="page-today">
   <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
     <div>
-      <div style="font-size:24px;font-weight:900;margin-bottom:4px">\u4eca\u65e5\u7e3d\u89bd</div>
+      <div style="font-size:24px;font-weight:900;margin-bottom:4px">今日總覽</div>
       <div style="color:var(--text3);font-size:13px" id="todayDateLabel"></div>
     </div>
     <div class="flex gap-8 flex-wrap">
-      <button class="btn btn-primary" onclick="openModal('addClassModal')">\uff0b \u65b0\u589e\u8ab2\u7a0b</button>
-      <button class="btn btn-secondary" onclick="openModal('addPurchaseModal')">\uff0b \u8cfc\u8cb7\u65b9\u6848</button>
+      <button class="btn btn-primary" onclick="openModal('addClassModal')">＋ 新增課程</button>
+      <button class="btn btn-secondary" onclick="openModal('addPurchaseModal')">＋ 購買方案</button>
     </div>
   </div>
 
   <!-- Stat cards -->
   <div class="grid-4" id="todayStats"></div>
 
-  <!-- \u8ab2\u7a0b\u5217\u8868 -->
-  <div class="section-title">\u4eca\u65e5\u8ab2\u7a0b</div>
+  <!-- 課程列表 -->
+  <div class="section-title">今日課程</div>
   <div class="card">
     <div class="tbl-wrap">
       <table>
         <thead>
           <tr>
-            <th>\u6642\u9593</th><th>\u8ab2\u7a0b</th><th>\u8001\u5e2b</th><th>\u6559\u5ba4</th>
-            <th>\u9810\u7d04/\u4e0a\u9650</th><th>\u5230\u8ab2</th><th>\u9810\u7d04\u7387</th><th>\u72c0\u614b</th><th>\u64cd\u4f5c</th>
+            <th>時間</th><th>課程</th><th>老師</th><th>教室</th>
+            <th>預約/上限</th><th>到課</th><th>預約率</th><th>狀態</th><th>操作</th>
           </tr>
         </thead>
         <tbody id="todayClassTbody"></tbody>
@@ -304,26 +304,26 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     </div>
   </div>
 
-  <!-- \u9810\u7d04\u7387\u6392\u884c -->
+  <!-- 預約率排行 -->
   <div class="grid-2 mt-16">
     <div class="card">
-      <div class="card-title">\ud83d\udcc8 \u4eca\u65e5\u9810\u7d04\u7387\u6392\u884c</div>
+      <div class="card-title">\ud83d\udcc8 今日預約率排行</div>
       <div id="todayRankList"></div>
     </div>
     <div class="card">
-      <div class="card-title">\ud83d\udcb0 \u4eca\u65e5\u8cfc\u8cb7\u660e\u7d30</div>
+      <div class="card-title">\ud83d\udcb0 今日購買明細</div>
       <div id="todayPurchaseList"></div>
     </div>
   </div>
 </div>
 
-<!-- \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-     PAGE 2: \u8ab2\u7a0b\u7ba1\u7406
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 -->
+<!-- ═══════════════════════════════════════════
+     PAGE 2: 課程管理
+════════════════════════════════════════════ -->
 <div class="page" id="page-class">
   <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
-    <div style="font-size:24px;font-weight:900">\u8ab2\u7a0b\u7ba1\u7406</div>
-    <button class="btn btn-primary" onclick="openModal('addClassModal')">\uff0b \u65b0\u589e\u8ab2\u7a0b</button>
+    <div style="font-size:24px;font-weight:900">課程管理</div>
+    <button class="btn btn-primary" onclick="openModal('addClassModal')">＋ 新增課程</button>
   </div>
 
   <div class="tab-row" id="classMonthTabs"></div>
@@ -331,21 +331,21 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   <div class="card">
     <div class="flex flex-wrap gap-8 mb-16">
       <select id="filterTeacher" onchange="renderClassTable()" style="min-width:120px">
-        <option value="">\u5168\u90e8\u8001\u5e2b</option>
+        <option value="">全部老師</option>
       </select>
       <select id="filterStatus" onchange="renderClassTable()" style="min-width:120px">
-        <option value="">\u5168\u90e8\u72c0\u614b</option>
-        <option value="\u6b63\u5e38">\u6b63\u5e38</option>
-        <option value="\u505c\u8ab2">\u505c\u8ab2</option>
-        <option value="\u6eff\u73ed">\u6eff\u73ed</option>
+        <option value="">全部狀態</option>
+        <option value="正常">正常</option>
+        <option value="停課">停課</option>
+        <option value="滿班">滿班</option>
       </select>
     </div>
     <div class="tbl-wrap">
       <table>
         <thead>
           <tr>
-            <th>\u65e5\u671f</th><th>\u6642\u9593</th><th>\u8ab2\u7a0b\u540d\u7a31</th><th>\u8001\u5e2b</th><th>\u6559\u5ba4</th>
-            <th>\u4e0a\u9650</th><th>\u9810\u7d04</th><th>\u5230\u8ab2</th><th>\u9810\u7d04\u7387</th><th>\u72c0\u614b</th><th>\u64cd\u4f5c</th>
+            <th>日期</th><th>時間</th><th>課程名稱</th><th>老師</th><th>教室</th>
+            <th>上限</th><th>預約</th><th>到課</th><th>預約率</th><th>狀態</th><th>操作</th>
           </tr>
         </thead>
         <tbody id="classTableTbody"></tbody>
@@ -354,46 +354,46 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   </div>
 </div>
 
-<!-- \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-     PAGE 3: \u8001\u5e2b\u7ba1\u7406
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 -->
+<!-- ═══════════════════════════════════════════
+     PAGE 3: 老師管理
+════════════════════════════════════════════ -->
 <div class="page" id="page-teacher">
   <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
-    <div style="font-size:24px;font-weight:900">\u8001\u5e2b\u7ba1\u7406</div>
-    <button class="btn btn-primary" onclick="openModal('addTeacherModal')">\uff0b \u65b0\u589e\u8001\u5e2b</button>
+    <div style="font-size:24px;font-weight:900">老師管理</div>
+    <button class="btn btn-primary" onclick="openModal('addTeacherModal')">＋ 新增老師</button>
   </div>
 
   <div class="tab-row" id="teacherMonthTabs"></div>
   <div id="teacherCardsContainer"></div>
 </div>
 
-<!-- \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-     PAGE 4: \u5b78\u54e1\u65b9\u6848
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 -->
+<!-- ═══════════════════════════════════════════
+     PAGE 4: 學員方案
+════════════════════════════════════════════ -->
 <div class="page" id="page-student">
   <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
-    <div style="font-size:24px;font-weight:900">\u5b78\u54e1\u65b9\u6848</div>
-    <button class="btn btn-primary" onclick="openModal('addPurchaseModal')">\uff0b \u65b0\u589e\u8cfc\u8cb7</button>
+    <div style="font-size:24px;font-weight:900">學員方案</div>
+    <button class="btn btn-primary" onclick="openModal('addPurchaseModal')">＋ 新增購買</button>
   </div>
 
   <div class="grid-3 mb-16" id="studentStats"></div>
 
   <div class="tab-row">
-    <div class="tab active" onclick="switchStudentTab('all',this)">\u5168\u90e8</div>
-    <div class="tab" onclick="switchStudentTab('active',this)">\u6709\u6548\u4e2d</div>
-    <div class="tab" onclick="switchStudentTab('expired',this)">\u5df2\u5230\u671f</div>
+    <div class="tab active" onclick="switchStudentTab('all',this)">全部</div>
+    <div class="tab" onclick="switchStudentTab('active',this)">有效中</div>
+    <div class="tab" onclick="switchStudentTab('expired',this)">已到期</div>
   </div>
 
   <div class="card">
     <div class="flex flex-wrap gap-8 mb-16">
-      <input type="text" id="studentSearch" placeholder="\u641c\u5c0b\u5b78\u54e1\u59d3\u540d..." oninput="renderStudentTable()" style="min-width:180px">
+      <input type="text" id="studentSearch" placeholder="搜尋學員姓名..." oninput="renderStudentTable()" style="min-width:180px">
     </div>
     <div class="tbl-wrap">
       <table>
         <thead>
           <tr>
-            <th>\u8cfc\u8cb7\u65e5\u671f</th><th>\u5b78\u54e1</th><th>\u65b9\u6848</th><th>\u91d1\u984d</th>
-            <th>\u555f\u7528\u65e5\u671f</th><th>\u5230\u671f\u65e5\u671f</th><th>\u5269\u9918\u5802\u6578</th><th>\u72c0\u614b</th><th>\u5099\u8a3b</th><th>\u64cd\u4f5c</th>
+            <th>購買日期</th><th>學員</th><th>方案</th><th>金額</th>
+            <th>啟用日期</th><th>到期日期</th><th>剩餘堂數</th><th>狀態</th><th>備註</th><th>操作</th>
           </tr>
         </thead>
         <tbody id="studentTableTbody"></tbody>
@@ -402,41 +402,41 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   </div>
 </div>
 
-<!-- \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-     PAGE 5: \u6708\u7d50\u5831\u8868
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 -->
+<!-- ═══════════════════════════════════════════
+     PAGE 5: 月結報表
+════════════════════════════════════════════ -->
 <div class="page" id="page-monthly">
   <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
-    <div style="font-size:24px;font-weight:900">\u6708\u7d50\u5831\u8868</div>
+    <div style="font-size:24px;font-weight:900">月結報表</div>
     <div class="flex gap-8">
       <select id="monthlyMonthSelect" onchange="renderMonthly()" style="min-width:140px"></select>
-      <button class="btn btn-secondary" onclick="exportMonthly()">\ud83d\udcc4 \u532f\u51fa\u8001\u5e2b\u660e\u7d30</button>
+      <button class="btn btn-secondary" onclick="exportMonthly()">\ud83d\udcc4 匯出老師明細</button>
     </div>
   </div>
 
-  <!-- \u6708\u4efd\u7e3d\u89bd -->
+  <!-- 月份總覽 -->
   <div class="grid-4 mb-16" id="monthlyStats"></div>
 
-  <!-- \u8001\u5e2b\u8cbb\u7528\u660e\u7d30 -->
-  <div class="section-title">\u8001\u5e2b\u8ab2\u8cbb\u660e\u7d30</div>
+  <!-- 老師費用明細 -->
+  <div class="section-title">老師課費明細</div>
   <div class="card mb-16">
     <div class="tbl-wrap">
       <table>
         <thead>
-          <tr><th>\u8001\u5e2b</th><th>\u958b\u8ab2\u6578</th><th>\u6eff\u73ed\u6578</th><th>\u7e3d\u5b78\u751f\u4eba\u6b21</th><th>\u9810\u7d04\u7387</th><th>\u8ab2\u8cbb/\u5802</th><th>\u6eff\u73ed\u52a0\u7d66</th><th>\u6eff\u984d\u52a0\u7d66</th><th>\u8ab2\u8cbb\u5c0f\u8a08</th></tr>
+          <tr><th>老師</th><th>開課數</th><th>滿班數</th><th>總學生人次</th><th>預約率</th><th>課費/堂</th><th>滿班加給</th><th>滿額加給</th><th>課費小計</th></tr>
         </thead>
         <tbody id="monthlyTeacherTbody"></tbody>
       </table>
     </div>
   </div>
 
-  <!-- \u5b78\u54e1\u8cfc\u8cb7\u7d71\u8a08 -->
-  <div class="section-title">\u5b78\u54e1\u8cfc\u8cb7\u7d71\u8a08</div>
+  <!-- 學員購買統計 -->
+  <div class="section-title">學員購買統計</div>
   <div class="card mb-16">
     <div class="tbl-wrap">
       <table>
         <thead>
-          <tr><th>\u65e5\u671f</th><th>\u5b78\u54e1</th><th>\u65b9\u6848</th><th>\u91d1\u984d</th></tr>
+          <tr><th>日期</th><th>學員</th><th>方案</th><th>金額</th></tr>
         </thead>
         <tbody id="monthlyPurchaseTbody"></tbody>
       </table>
@@ -444,345 +444,345 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <div style="text-align:right;margin-top:12px;font-size:15px;font-weight:700;color:var(--green)" id="monthlyPurchaseTotal"></div>
   </div>
 
-  <!-- \u6708\u7d50\u6458\u8981 -->
-  <div class="section-title">\u6708\u7d50\u6458\u8981</div>
+  <!-- 月結摘要 -->
+  <div class="section-title">月結摘要</div>
   <div class="card" id="monthlySummary"></div>
 </div>
 
-<!-- \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+<!-- ═══════════════════════════════════════════
      MODALS
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 -->
+════════════════════════════════════════════ -->
 
-<!-- \u65b0\u589e\u8ab2\u7a0b -->
+<!-- 新增課程 -->
 <div class="modal-overlay" id="addClassModal">
   <div class="modal">
-    <div class="modal-title">\u65b0\u589e\u8ab2\u7a0b</div>
+    <div class="modal-title">新增課程</div>
     <div class="form-row">
       <div class="form-group" style="flex:1;min-width:130px">
-        <label>\u8ab2\u7a0b\u65e5\u671f</label>
+        <label>課程日期</label>
         <input type="date" id="cls_date">
       </div>
       <div class="form-group" style="flex:1;min-width:120px">
-        <label>\u958b\u59cb\u6642\u9593</label>
+        <label>開始時間</label>
         <input type="time" id="cls_timeStart" value="20:20">
       </div>
       <div class="form-group" style="flex:1;min-width:120px">
-        <label>\u7d50\u675f\u6642\u9593</label>
+        <label>結束時間</label>
         <input type="time" id="cls_timeEnd" value="21:20">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:2;min-width:150px">
-        <label>\u8ab2\u7a0b\u540d\u7a31</label>
-        <input type="text" id="cls_name" placeholder="\u5982\uff1a\u57fa\u790e\u7a7a\u745c">
+        <label>課程名稱</label>
+        <input type="text" id="cls_name" placeholder="如：基礎空瑜">
       </div>
       <div class="form-group" style="flex:1;min-width:120px">
-        <label>\u6388\u8ab2\u8001\u5e2b</label>
+        <label>授課老師</label>
         <select id="cls_teacher"></select>
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:1;min-width:120px">
-        <label>\u6559\u5ba4</label>
-        <input type="text" id="cls_room" value="\u745c\u4f3d\u6559\u5ba4">
+        <label>教室</label>
+        <input type="text" id="cls_room" value="瑜伽教室">
       </div>
       <div class="form-group" style="flex:1;min-width:100px">
-        <label>\u958b\u8ab2\u4eba\u6578\u4e0a\u9650</label>
+        <label>開課人數上限</label>
         <input type="number" id="cls_max" value="10" min="1">
       </div>
       <div class="form-group" style="flex:1;min-width:100px">
-        <label>\u9810\u7d04\u4eba\u6578</label>
+        <label>預約人數</label>
         <input type="number" id="cls_booked" value="0" min="0">
       </div>
       <div class="form-group" style="flex:1;min-width:100px">
-        <label>\u5230\u8ab2\u4eba\u6578</label>
+        <label>到課人數</label>
         <input type="number" id="cls_attended" value="0" min="0">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:1;min-width:120px">
-        <label>\u72c0\u614b</label>
+        <label>狀態</label>
         <select id="cls_status">
-          <option>\u6b63\u5e38</option>
-          <option>\u505c\u8ab2</option>
-          <option>\u6eff\u73ed</option>
+          <option>正常</option>
+          <option>停課</option>
+          <option>滿班</option>
         </select>
       </div>
       <div class="form-group" style="flex:2">
-        <label>\u5099\u8a3b</label>
-        <input type="text" id="cls_note" placeholder="\u9078\u586b">
+        <label>備註</label>
+        <input type="text" id="cls_note" placeholder="選填">
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('addClassModal')">\u53d6\u6d88</button>
-      <button class="btn btn-primary" onclick="saveClass()">\u5132\u5b58\u8ab2\u7a0b</button>
+      <button class="btn btn-secondary" onclick="closeModal('addClassModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveClass()">儲存課程</button>
     </div>
   </div>
 </div>
 
-<!-- \u65b0\u589e\u8001\u5e2b -->
+<!-- 新增老師 -->
 <div class="modal-overlay" id="addTeacherModal">
   <div class="modal">
-    <div class="modal-title">\u65b0\u589e\u8001\u5e2b</div>
+    <div class="modal-title">新增老師</div>
     <div class="form-row">
       <div class="form-group" style="flex:1">
-        <label>\u8001\u5e2b\u59d3\u540d</label>
-        <input type="text" id="tch_name" placeholder="\u5982\uff1a\u5854\u5854">
+        <label>老師姓名</label>
+        <input type="text" id="tch_name" placeholder="如：塔塔">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u6bcf\u5802\u57fa\u672c\u8ab2\u8cbb ($)</label>
+        <label>每堂基本課費 ($)</label>
         <input type="number" id="tch_pay" value="800">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:1">
-        <label>\u958b\u8ab2\u6700\u4f4e\u4eba\u6578</label>
-        <input type="number" id="tch_minPeople" value="7" min="1" placeholder="\u5230\u9054\u6b64\u4eba\u6578\u958b\u59cb\u8a08\u8ab2\u8cbb">
+        <label>開課最低人數</label>
+        <input type="number" id="tch_minPeople" value="7" min="1" placeholder="到達此人數開始計課費">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u6eff\u984d\u52a0\u7d66\u8d77\u59cb\u4eba\u6578</label>
-        <input type="number" id="tch_bonusMinPeople" value="7" min="0" placeholder="0=\u4e0d\u52a0\u7d66">
+        <label>滿額加給起始人數</label>
+        <input type="number" id="tch_bonusMinPeople" value="7" min="0" placeholder="0=不加給">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u6eff\u984d\u52a0\u7d66\u91d1\u984d ($)</label>
-        <input type="number" id="tch_bonusPerPerson" value="100" min="0" placeholder="\u6bcf\u8d85\u904e\u52a0\u591a\u5c11">
+        <label>滿額加給金額 ($)</label>
+        <input type="number" id="tch_bonusPerPerson" value="100" min="0" placeholder="每超過加多少">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:1">
-        <label>\u6eff\u73ed\u52a0\u7d66 ($)</label>
-        <input type="number" id="tch_fullBonus" value="100" min="0" placeholder="\u6eff\u73ed\u984d\u5916\u52a0\u7d66">
+        <label>滿班加給 ($)</label>
+        <input type="number" id="tch_fullBonus" value="100" min="0" placeholder="滿班額外加給">
       </div>
       <div class="form-group" style="flex:2">
-        <label>\u5099\u8a3b\u8aaa\u660e</label>
-        <input type="text" id="tch_note" placeholder="\u5982\uff1a7\u4eba\u4ee5\u4e0a\u6bcf\u4eba+$100\u3001\u6eff\u73ed+$100">
+        <label>備註說明</label>
+        <input type="text" id="tch_note" placeholder="如：7人以上每人+$100、滿班+$100">
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('addTeacherModal')">\u53d6\u6d88</button>
-      <button class="btn btn-primary" onclick="saveTeacher()">\u5132\u5b58\u8001\u5e2b</button>
+      <button class="btn btn-secondary" onclick="closeModal('addTeacherModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveTeacher()">儲存老師</button>
     </div>
   </div>
 </div>
 
-<!-- \u65b0\u589e\u8cfc\u8cb7\u65b9\u6848 -->
+<!-- 新增購買方案 -->
 <div class="modal-overlay" id="addPurchaseModal">
   <div class="modal">
-    <div class="modal-title">\u65b0\u589e\u8cfc\u8cb7\u65b9\u6848</div>
+    <div class="modal-title">新增購買方案</div>
     <div class="form-row">
       <div class="form-group" style="flex:1">
-        <label>\u8cfc\u8cb7\u65e5\u671f</label>
+        <label>購買日期</label>
         <input type="date" id="pur_date">
       </div>
       <div class="form-group" style="flex:2">
-        <label>\u5b78\u54e1\u59d3\u540d</label>
-        <input type="text" id="pur_student" placeholder="\u5982\uff1a\u694a\u6dd1\u5a9b">
+        <label>學員姓名</label>
+        <input type="text" id="pur_student" placeholder="如：楊淑媛">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:2">
-        <label>\u65b9\u6848\u540d\u7a31</label>
-        <input type="text" id="pur_plan" placeholder="\u5982\uff1a\u6b66\u6a02 5\u9031\u5e74\u9650\u5b9a\u6708\u5361(13\u5802)">
+        <label>方案名稱</label>
+        <input type="text" id="pur_plan" placeholder="如：武樂 5週年限定月卡(13堂)">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u91d1\u984d ($)</label>
+        <label>金額 ($)</label>
         <input type="number" id="pur_amount" value="0" min="0">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:1">
-        <label>\u555f\u7528\u65e5\u671f</label>
+        <label>啟用日期</label>
         <input type="date" id="pur_startDate">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u5230\u671f\u65e5\u671f</label>
+        <label>到期日期</label>
         <input type="date" id="pur_endDate">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u5802\u6578 (0=\u7121\u9650\u5236)</label>
+        <label>堂數 (0=無限制)</label>
         <input type="number" id="pur_sessions" value="0" min="0">
       </div>
     </div>
     <div class="form-group mb-16">
-      <label>\u5099\u8a3b</label>
-      <input type="text" id="pur_note" placeholder="\u9078\u586b">
+      <label>備註</label>
+      <input type="text" id="pur_note" placeholder="選填">
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('addPurchaseModal')">\u53d6\u6d88</button>
-      <button class="btn btn-primary" onclick="savePurchase()">\u5132\u5b58</button>
+      <button class="btn btn-secondary" onclick="closeModal('addPurchaseModal')">取消</button>
+      <button class="btn btn-primary" onclick="savePurchase()">儲存</button>
     </div>
   </div>
 </div>
 
-<!-- \u7de8\u8f2f\u8ab2\u7a0b -->
+<!-- 編輯課程 -->
 <div class="modal-overlay" id="editClassModal">
   <div class="modal">
-    <div class="modal-title">\u7de8\u8f2f\u8ab2\u7a0b</div>
+    <div class="modal-title">編輯課程</div>
     <input type="hidden" id="edit_cls_id">
     <div class="form-row">
       <div class="form-group" style="flex:1;min-width:130px">
-        <label>\u8ab2\u7a0b\u65e5\u671f</label>
+        <label>課程日期</label>
         <input type="date" id="edit_cls_date">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u958b\u59cb\u6642\u9593</label>
+        <label>開始時間</label>
         <input type="time" id="edit_cls_timeStart">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u7d50\u675f\u6642\u9593</label>
+        <label>結束時間</label>
         <input type="time" id="edit_cls_timeEnd">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:2">
-        <label>\u8ab2\u7a0b\u540d\u7a31</label>
+        <label>課程名稱</label>
         <input type="text" id="edit_cls_name">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u6388\u8ab2\u8001\u5e2b</label>
+        <label>授課老師</label>
         <select id="edit_cls_teacher"></select>
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:1">
-        <label>\u6559\u5ba4</label>
+        <label>教室</label>
         <input type="text" id="edit_cls_room">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u958b\u8ab2\u4eba\u6578\u4e0a\u9650</label>
+        <label>開課人數上限</label>
         <input type="number" id="edit_cls_max">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u9810\u7d04\u4eba\u6578</label>
+        <label>預約人數</label>
         <input type="number" id="edit_cls_booked">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u5230\u8ab2\u4eba\u6578</label>
+        <label>到課人數</label>
         <input type="number" id="edit_cls_attended">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:1">
-        <label>\u72c0\u614b</label>
+        <label>狀態</label>
         <select id="edit_cls_status">
-          <option>\u6b63\u5e38</option><option>\u505c\u8ab2</option><option>\u6eff\u73ed</option>
+          <option>正常</option><option>停課</option><option>滿班</option>
         </select>
       </div>
       <div class="form-group" style="flex:2">
-        <label>\u5099\u8a3b</label>
+        <label>備註</label>
         <input type="text" id="edit_cls_note">
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-danger btn-sm" onclick="deleteClass(document.getElementById('edit_cls_id').value)">\u522a\u9664</button>
-      <button class="btn btn-secondary" onclick="closeModal('editClassModal')">\u53d6\u6d88</button>
-      <button class="btn btn-primary" onclick="updateClass()">\u5132\u5b58</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteClass(document.getElementById('edit_cls_id').value)">刪除</button>
+      <button class="btn btn-secondary" onclick="closeModal('editClassModal')">取消</button>
+      <button class="btn btn-primary" onclick="updateClass()">儲存</button>
     </div>
   </div>
 </div>
 
-<!-- \u7de8\u8f2f\u8001\u5e2b -->
+<!-- 編輯老師 -->
 <div class="modal-overlay" id="editTeacherModal">
   <div class="modal">
-    <div class="modal-title">\u7de8\u8f2f\u8001\u5e2b</div>
+    <div class="modal-title">編輯老師</div>
     <input type="hidden" id="edit_tch_id">
     <div class="form-row">
       <div class="form-group" style="flex:1">
-        <label>\u8001\u5e2b\u59d3\u540d</label>
+        <label>老師姓名</label>
         <input type="text" id="edit_tch_name">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u6bcf\u5802\u57fa\u672c\u8ab2\u8cbb ($)</label>
+        <label>每堂基本課費 ($)</label>
         <input type="number" id="edit_tch_pay">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:1">
-        <label>\u958b\u8ab2\u6700\u4f4e\u4eba\u6578</label>
+        <label>開課最低人數</label>
         <input type="number" id="edit_tch_minPeople">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u6eff\u984d\u52a0\u7d66\u8d77\u59cb\u4eba\u6578</label>
+        <label>滿額加給起始人數</label>
         <input type="number" id="edit_tch_bonusMinPeople">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u6eff\u984d\u52a0\u7d66\u91d1\u984d ($)</label>
+        <label>滿額加給金額 ($)</label>
         <input type="number" id="edit_tch_bonusPerPerson">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:1">
-        <label>\u6eff\u73ed\u52a0\u7d66 ($)</label>
+        <label>滿班加給 ($)</label>
         <input type="number" id="edit_tch_fullBonus">
       </div>
       <div class="form-group" style="flex:2">
-        <label>\u5099\u8a3b</label>
+        <label>備註</label>
         <input type="text" id="edit_tch_note">
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-danger btn-sm" onclick="deleteTeacher(document.getElementById('edit_tch_id').value)">\u522a\u9664</button>
-      <button class="btn btn-secondary" onclick="closeModal('editTeacherModal')">\u53d6\u6d88</button>
-      <button class="btn btn-primary" onclick="updateTeacher()">\u5132\u5b58</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteTeacher(document.getElementById('edit_tch_id').value)">刪除</button>
+      <button class="btn btn-secondary" onclick="closeModal('editTeacherModal')">取消</button>
+      <button class="btn btn-primary" onclick="updateTeacher()">儲存</button>
     </div>
   </div>
 </div>
 
-<!-- \u7de8\u8f2f\u8cfc\u8cb7 -->
+<!-- 編輯購買 -->
 <div class="modal-overlay" id="editPurchaseModal">
   <div class="modal">
-    <div class="modal-title">\u7de8\u8f2f\u8cfc\u8cb7\u8a18\u9304</div>
+    <div class="modal-title">編輯購買記錄</div>
     <input type="hidden" id="edit_pur_id">
     <div class="form-row">
       <div class="form-group" style="flex:1">
-        <label>\u8cfc\u8cb7\u65e5\u671f</label>
+        <label>購買日期</label>
         <input type="date" id="edit_pur_date">
       </div>
       <div class="form-group" style="flex:2">
-        <label>\u5b78\u54e1\u59d3\u540d</label>
+        <label>學員姓名</label>
         <input type="text" id="edit_pur_student">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:2">
-        <label>\u65b9\u6848\u540d\u7a31</label>
+        <label>方案名稱</label>
         <input type="text" id="edit_pur_plan">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u91d1\u984d ($)</label>
+        <label>金額 ($)</label>
         <input type="number" id="edit_pur_amount">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group" style="flex:1">
-        <label>\u555f\u7528\u65e5\u671f</label>
+        <label>啟用日期</label>
         <input type="date" id="edit_pur_startDate">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u5230\u671f\u65e5\u671f</label>
+        <label>到期日期</label>
         <input type="date" id="edit_pur_endDate">
       </div>
       <div class="form-group" style="flex:1">
-        <label>\u5802\u6578</label>
+        <label>堂數</label>
         <input type="number" id="edit_pur_sessions">
       </div>
     </div>
     <div class="form-group mb-16">
-      <label>\u5099\u8a3b</label>
+      <label>備註</label>
       <input type="text" id="edit_pur_note">
     </div>
     <div class="modal-footer">
-      <button class="btn btn-danger btn-sm" onclick="deletePurchase(document.getElementById('edit_pur_id').value)">\u522a\u9664</button>
-      <button class="btn btn-secondary" onclick="closeModal('editPurchaseModal')">\u53d6\u6d88</button>
-      <button class="btn btn-primary" onclick="updatePurchase()">\u5132\u5b58</button>
+      <button class="btn btn-danger btn-sm" onclick="deletePurchase(document.getElementById('edit_pur_id').value)">刪除</button>
+      <button class="btn btn-secondary" onclick="closeModal('editPurchaseModal')">取消</button>
+      <button class="btn btn-primary" onclick="updatePurchase()">儲存</button>
     </div>
   </div>
 </div>
 
 <script>
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  DATA LAYER
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases' };
 
 function load(key) {
@@ -802,12 +802,12 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function seedIfEmpty() {
   if (teachers.length === 0) {
     teachers = [
-      { id: uid(), name: '\u5854\u5854', pay: 800, minPeople: 7, bonusMinPeople: 7, bonusPerPerson: 100, fullBonus: 100, note: '7\u4eba\u4ee5\u4e0a\u6bcf\u4eba+$100\uff0c\u6eff\u73ed+$100' },
+      { id: uid(), name: '塔塔', pay: 800, minPeople: 7, bonusMinPeople: 7, bonusPerPerson: 100, fullBonus: 100, note: '7人以上每人+$100，滿班+$100' },
       { id: uid(), name: 'Summer', pay: 900, minPeople: 5, bonusMinPeople: 0, bonusPerPerson: 0, fullBonus: 0, note: '' },
-      { id: uid(), name: '\u5c0f\u5e03', pay: 800, minPeople: 7, bonusMinPeople: 0, bonusPerPerson: 0, fullBonus: 100, note: '\u6eff\u73ed+$100' },
+      { id: uid(), name: '小布', pay: 800, minPeople: 7, bonusMinPeople: 0, bonusPerPerson: 0, fullBonus: 100, note: '滿班+$100' },
       { id: uid(), name: 'Vanessa', pay: 1000, minPeople: 5, bonusMinPeople: 0, bonusPerPerson: 0, fullBonus: 0, note: '' },
-      { id: uid(), name: '\u838a\u4f73\u96ef', pay: 700, minPeople: 5, bonusMinPeople: 0, bonusPerPerson: 0, fullBonus: 0, note: '' },
-      { id: uid(), name: '\u5c0fmo', pay: 800, minPeople: 5, bonusMinPeople: 0, bonusPerPerson: 0, fullBonus: 0, note: '' },
+      { id: uid(), name: '莊佳雯', pay: 700, minPeople: 5, bonusMinPeople: 0, bonusPerPerson: 0, fullBonus: 0, note: '' },
+      { id: uid(), name: '小mo', pay: 800, minPeople: 5, bonusMinPeople: 0, bonusPerPerson: 0, fullBonus: 0, note: '' },
     ];
     save(KEYS.teachers, teachers);
   }
@@ -816,22 +816,22 @@ function seedIfEmpty() {
     const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
     const yd = yesterday.toISOString().slice(0,10);
     classes = [
-      { id: uid(), date: today, timeStart:'09:30', timeEnd:'10:30', name:'\u5167\u89c0\u6d41', teacher:'Summer', room:'\u745c\u4f3d\u6559\u5ba4', max:10, booked:7, attended:6, status:'\u6b63\u5e38', note:'' },
-      { id: uid(), date: today, timeStart:'11:00', timeEnd:'12:00', name:'\u57fa\u790e\u7a7a\u745c', teacher:'\u5c0f\u5e03', room:'\u745c\u4f3d\u6559\u5ba4', max:7, booked:7, attended:7, status:'\u6eff\u73ed', note:'' },
-      { id: uid(), date: today, timeStart:'19:10', timeEnd:'20:10', name:'\u6b63\u4f4d\u745c\u4f3d', teacher:'\u5c0fmo', room:'\u745c\u4f3d\u6559\u5ba4', max:10, booked:3, attended:0, status:'\u6b63\u5e38', note:'' },
-      { id: uid(), date: today, timeStart:'20:20', timeEnd:'21:20', name:'\u745c\u4f3d\u8f2a\u7642\u7652\u4f38\u5c55', teacher:'Summer', room:'\u745c\u4f3d\u6559\u5ba4', max:13, booked:4, attended:0, status:'\u6b63\u5e38', note:'' },
-      { id: uid(), date: yd, timeStart:'20:20', timeEnd:'21:20', name:'\u57fa\u790e\u7a7a\u745c', teacher:'\u5854\u5854', room:'\u745c\u4f3d\u6559\u5ba4', max:7, booked:7, attended:6, status:'\u6eff\u73ed', note:'' },
-      { id: uid(), date: yd, timeStart:'09:30', timeEnd:'10:30', name:'\u4f38\u5c55\u8212\u7de9\u6a02\u745c\u4f3d', teacher:'Summer', room:'\u745c\u4f3d\u6559\u5ba4', max:10, booked:10, attended:9, status:'\u6eff\u73ed', note:'' },
+      { id: uid(), date: today, timeStart:'09:30', timeEnd:'10:30', name:'內觀流', teacher:'Summer', room:'瑜伽教室', max:10, booked:7, attended:6, status:'正常', note:'' },
+      { id: uid(), date: today, timeStart:'11:00', timeEnd:'12:00', name:'基礎空瑜', teacher:'小布', room:'瑜伽教室', max:7, booked:7, attended:7, status:'滿班', note:'' },
+      { id: uid(), date: today, timeStart:'19:10', timeEnd:'20:10', name:'正位瑜伽', teacher:'小mo', room:'瑜伽教室', max:10, booked:3, attended:0, status:'正常', note:'' },
+      { id: uid(), date: today, timeStart:'20:20', timeEnd:'21:20', name:'瑜伽輪療癒伸展', teacher:'Summer', room:'瑜伽教室', max:13, booked:4, attended:0, status:'正常', note:'' },
+      { id: uid(), date: yd, timeStart:'20:20', timeEnd:'21:20', name:'基礎空瑜', teacher:'塔塔', room:'瑜伽教室', max:7, booked:7, attended:6, status:'滿班', note:'' },
+      { id: uid(), date: yd, timeStart:'09:30', timeEnd:'10:30', name:'伸展舒緩樂瑜伽', teacher:'Summer', room:'瑜伽教室', max:10, booked:10, attended:9, status:'滿班', note:'' },
     ];
     save(KEYS.classes, classes);
   }
   if (purchases.length === 0) {
     const today = todayStr();
     purchases = [
-      { id: uid(), date: today, student:'\u6234\u7d72\u8587', plan:'\u6b66\u6a02 5\u9031\u5e74\u9650\u5b9a\u6708\u5361(13\u5802)', amount: 2999, startDate: today, endDate:'2026-04-28', sessions:13, note:'' },
-      { id: uid(), date: today, student:'\u6234\u7d72\u8587', plan:'\u8ab2\u7a0b\u901a\u7528', amount: 0, startDate: today, endDate:'2026-04-28', sessions:0, note:'\u8d08\u9001' },
-      { id: uid(), date: today, student:'\u694a\u6dd1\u5a9b', plan:'\u65b0\u624b\u9ad4\u9a57\u5305', amount: 1500, startDate: today, endDate:'2026-04-30', sessions:3, note:'' },
-      { id: uid(), date: today, student:'\u694a\u6dd1\u5a9b', plan:'\u6b66\u6a02 5\u9031\u5e74\u9650\u5b9a\u5802\u6578\u65b9\u6848', amount: 11111, startDate: today, endDate:'2027-03-30', sessions:30, note:'' },
+      { id: uid(), date: today, student:'戴絲薇', plan:'武樂 5週年限定月卡(13堂)', amount: 2999, startDate: today, endDate:'2026-04-28', sessions:13, note:'' },
+      { id: uid(), date: today, student:'戴絲薇', plan:'課程通用', amount: 0, startDate: today, endDate:'2026-04-28', sessions:0, note:'贈送' },
+      { id: uid(), date: today, student:'楊淑媛', plan:'新手體驗包', amount: 1500, startDate: today, endDate:'2026-04-30', sessions:3, note:'' },
+      { id: uid(), date: today, student:'楊淑媛', plan:'武樂 5週年限定堂數方案', amount: 11111, startDate: today, endDate:'2027-03-30', sessions:30, note:'' },
     ];
     save(KEYS.purchases, purchases);
   }
@@ -845,9 +845,9 @@ function fmtDate(d) {
 }
 function fmtMoney(n) { return '$' + Number(n).toLocaleString(); }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  NAV
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -864,9 +864,9 @@ function showPage(name) {
   if (name==='kids') renderKidsPage();
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  MODALS
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 function openModal(id) {
   const m = document.getElementById(id);
   if (!m) return;
@@ -896,9 +896,9 @@ function populateTeacherSelect(selId) {
   if (cur) sel.value = cur;
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  CLASSES CRUD
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 function saveClass() {
   const c = {
     id: uid(),
@@ -914,7 +914,7 @@ function saveClass() {
     status: document.getElementById('cls_status').value,
     note: document.getElementById('cls_note').value.trim(),
   };
-  if (!c.date || !c.name || !c.teacher) return alert('\u8acb\u586b\u5beb\u65e5\u671f\u3001\u8ab2\u7a0b\u540d\u7a31\u548c\u8001\u5e2b');
+  if (!c.date || !c.name || !c.teacher) return alert('請填寫日期、課程名稱和老師');
   classes.push(c);
   save(KEYS.classes, classes);
   closeModal('addClassModal');
@@ -964,16 +964,16 @@ function updateClass() {
 }
 
 function deleteClass(id) {
-  if (!confirm('\u78ba\u5b9a\u522a\u9664\u9019\u7b46\u8ab2\u7a0b\uff1f')) return;
+  if (!confirm('確定刪除這筆課程？')) return;
   classes = classes.filter(x=>x.id!==id);
   save(KEYS.classes, classes);
   closeModal('editClassModal');
   refreshCurrentPage();
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  TEACHERS CRUD
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 function saveTeacher() {
   const t = {
     id: uid(),
@@ -985,7 +985,7 @@ function saveTeacher() {
     fullBonus: parseInt(document.getElementById('tch_fullBonus').value)||0,
     note: document.getElementById('tch_note').value.trim(),
   };
-  if (!t.name) return alert('\u8acb\u586b\u5beb\u8001\u5e2b\u59d3\u540d');
+  if (!t.name) return alert('請填寫老師姓名');
   teachers.push(t);
   save(KEYS.teachers, teachers);
   closeModal('addTeacherModal');
@@ -1026,16 +1026,16 @@ function updateTeacher() {
 }
 
 function deleteTeacher(id) {
-  if (!confirm('\u78ba\u5b9a\u522a\u9664\u9019\u4f4d\u8001\u5e2b\uff1f')) return;
+  if (!confirm('確定刪除這位老師？')) return;
   teachers = teachers.filter(x=>x.id!==id);
   save(KEYS.teachers, teachers);
   closeModal('editTeacherModal');
   renderTeacherPage();
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  PURCHASES CRUD
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 function savePurchase() {
   const p = {
     id: uid(),
@@ -1048,7 +1048,7 @@ function savePurchase() {
     sessions: parseInt(document.getElementById('pur_sessions').value)||0,
     note: document.getElementById('pur_note').value.trim(),
   };
-  if (!p.date || !p.student || !p.plan) return alert('\u8acb\u586b\u5beb\u65e5\u671f\u3001\u5b78\u54e1\u548c\u65b9\u6848');
+  if (!p.date || !p.student || !p.plan) return alert('請填寫日期、學員和方案');
   purchases.push(p);
   save(KEYS.purchases, purchases);
   closeModal('addPurchaseModal');
@@ -1091,16 +1091,16 @@ function updatePurchase() {
 }
 
 function deletePurchase(id) {
-  if (!confirm('\u78ba\u5b9a\u522a\u9664\uff1f')) return;
+  if (!confirm('確定刪除？')) return;
   purchases = purchases.filter(x=>x.id!==id);
   save(KEYS.purchases, purchases);
   closeModal('editPurchaseModal');
   refreshCurrentPage();
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  CALC TEACHER PAY
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 function calcTeacherPay(teacher, cls) {
   // base pay
   let pay = teacher.pay;
@@ -1109,15 +1109,15 @@ function calcTeacherPay(teacher, cls) {
     pay += cls.attended * teacher.bonusPerPerson;
   }
   // full class bonus
-  if (teacher.fullBonus > 0 && cls.status === '\u6eff\u73ed') {
+  if (teacher.fullBonus > 0 && cls.status === '滿班') {
     pay += teacher.fullBonus;
   }
   return pay;
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  RENDER TODAY
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 let _currentStudentTab = 'all';
 
 function renderToday() {
@@ -1130,48 +1130,48 @@ function renderToday() {
   const totalStudents = todayClasses.reduce((s,c)=>s+(c.attended||0),0);
   const underMin = todayClasses.filter(c => {
     const t = teachers.find(t=>t.name===c.teacher);
-    return t && c.attended < t.minPeople && c.status !== '\u505c\u8ab2';
+    return t && c.attended < t.minPeople && c.status !== '停課';
   }).length;
   const todayRevenue = todayPurchases.reduce((s,p)=>s+p.amount,0);
 
   document.getElementById('todayStats').innerHTML = `
     <div class="stat-card gold">
       <div class="stat-num">${total}</div>
-      <div class="stat-label">\u4eca\u65e5\u8ab2\u7a0b\u6578</div>
+      <div class="stat-label">今日課程數</div>
     </div>
     <div class="stat-card green">
       <div class="stat-num">${totalStudents}</div>
-      <div class="stat-label">\u5230\u8ab2\u4eba\u6b21</div>
+      <div class="stat-label">到課人次</div>
     </div>
     <div class="stat-card red">
       <div class="stat-num">${underMin}</div>
-      <div class="stat-label">\u672a\u9054\u958b\u8ab2\u4eba\u6578</div>
-      <div class="stat-sub">\u5efa\u8b70\u78ba\u8a8d\u662f\u5426\u958b\u8ab2</div>
+      <div class="stat-label">未達開課人數</div>
+      <div class="stat-sub">建議確認是否開課</div>
     </div>
     <div class="stat-card purple">
       <div class="stat-num">${fmtMoney(todayRevenue)}</div>
-      <div class="stat-label">\u4eca\u65e5\u65b9\u6848\u71df\u6536</div>
-      <div class="stat-sub">${todayPurchases.length} \u7b46\u6210\u4ea4</div>
+      <div class="stat-label">今日方案營收</div>
+      <div class="stat-sub">${todayPurchases.length} 筆成交</div>
     </div>
   `;
 
   // Class table
   const tbody = document.getElementById('todayClassTbody');
   if (!todayClasses.length) {
-    tbody.innerHTML = `<tr><td colspan="9" class="empty-state">\u4eca\u65e5\u7121\u8ab2\u7a0b\uff0c\u8acb\u65b0\u589e\u8ab2\u7a0b</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="empty-state">今日無課程，請新增課程</td></tr>`;
   } else {
     const sorted = [...todayClasses].sort((a,b)=>a.timeStart.localeCompare(b.timeStart));
     tbody.innerHTML = sorted.map(c => {
       const rate = c.max>0 ? Math.round(c.booked/c.max*100) : 0;
       const t = teachers.find(t=>t.name===c.teacher);
-      const underMinFlag = t && c.booked < t.minPeople && c.status !== '\u505c\u8ab2';
+      const underMinFlag = t && c.booked < t.minPeople && c.status !== '停課';
       let statusBadge = '';
-      if (c.status==='\u6eff\u73ed') statusBadge = `<span class="badge badge-green">\u6eff\u73ed</span>`;
-      else if (c.status==='\u505c\u8ab2') statusBadge = `<span class="badge badge-red">\u505c\u8ab2</span>`;
-      else if (underMinFlag) statusBadge = `<span class="badge badge-yellow">\u672a\u9054\u958b\u8ab2</span>`;
-      else statusBadge = `<span class="badge badge-purple">\u6b63\u5e38</span>`;
+      if (c.status==='滿班') statusBadge = `<span class="badge badge-green">滿班</span>`;
+      else if (c.status==='停課') statusBadge = `<span class="badge badge-red">停課</span>`;
+      else if (underMinFlag) statusBadge = `<span class="badge badge-yellow">未達開課</span>`;
+      else statusBadge = `<span class="badge badge-purple">正常</span>`;
       return `<tr>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${c.timeStart}\u2013${c.timeEnd}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${c.timeStart}–${c.timeEnd}</td>
         <td style="font-weight:600">${c.name}</td>
         <td>${c.teacher}</td>
         <td style="color:var(--text3)">${c.room}</td>
@@ -1186,7 +1186,7 @@ function renderToday() {
           </div>
         </td>
         <td>${statusBadge}</td>
-        <td><button class="btn btn-secondary btn-sm" onclick="editClass('${c.id}')">\u7de8\u8f2f</button></td>
+        <td><button class="btn btn-secondary btn-sm" onclick="editClass('${c.id}')">編輯</button></td>
       </tr>`;
     }).join('');
   }
@@ -1198,14 +1198,14 @@ function renderToday() {
     .map(c=>({ name: c.name, teacher: c.teacher, rate: Math.round(c.booked/c.max*100), booked: c.booked, max: c.max }))
     .sort((a,b)=>b.rate-a.rate);
   if (!rankData.length) {
-    rankEl.innerHTML = `<div class="empty-state" style="padding:20px">\u4eca\u65e5\u7121\u8ab2\u7a0b</div>`;
+    rankEl.innerHTML = `<div class="empty-state" style="padding:20px">今日無課程</div>`;
   } else {
     rankEl.innerHTML = rankData.map((r,i) => `
       <div class="rank-item">
         <div class="rank-num ${i===0?'top1':i===1?'top2':i===2?'top3':''}">${i+1}</div>
         <div class="rank-info">
           <div class="rank-name">${r.name}</div>
-          <div class="rank-meta">${r.teacher} \u00b7 ${r.booked}/${r.max}</div>
+          <div class="rank-meta">${r.teacher} · ${r.booked}/${r.max}</div>
         </div>
         <div class="rank-val">${r.rate}%</div>
       </div>
@@ -1215,7 +1215,7 @@ function renderToday() {
   // Today purchases
   const purEl = document.getElementById('todayPurchaseList');
   if (!todayPurchases.length) {
-    purEl.innerHTML = `<div class="empty-state" style="padding:20px">\u4eca\u65e5\u7121\u8cfc\u8cb7\u8a18\u9304</div>`;
+    purEl.innerHTML = `<div class="empty-state" style="padding:20px">今日無購買記錄</div>`;
   } else {
     purEl.innerHTML = todayPurchases.map(p => `
       <div class="rank-item">
@@ -1225,13 +1225,13 @@ function renderToday() {
         </div>
         <div class="rank-val" style="color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</div>
       </div>
-    `).join('') + `<div style="text-align:right;margin-top:10px;font-weight:700;color:var(--accent)">\u5408\u8a08 ${fmtMoney(todayRevenue)}</div>`;
+    `).join('') + `<div style="text-align:right;margin-top:10px;font-weight:700;color:var(--accent)">合計 ${fmtMoney(todayRevenue)}</div>`;
   }
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  RENDER CLASS PAGE
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 let classPageMonth = todayStr().slice(0,7);
 
 function renderClassPage() {
@@ -1248,7 +1248,7 @@ function renderClassPage() {
   // teacher filter
   const filterSel = document.getElementById('filterTeacher');
   const curTeacher = filterSel.value;
-  filterSel.innerHTML = '<option value="">\u5168\u90e8\u8001\u5e2b</option>' + teachers.map(t=>`<option value="${t.name}">${t.name}</option>`).join('');
+  filterSel.innerHTML = '<option value="">全部老師</option>' + teachers.map(t=>`<option value="${t.name}">${t.name}</option>`).join('');
   filterSel.value = curTeacher;
 
   renderClassTable();
@@ -1266,21 +1266,21 @@ function renderClassTable() {
 
   const tbody = document.getElementById('classTableTbody');
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="11" class="empty-state">\u672c\u6708\u7121\u8ab2\u7a0b\u8a18\u9304</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="empty-state">本月無課程記錄</td></tr>`;
     return;
   }
   tbody.innerHTML = filtered.map(c => {
     const rate = c.max>0 ? Math.round(c.booked/c.max*100) : 0;
     const t = teachers.find(t=>t.name===c.teacher);
-    const underMinFlag = t && c.booked < t.minPeople && c.status !== '\u505c\u8ab2';
+    const underMinFlag = t && c.booked < t.minPeople && c.status !== '停課';
     let statusBadge = '';
-    if (c.status==='\u6eff\u73ed') statusBadge = `<span class="badge badge-green">\u6eff\u73ed</span>`;
-    else if (c.status==='\u505c\u8ab2') statusBadge = `<span class="badge badge-red">\u505c\u8ab2</span>`;
-    else if (underMinFlag) statusBadge = `<span class="badge badge-yellow">\u672a\u9054</span>`;
-    else statusBadge = `<span class="badge badge-purple">\u6b63\u5e38</span>`;
+    if (c.status==='滿班') statusBadge = `<span class="badge badge-green">滿班</span>`;
+    else if (c.status==='停課') statusBadge = `<span class="badge badge-red">停課</span>`;
+    else if (underMinFlag) statusBadge = `<span class="badge badge-yellow">未達</span>`;
+    else statusBadge = `<span class="badge badge-purple">正常</span>`;
     return `<tr>
       <td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(c.date)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${c.timeStart}\u2013${c.timeEnd}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${c.timeStart}–${c.timeEnd}</td>
       <td style="font-weight:600">${c.name}</td>
       <td>${c.teacher}</td>
       <td style="color:var(--text3)">${c.room}</td>
@@ -1289,14 +1289,14 @@ function renderClassTable() {
       <td>${c.attended}</td>
       <td style="font-family:'DM Mono',monospace;font-size:12px">${rate}%</td>
       <td>${statusBadge}</td>
-      <td><button class="btn btn-secondary btn-sm" onclick="editClass('${c.id}')">\u7de8\u8f2f</button></td>
+      <td><button class="btn btn-secondary btn-sm" onclick="editClass('${c.id}')">編輯</button></td>
     </tr>`;
   }).join('');
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  RENDER TEACHER PAGE
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 let teacherPageMonth = todayStr().slice(0,7);
 
 function renderTeacherPage() {
@@ -1309,52 +1309,52 @@ function renderTeacherPage() {
     <div class="tab ${m===teacherPageMonth?'active':''}" onclick="teacherPageMonth='${m}';renderTeacherPage()">${m}</div>
   `).join('');
 
-  const monthClasses = classes.filter(c => c.date.slice(0,7)===teacherPageMonth && c.status !== '\u505c\u8ab2');
+  const monthClasses = classes.filter(c => c.date.slice(0,7)===teacherPageMonth && c.status !== '停課');
 
   const container = document.getElementById('teacherCardsContainer');
   if (!teachers.length) {
-    container.innerHTML = `<div class="card empty-state">\u5c1a\u7121\u8001\u5e2b\u8cc7\u6599\uff0c\u8acb\u5148\u65b0\u589e\u8001\u5e2b</div>`;
+    container.innerHTML = `<div class="card empty-state">尚無老師資料，請先新增老師</div>`;
     return;
   }
 
   container.innerHTML = `<div class="grid-3">` + teachers.map(t => {
     const tClasses = monthClasses.filter(c=>c.teacher===t.name);
     const totalClasses = tClasses.length;
-    const fullClasses = tClasses.filter(c=>c.status==='\u6eff\u73ed').length;
+    const fullClasses = tClasses.filter(c=>c.status==='滿班').length;
     const totalStudents = tClasses.reduce((s,c)=>s+(c.attended||0),0);
     const totalBooked = tClasses.reduce((s,c)=>s+(c.booked||0),0);
     const totalMax = tClasses.reduce((s,c)=>s+c.max,0);
     const avgRate = totalMax > 0 ? Math.round(totalBooked/totalMax*100) : 0;
     const totalPay = tClasses.reduce((s,c)=>s+calcTeacherPay(t,c),0);
 
-    const payDesc = `\u57fa\u672c ${fmtMoney(t.pay)}/\u5802` +
-      (t.bonusPerPerson>0?` \u00b7 ${t.bonusMinPeople}\u4eba\u4ee5\u4e0a\u6bcf\u4eba+${fmtMoney(t.bonusPerPerson)}`:'') +
-      (t.fullBonus>0?` \u00b7 \u6eff\u73ed+${fmtMoney(t.fullBonus)}`:'');
+    const payDesc = `基本 ${fmtMoney(t.pay)}/堂` +
+      (t.bonusPerPerson>0?` · ${t.bonusMinPeople}人以上每人+${fmtMoney(t.bonusPerPerson)}`:'') +
+      (t.fullBonus>0?` · 滿班+${fmtMoney(t.fullBonus)}`:'');
 
     return `<div class="teacher-card">
       <div class="flex items-center justify-between">
         <div class="teacher-name">${t.name}</div>
-        <button class="btn btn-secondary btn-sm" onclick="editTeacher('${t.id}')">\u2699\ufe0f \u8a2d\u5b9a</button>
+        <button class="btn btn-secondary btn-sm" onclick="editTeacher('${t.id}')">⚙️ 設定</button>
       </div>
       <div class="teacher-pay">${payDesc}</div>
       ${t.note ? `<div style="font-size:11px;color:var(--accent);background:rgba(200,169,110,0.08);padding:6px 10px;border-radius:6px">${t.note}</div>` : ''}
       <div class="teacher-stats">
-        <div class="teacher-stat"><div class="teacher-stat-val">${totalClasses}</div><div class="teacher-stat-label">\u958b\u8ab2\u6578</div></div>
-        <div class="teacher-stat"><div class="teacher-stat-val">${fullClasses}</div><div class="teacher-stat-label">\u6eff\u73ed\u6578</div></div>
-        <div class="teacher-stat"><div class="teacher-stat-val">${totalStudents}</div><div class="teacher-stat-label">\u5230\u8ab2\u4eba\u6b21</div></div>
-        <div class="teacher-stat"><div class="teacher-stat-val">${avgRate}%</div><div class="teacher-stat-label">\u5e73\u5747\u9810\u7d04\u7387</div></div>
+        <div class="teacher-stat"><div class="teacher-stat-val">${totalClasses}</div><div class="teacher-stat-label">開課數</div></div>
+        <div class="teacher-stat"><div class="teacher-stat-val">${fullClasses}</div><div class="teacher-stat-label">滿班數</div></div>
+        <div class="teacher-stat"><div class="teacher-stat-val">${totalStudents}</div><div class="teacher-stat-label">到課人次</div></div>
+        <div class="teacher-stat"><div class="teacher-stat-val">${avgRate}%</div><div class="teacher-stat-label">平均預約率</div></div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(200,169,110,0.08);border-radius:8px;padding:10px 14px">
-        <div style="font-size:12px;color:var(--text2)">${teacherPageMonth} \u8ab2\u8cbb\u5408\u8a08</div>
+        <div style="font-size:12px;color:var(--text2)">${teacherPageMonth} 課費合計</div>
         <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:800;color:var(--accent)">${fmtMoney(totalPay)}</div>
       </div>
     </div>`;
   }).join('') + `</div>`;
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  RENDER STUDENT PAGE
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 function switchStudentTab(tab, el) {
   _currentStudentTab = tab;
   document.querySelectorAll('#page-student .tab').forEach(t=>t.classList.remove('active'));
@@ -1369,9 +1369,9 @@ function renderStudentPage() {
   const totalRevenue = purchases.reduce((s,p)=>s+p.amount,0);
 
   document.getElementById('studentStats').innerHTML = `
-    <div class="stat-card gold"><div class="stat-num">${fmtMoney(totalRevenue)}</div><div class="stat-label">\u7d2f\u8a08\u7e3d\u71df\u6536</div></div>
-    <div class="stat-card green"><div class="stat-num">${active.length}</div><div class="stat-label">\u6709\u6548\u65b9\u6848\u6578</div></div>
-    <div class="stat-card red"><div class="stat-num">${expired.length}</div><div class="stat-label">\u5df2\u5230\u671f\u65b9\u6848</div></div>
+    <div class="stat-card gold"><div class="stat-num">${fmtMoney(totalRevenue)}</div><div class="stat-label">累計總營收</div></div>
+    <div class="stat-card green"><div class="stat-num">${active.length}</div><div class="stat-label">有效方案數</div></div>
+    <div class="stat-card red"><div class="stat-num">${expired.length}</div><div class="stat-label">已到期方案</div></div>
   `;
   renderStudentTable();
 }
@@ -1387,17 +1387,17 @@ function renderStudentTable() {
 
   const tbody = document.getElementById('studentTableTbody');
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="10" class="empty-state">\u7121\u8cc7\u6599</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="empty-state">無資料</td></tr>`;
     return;
   }
   tbody.innerHTML = list.map(p => {
     const isExpired = p.endDate && p.endDate < today;
     const expireSoon = p.endDate && !isExpired && (new Date(p.endDate)-new Date()) < 7*86400000;
     let status = '';
-    if (!p.endDate) status = `<span class="badge badge-purple">\u7121\u671f\u9650</span>`;
-    else if (isExpired) status = `<span class="badge badge-red">\u5df2\u5230\u671f</span>`;
-    else if (expireSoon) status = `<span class="badge badge-yellow">\u5373\u5c07\u5230\u671f</span>`;
-    else status = `<span class="badge badge-green">\u6709\u6548</span>`;
+    if (!p.endDate) status = `<span class="badge badge-purple">無期限</span>`;
+    else if (isExpired) status = `<span class="badge badge-red">已到期</span>`;
+    else if (expireSoon) status = `<span class="badge badge-yellow">即將到期</span>`;
+    else status = `<span class="badge badge-green">有效</span>`;
     return `<tr>
       <td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.date)}</td>
       <td style="font-weight:600">${p.student}</td>
@@ -1405,17 +1405,17 @@ function renderStudentTable() {
       <td style="font-family:'DM Mono',monospace;color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.startDate)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:12px;color:${isExpired?'var(--red)':expireSoon?'var(--yellow)':'var(--text)'}">${fmtDate(p.endDate)}</td>
-      <td style="text-align:center">${p.sessions||'\u2013'}</td>
+      <td style="text-align:center">${p.sessions||'–'}</td>
       <td>${status}</td>
       <td style="color:var(--text3);font-size:12px">${p.note||''}</td>
-      <td><button class="btn btn-secondary btn-sm" onclick="editPurchase('${p.id}')">\u7de8\u8f2f</button></td>
+      <td><button class="btn btn-secondary btn-sm" onclick="editPurchase('${p.id}')">編輯</button></td>
     </tr>`;
   }).join('');
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  RENDER MONTHLY
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 function renderMonthlyPage() {
   const months = [...new Set([...classes.map(c=>c.date.slice(0,7)),...purchases.map(p=>p.date.slice(0,7))])].sort().reverse();
   const cur = todayStr().slice(0,7);
@@ -1433,7 +1433,7 @@ function renderMonthly() {
   const month = document.getElementById('monthlyMonthSelect').value;
   if (!month) return;
 
-  const mClasses = classes.filter(c=>c.date.slice(0,7)===month && c.status!=='\u505c\u8ab2');
+  const mClasses = classes.filter(c=>c.date.slice(0,7)===month && c.status!=='停課');
   const mPurchases = purchases.filter(p=>p.date.slice(0,7)===month);
 
   // stats
@@ -1445,10 +1445,10 @@ function renderMonthly() {
   const totalRevenue = mPurchases.reduce((s,p)=>s+p.amount,0);
 
   document.getElementById('monthlyStats').innerHTML = `
-    <div class="stat-card gold"><div class="stat-num">${totalClasses}</div><div class="stat-label">\u672c\u6708\u958b\u8ab2\u6578</div></div>
-    <div class="stat-card green"><div class="stat-num">${totalStudents}</div><div class="stat-label">\u5230\u8ab2\u7e3d\u4eba\u6b21</div></div>
-    <div class="stat-card purple"><div class="stat-num">${avgRate}%</div><div class="stat-label">\u5e73\u5747\u9810\u7d04\u7387</div></div>
-    <div class="stat-card gold"><div class="stat-num">${fmtMoney(totalRevenue)}</div><div class="stat-label">\u65b9\u6848\u7e3d\u71df\u6536</div></div>
+    <div class="stat-card gold"><div class="stat-num">${totalClasses}</div><div class="stat-label">本月開課數</div></div>
+    <div class="stat-card green"><div class="stat-num">${totalStudents}</div><div class="stat-label">到課總人次</div></div>
+    <div class="stat-card purple"><div class="stat-num">${avgRate}%</div><div class="stat-label">平均預約率</div></div>
+    <div class="stat-card gold"><div class="stat-num">${fmtMoney(totalRevenue)}</div><div class="stat-label">方案總營收</div></div>
   `;
 
   // teacher table
@@ -1456,7 +1456,7 @@ function renderMonthly() {
     const tClasses = mClasses.filter(c=>c.teacher===t.name);
     if (!tClasses.length) return null;
     const totalC = tClasses.length;
-    const fullC = tClasses.filter(c=>c.status==='\u6eff\u73ed').length;
+    const fullC = tClasses.filter(c=>c.status==='滿班').length;
     const totalS = tClasses.reduce((s,c)=>s+(c.attended||0),0);
     const tBooked = tClasses.reduce((s,c)=>s+(c.booked||0),0);
     const tMax = tClasses.reduce((s,c)=>s+c.max,0);
@@ -1484,7 +1484,7 @@ function renderMonthly() {
 
   document.getElementById('monthlyTeacherTbody').innerHTML = teacherRows.length
     ? teacherRows.join('')
-    : `<tr><td colspan="9" class="empty-state">\u672c\u6708\u7121\u8ab2\u7a0b\u8a18\u9304</td></tr>`;
+    : `<tr><td colspan="9" class="empty-state">本月無課程記錄</td></tr>`;
 
   // purchase table
   const purRows = mPurchases.sort((a,b)=>a.date.localeCompare(b.date));
@@ -1495,8 +1495,8 @@ function renderMonthly() {
         <td>${p.plan}</td>
         <td style="font-family:'DM Mono',monospace;color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</td>
       </tr>`).join('')
-    : `<tr><td colspan="4" class="empty-state">\u672c\u6708\u7121\u8cfc\u8cb7\u8a18\u9304</td></tr>`;
-  document.getElementById('monthlyPurchaseTotal').textContent = `\u672c\u6708\u65b9\u6848\u7e3d\u6536\u5165\uff1a${fmtMoney(totalRevenue)}`;
+    : `<tr><td colspan="4" class="empty-state">本月無購買記錄</td></tr>`;
+  document.getElementById('monthlyPurchaseTotal').textContent = `本月方案總收入：${fmtMoney(totalRevenue)}`;
 
   // summary
   const totalTeacherPay = teachers.reduce((s,t)=>{
@@ -1507,46 +1507,46 @@ function renderMonthly() {
   document.getElementById('monthlySummary').innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px">
       <div>
-        <div class="card-title">\u65b9\u6848\u7e3d\u71df\u6536</div>
+        <div class="card-title">方案總營收</div>
         <div style="font-size:28px;font-weight:900;font-family:'DM Mono',monospace;color:var(--green)">${fmtMoney(totalRevenue)}</div>
       </div>
       <div>
-        <div class="card-title">\u8001\u5e2b\u8ab2\u8cbb\u7e3d\u8a08</div>
+        <div class="card-title">老師課費總計</div>
         <div style="font-size:28px;font-weight:900;font-family:'DM Mono',monospace;color:var(--red)">-${fmtMoney(totalTeacherPay)}</div>
       </div>
       <div>
-        <div class="card-title">\u958b\u8ab2\u5802\u6578</div>
+        <div class="card-title">開課堂數</div>
         <div style="font-size:28px;font-weight:900;font-family:'DM Mono',monospace;color:var(--accent)">${totalClasses}</div>
       </div>
       <div>
-        <div class="card-title">\u5e73\u5747\u9810\u7d04\u7387</div>
+        <div class="card-title">平均預約率</div>
         <div style="font-size:28px;font-weight:900;font-family:'DM Mono',monospace;color:var(--accent2)">${avgRate}%</div>
       </div>
     </div>
   `;
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  EXPORT MONTHLY
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 function exportMonthly() {
   const month = document.getElementById('monthlyMonthSelect').value;
-  const mClasses = classes.filter(c=>c.date.slice(0,7)===month && c.status!=='\u505c\u8ab2');
+  const mClasses = classes.filter(c=>c.date.slice(0,7)===month && c.status!=='停課');
 
-  let lines = [`\u3010${month} \u8001\u5e2b\u8ab2\u8cbb\u660e\u7d30\u3011\n`];
+  let lines = [`【${month} 老師課費明細】\n`];
   teachers.forEach(t => {
     const tClasses = mClasses.filter(c=>c.teacher===t.name);
     if (!tClasses.length) return;
-    lines.push(`\u258c ${t.name} \u8001\u5e2b`);
-    lines.push(`\u8ab2\u8cbb\u8a2d\u5b9a\uff1a${t.note||`${fmtMoney(t.pay)}/\u5802`}`);
+    lines.push(`▌ ${t.name} 老師`);
+    lines.push(`課費設定：${t.note||`${fmtMoney(t.pay)}/堂`}`);
     lines.push('');
     tClasses.sort((a,b)=>a.date.localeCompare(b.date)).forEach(c => {
       const pay = calcTeacherPay(t,c);
-      lines.push(`  ${fmtDate(c.date)} ${c.timeStart}  ${c.name}  \u5230\u8ab2${c.attended}\u4eba  ${fmtMoney(pay)}`);
+      lines.push(`  ${fmtDate(c.date)} ${c.timeStart}  ${c.name}  到課${c.attended}人  ${fmtMoney(pay)}`);
     });
     const total = tClasses.reduce((s,c)=>s+calcTeacherPay(t,c),0);
-    lines.push(`  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500`);
-    lines.push(`  \u672c\u6708\u5408\u8a08\uff1a${fmtMoney(total)}`);
+    lines.push(`  ───────────`);
+    lines.push(`  本月合計：${fmtMoney(total)}`);
     lines.push('');
   });
 
@@ -1554,13 +1554,13 @@ function exportMonthly() {
   const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${month}_\u8001\u5e2b\u8ab2\u8cbb\u660e\u7d30.txt`;
+  a.download = `${month}_老師課費明細.txt`;
   a.click();
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  REFRESH
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 function refreshCurrentPage() {
   const active = document.querySelector('.page.active');
   if (!active) return;
@@ -1572,18 +1572,18 @@ function refreshCurrentPage() {
   if (id==='monthly') renderMonthlyPage();
 }
 
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 //  INIT
-// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// ═══════════════════════════════
 function init() {
   seedIfEmpty();
   // update nav date
   const now = new Date();
-  const days = ['\u65e5','\u4e00','\u4e8c','\u4e09','\u56db','\u4e94','\u516d'];
+  const days = ['日','一','二','三','四','五','六'];
   document.getElementById('navDate').textContent =
     `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`;
   document.getElementById('todayDateLabel').textContent =
-    `${now.getFullYear()} \u5e74 ${now.getMonth()+1} \u6708 ${now.getDate()} \u65e5\uff08\u661f\u671f${days[now.getDay()]}\uff09`;
+    `${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日（星期${days[now.getDay()]}）`;
   renderToday();
 }
 
