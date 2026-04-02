@@ -732,7 +732,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
       <div class="form-group" style="flex:2"><label>老師姓名</label><input type="text" id="tch_name" placeholder="如：塔塔"></div>
       <div class="form-group" style="flex:1"><label>開課最低人數</label><input type="number" id="tch_minPeople" value="3" min="1"></div>
     </div>
-    <div class="form-row" id="tch_basepay_row">
+    <div class="form-row">
       <div class="form-group" style="flex:1"><label>基本課費 ($)</label><input type="number" id="tch_pay" value="800" min="0" oninput="previewTeacherPay('add')"></div>
       <div class="form-group" style="flex:1"><label>滿班加給 ($)</label><input type="number" id="tch_fullBonus" value="0" min="0" oninput="previewTeacherPay('add')"></div>
     </div>
@@ -911,7 +911,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
       <div class="form-group" style="flex:2"><label>老師姓名</label><input type="text" id="edit_tch_name"></div>
       <div class="form-group" style="flex:1"><label>開課最低人數</label><input type="number" id="edit_tch_minPeople" min="1"></div>
     </div>
-    <div class="form-row" id="edit_tch_basepay_row">
+    <div class="form-row">
       <div class="form-group" style="flex:1"><label>基本課費 ($)</label><input type="number" id="edit_tch_pay" min="0" oninput="previewTeacherPay('edit')"></div>
       <div class="form-group" style="flex:1"><label>滿班加給 ($)</label><input type="number" id="edit_tch_fullBonus" min="0" oninput="previewTeacherPay('edit')"></div>
     </div>
@@ -1498,15 +1498,10 @@ function calcPayByGrid(teacher, attended) {
 function toggleTeacherPayMode(mode) {
   const p = mode==='add' ? '' : 'edit_';
   const isStep = document.getElementById(p+'tch_mode_step').checked;
-  document.getElementById(p+'tch_step_section').style.display = isStep?'block':'none';
-  document.getElementById(p+'tch_tier_section').style.display = isStep?'none':'block';
-  // 區間固定模式下隱藏「基本課費」欄（課費由區間決定），只保留滿班加給
-  const basePayRow = document.getElementById(p+'tch_basepay_row');
-  if (basePayRow) {
-    const basePayGroup = basePayRow.querySelector('.form-group:first-child');
-    if (basePayGroup) basePayGroup.style.display = isStep ? 'flex' : 'none';
-  }
-  // 更新 label 選取外框
+  // 兩種模式都顯示同一個區間表格
+  document.getElementById(p+'tch_step_section').style.display = 'block';
+  document.getElementById(p+'tch_tier_section').style.display = 'none';
+  // 更新 label 選取外框視覺
   document.getElementById(p+'tch_mode_step').closest('label').style.border = isStep ? '2px solid var(--accent2)' : '1px solid var(--border)';
   document.getElementById(p+'tch_mode_tier').closest('label').style.border = !isStep ? '2px solid var(--accent2)' : '1px solid var(--border)';
   previewTeacherPay(mode);
@@ -1560,7 +1555,12 @@ function previewTeacherPay(mode) {
 }
 
 function saveTeacher() {
-  const tiers = getRangesFromModal('add');
+  let tiers = getRangesFromModal('add');
+  // 若區間表格全空，用「基本課費」欄位建立單一全區間 tier
+  if (!tiers.length) {
+    const basePay = parseInt(document.getElementById('tch_pay').value)||0;
+    if (basePay > 0) tiers = [{from:1, to:999, pay:basePay}];
+  }
   const firstPay = tiers.length ? tiers[0].pay : 0;
   const t = {
     id: uid(), name: document.getElementById('tch_name').value.trim(),
@@ -1573,7 +1573,7 @@ function saveTeacher() {
     note: document.getElementById('tch_note').value.trim(), payGrid: {},
   };
   if (!t.name) return alert('請填寫老師姓名');
-  if (!t.tiers.length) return alert('請至少填寫一個區間費用');
+  if (!t.tiers.length) return alert('請至少填寫一個區間費用，或填寫基本課費');
   if (!t.note) t.note = (document.getElementById('tch_pay_preview')?.textContent||'').replace('💰 ','');
   teachers.push(t); save(KEYS.teachers, teachers);
   closeModal('addTeacherModal'); renderTeacherPage();
@@ -1610,20 +1610,24 @@ function editTeacher(id) {
       }
     });
   }
-  // 根據 payMode 設定 radio 並切換顯示
+  // 根據 payMode 設定 radio 並觸發畫面切換
   const isTier = (t.payMode === 'tier') || (t.tiers && t.tiers.length > 0);
   document.getElementById('edit_tch_mode_tier').checked = isTier;
   document.getElementById('edit_tch_mode_step').checked = !isTier;
-  document.getElementById('edit_tch_mode_tier').closest('label').style.border = isTier ? '2px solid var(--accent2)' : '1px solid var(--border)';
-  document.getElementById('edit_tch_mode_step').closest('label').style.border = !isTier ? '2px solid var(--accent2)' : '1px solid var(--border)';
   toggleTeacherPayMode('edit');
   previewTeacherPay('edit'); openModal('editTeacherModal');
 }
 function updateTeacher() {
   const id = document.getElementById('edit_tch_id').value;
   const idx = teachers.findIndex(x=>x.id===id); if (idx<0) return;
-  const editTiers = getRangesFromModal('edit');
-  const editFirstPay = editTiers.length ? editTiers[0].pay : 0;
+  let editTiers = getRangesFromModal('edit');
+  // 若區間表格全空，用「基本課費」欄位建立單一全區間 tier
+  if (!editTiers.length) {
+    const basePay = parseInt(document.getElementById('edit_tch_pay').value)||0;
+    if (basePay > 0) editTiers = [{from:1, to:999, pay:basePay}];
+  }
+  if (!editTiers.length) return alert('請至少填寫一個區間費用，或填寫基本課費');
+  const editFirstPay = editTiers[0].pay;
   let note = document.getElementById('edit_tch_note').value.trim();
   if (!note) note = (document.getElementById('edit_tch_pay_preview')?.textContent||'').replace('💰 ','');
   teachers[idx] = { ...teachers[idx],
