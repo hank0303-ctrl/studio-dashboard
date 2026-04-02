@@ -912,51 +912,37 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
       <div class="form-group" style="flex:1"><label>開課最低人數</label><input type="number" id="edit_tch_minPeople" min="1"></div>
     </div>
     <div class="form-row">
-      <div class="form-group" style="flex:1"><label>基本課費 ($)</label><input type="number" id="edit_tch_pay" min="0" oninput="previewTeacherPay('edit')"></div>
+      <div class="form-group" style="flex:1"><label>固定課費 ($)（只填這欄=全人數固定）</label><input type="number" id="edit_tch_pay" min="0" oninput="previewTeacherPay('edit')"></div>
       <div class="form-group" style="flex:1"><label>滿班加給 ($)</label><input type="number" id="edit_tch_fullBonus" min="0" oninput="previewTeacherPay('edit')"></div>
     </div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">加給計算方式</div>
-    <div class="form-row" style="margin-bottom:12px">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;background:var(--surface2);border-radius:8px;padding:10px 14px;border:1px solid var(--border)">
-        <input type="radio" name="edit_tch_payMode" id="edit_tch_mode_step" value="step" onchange="toggleTeacherPayMode('edit')">
-        <div><div style="font-weight:700;font-size:13px">逐步加給</div><div style="font-size:11px;color:var(--text3)">超過 X 人，每人加 $Y</div></div>
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;background:var(--surface2);border-radius:8px;padding:10px 14px;border:1px solid var(--border)">
-        <input type="radio" name="edit_tch_payMode" id="edit_tch_mode_tier" value="tier" onchange="toggleTeacherPayMode('edit')">
-        <div><div style="font-weight:700;font-size:13px">區間固定</div><div style="font-size:11px;color:var(--text3)">人數區間對應固定課費</div></div>
-      </label>
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin:12px 0 8px">區間費用設定（有人數差異時填，最多4個區間）</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;align-items:center;margin-bottom:6px">
+      <div style="font-size:11px;color:var(--text3);font-weight:700">起始人數</div>
+      <div style="font-size:11px;color:var(--text3);font-weight:700">結束人數（留空=以上）</div>
+      <div style="font-size:11px;color:var(--text3);font-weight:700">課費 $</div>
     </div>
-    <div id="edit_tch_step_section">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">設定人數區間對應課費（最多4個區間）</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;align-items:center;margin-bottom:6px">
-        <div style="font-size:11px;color:var(--text3);font-weight:700">起始人數</div>
-        <div style="font-size:11px;color:var(--text3);font-weight:700">結束人數（留空=以上）</div>
-        <div style="font-size:11px;color:var(--text3);font-weight:700">課費 $</div>
+    <div id="tch_ranges_edit">
+      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
+        <input type="number" class="tch-range-from" placeholder="如：1" min="1" oninput="previewTeacherPay('edit')">
+        <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
+        <input type="number" class="tch-range-pay" placeholder="800" min="0" oninput="previewTeacherPay('edit')">
       </div>
-      <div id="tch_ranges_edit">
-        <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
-          <input type="number" class="tch-range-from" placeholder="如：1" min="1" oninput="previewTeacherPay('edit')">
-          <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
-          <input type="number" class="tch-range-pay" placeholder="800" min="0" oninput="previewTeacherPay('edit')">
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
-          <input type="number" class="tch-range-from" placeholder="如：6" min="1" oninput="previewTeacherPay('edit')">
-          <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
-          <input type="number" class="tch-range-pay" placeholder="900" min="0" oninput="previewTeacherPay('edit')">
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
-          <input type="number" class="tch-range-from" placeholder="如：9" min="1" oninput="previewTeacherPay('edit')">
-          <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
-          <input type="number" class="tch-range-pay" placeholder="1000" min="0" oninput="previewTeacherPay('edit')">
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
-          <input type="number" class="tch-range-from" placeholder="如：12" min="1" oninput="previewTeacherPay('edit')">
-          <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
-          <input type="number" class="tch-range-pay" placeholder="1100" min="0" oninput="previewTeacherPay('edit')">
-        </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
+        <input type="number" class="tch-range-from" placeholder="如：6" min="1" oninput="previewTeacherPay('edit')">
+        <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
+        <input type="number" class="tch-range-pay" placeholder="900" min="0" oninput="previewTeacherPay('edit')">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
+        <input type="number" class="tch-range-from" placeholder="如：9" min="1" oninput="previewTeacherPay('edit')">
+        <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
+        <input type="number" class="tch-range-pay" placeholder="1000" min="0" oninput="previewTeacherPay('edit')">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
+        <input type="number" class="tch-range-from" placeholder="如：12" min="1" oninput="previewTeacherPay('edit')">
+        <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
+        <input type="number" class="tch-range-pay" placeholder="1100" min="0" oninput="previewTeacherPay('edit')">
       </div>
     </div>
-    <div id="edit_tch_tier_section" style="display:none"></div>
     <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:12px;color:var(--accent)" id="edit_tch_pay_preview"></div>
     <div class="form-group"><label>備註（留空自動產生）</label><input type="text" id="edit_tch_note"></div>
     <div class="modal-footer">
@@ -1498,12 +1484,8 @@ function calcPayByGrid(teacher, attended) {
 function toggleTeacherPayMode(mode) {
   const p = mode==='add' ? '' : 'edit_';
   const isStep = document.getElementById(p+'tch_mode_step').checked;
-  // 兩種模式都顯示同一個區間表格
-  document.getElementById(p+'tch_step_section').style.display = 'block';
-  document.getElementById(p+'tch_tier_section').style.display = 'none';
-  // 更新 label 選取外框視覺
-  document.getElementById(p+'tch_mode_step').closest('label').style.border = isStep ? '2px solid var(--accent2)' : '1px solid var(--border)';
-  document.getElementById(p+'tch_mode_tier').closest('label').style.border = !isStep ? '2px solid var(--accent2)' : '1px solid var(--border)';
+  document.getElementById(p+'tch_step_section').style.display = isStep?'block':'none';
+  document.getElementById(p+'tch_tier_section').style.display = isStep?'none':'block';
   previewTeacherPay(mode);
 }
 
@@ -1555,12 +1537,7 @@ function previewTeacherPay(mode) {
 }
 
 function saveTeacher() {
-  let tiers = getRangesFromModal('add');
-  // 若區間表格全空，用「基本課費」欄位建立單一全區間 tier
-  if (!tiers.length) {
-    const basePay = parseInt(document.getElementById('tch_pay').value)||0;
-    if (basePay > 0) tiers = [{from:1, to:999, pay:basePay}];
-  }
+  const tiers = getRangesFromModal('add');
   const firstPay = tiers.length ? tiers[0].pay : 0;
   const t = {
     id: uid(), name: document.getElementById('tch_name').value.trim(),
@@ -1573,7 +1550,7 @@ function saveTeacher() {
     note: document.getElementById('tch_note').value.trim(), payGrid: {},
   };
   if (!t.name) return alert('請填寫老師姓名');
-  if (!t.tiers.length) return alert('請至少填寫一個區間費用，或填寫基本課費');
+  if (!t.tiers.length) return alert('請至少填寫一個區間費用');
   if (!t.note) t.note = (document.getElementById('tch_pay_preview')?.textContent||'').replace('💰 ','');
   teachers.push(t); save(KEYS.teachers, teachers);
   closeModal('addTeacherModal'); renderTeacherPage();
@@ -1583,24 +1560,27 @@ function editTeacher(id) {
   document.getElementById('edit_tch_id').value = t.id;
   document.getElementById('edit_tch_name').value = t.name;
   document.getElementById('edit_tch_minPeople').value = t.minPeople||1;
-  document.getElementById('edit_tch_pay').value = t.pay||0;
   document.getElementById('edit_tch_fullBonus').value = t.fullBonus||0;
   document.getElementById('edit_tch_note').value = t.note||'';
   // 填入區間費用到表格
   const container = document.getElementById('tch_ranges_edit');
+  const tiers = t.tiers && t.tiers.length ? t.tiers : [];
+  let loadTiers = tiers;
+  // 相容舊版 payGrid 格式
+  if (!loadTiers.length && t.payGrid && Object.keys(t.payGrid).length) {
+    loadTiers = [];
+    for (let i=1; i<=13; i++) { if (t.payGrid[i]) loadTiers.push({from:i,to:i,pay:t.payGrid[i]}); }
+    if (t.payGrid['14plus']) loadTiers.push({from:14,to:999,pay:t.payGrid['14plus']});
+  }
+  // 若是單一固定費率（1~999），顯示在「固定課費」欄；若有多個區間，填入表格
+  const isSingleFixed = loadTiers.length === 1 && loadTiers[0].from === 1 && loadTiers[0].to >= 999;
+  document.getElementById('edit_tch_pay').value = isSingleFixed ? loadTiers[0].pay : (t.pay||0);
   if (container) {
     const rows = container.querySelectorAll('[style*="grid"]');
-    const tiers = t.tiers && t.tiers.length ? t.tiers : [];
-    // 先把舊的 payGrid 轉成 tiers（相容舊資料）
-    let loadTiers = tiers;
-    if (!loadTiers.length && t.payGrid && Object.keys(t.payGrid).length) {
-      loadTiers = [];
-      for (let i=1; i<=13; i++) { if (t.payGrid[i]) loadTiers.push({from:i,to:i,pay:t.payGrid[i]}); }
-      if (t.payGrid['14plus']) loadTiers.push({from:14,to:999,pay:t.payGrid['14plus']});
-    }
+    const displayTiers = isSingleFixed ? [] : loadTiers; // 固定費率不需要填表格
     rows.forEach((row, i) => {
       const inputs = row.querySelectorAll('input');
-      const tier = loadTiers[i];
+      const tier = displayTiers[i];
       if (tier) {
         inputs[0].value = tier.from || '';
         inputs[1].value = tier.to >= 999 ? '' : (tier.to || '');
@@ -1610,23 +1590,18 @@ function editTeacher(id) {
       }
     });
   }
-  // 根據 payMode 設定 radio 並觸發畫面切換
-  const isTier = (t.payMode === 'tier') || (t.tiers && t.tiers.length > 0);
-  document.getElementById('edit_tch_mode_tier').checked = isTier;
-  document.getElementById('edit_tch_mode_step').checked = !isTier;
-  toggleTeacherPayMode('edit');
   previewTeacherPay('edit'); openModal('editTeacherModal');
 }
 function updateTeacher() {
   const id = document.getElementById('edit_tch_id').value;
   const idx = teachers.findIndex(x=>x.id===id); if (idx<0) return;
   let editTiers = getRangesFromModal('edit');
-  // 若區間表格全空，用「基本課費」欄位建立單一全區間 tier
+  // 若區間表格全空，用「固定課費」欄位建立單一全區間 tier
   if (!editTiers.length) {
     const basePay = parseInt(document.getElementById('edit_tch_pay').value)||0;
     if (basePay > 0) editTiers = [{from:1, to:999, pay:basePay}];
   }
-  if (!editTiers.length) return alert('請至少填寫一個區間費用，或填寫基本課費');
+  if (!editTiers.length) return alert('請填寫固定課費，或在下方設定區間費用');
   const editFirstPay = editTiers[0].pay;
   let note = document.getElementById('edit_tch_note').value.trim();
   if (!note) note = (document.getElementById('edit_tch_pay_preview')?.textContent||'').replace('💰 ','');
