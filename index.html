@@ -1569,18 +1569,16 @@ function editTeacher(id) {
   document.getElementById('edit_tch_minPeople').value = t.minPeople||1;
   document.getElementById('edit_tch_fullBonus').value = t.fullBonus||0;
   document.getElementById('edit_tch_note').value = t.note||'';
-  document.getElementById('edit_tch_deductFee').checked = t.deductFee !== false; // 預設 true
+  document.getElementById('edit_tch_deductFee').checked = t.deductFee !== false;
   // 填入區間費用到表格
   const container = document.getElementById('tch_ranges_edit');
   const tiers = t.tiers && t.tiers.length ? t.tiers : [];
   let loadTiers = tiers;
-  // 相容舊版 payGrid 格式
   if (!loadTiers.length && t.payGrid && Object.keys(t.payGrid).length) {
     loadTiers = [];
     for (let i=1; i<=13; i++) { if (t.payGrid[i]) loadTiers.push({from:i,to:i,pay:t.payGrid[i]}); }
     if (t.payGrid['14plus']) loadTiers.push({from:14,to:999,pay:t.payGrid['14plus']});
   }
-  // 單一固定費率顯示在「固定課費」欄，多區間填入表格
   const isSingleFixed = loadTiers.length === 1 && loadTiers[0].from === 1 && loadTiers[0].to >= 999;
   document.getElementById('edit_tch_pay').value = isSingleFixed ? loadTiers[0].pay : (t.pay||0);
   if (container) {
@@ -1604,7 +1602,6 @@ function updateTeacher() {
   const id = document.getElementById('edit_tch_id').value;
   const idx = teachers.findIndex(x=>x.id===id); if (idx<0) return;
   let editTiers = getRangesFromModal('edit');
-  // 若區間表格全空，用「固定課費」欄位建立單一全區間 tier
   if (!editTiers.length) {
     const basePay = parseInt(document.getElementById('edit_tch_pay').value)||0;
     if (basePay > 0) editTiers = [{from:1, to:999, pay:basePay}];
@@ -2011,6 +2008,8 @@ function renderTeacherPage() {
     const totalMax     = tClasses.reduce((s,c)=>s+c.max,0);
     const avgRate      = totalMax > 0 ? Math.round(totalBooked/totalMax*100) : 0;
     const totalPay     = tClasses.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
+    const shouldDeduct = t.deductFee !== false;
+    const netPay       = shouldDeduct ? totalPay - 15 : totalPay;
 
     let payDesc = '';
     const _mode = t.payMode || (t.payGrid && Object.keys(t.payGrid||{}).length>0 ? 'grid' : 'step');
@@ -2103,8 +2102,8 @@ function renderTeacherPage() {
           <div style="font-size:11px;color:var(--text3)">平均預約率</div>
         </div>
         <div style="text-align:center;background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.2);border-radius:8px;padding:10px 6px">
-          <div style="font-size:22px;font-weight:800;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(totalPay)}</div>
-          <div style="font-size:11px;color:var(--text3)">${teacherPageMonth} 課費</div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(netPay)}</div>
+          <div style="font-size:11px;color:var(--text3)">${teacherPageMonth} 課費${shouldDeduct?' (扣手續費)':''}</div>
         </div>
       </div>
       <!-- 明細表 -->
@@ -2128,9 +2127,18 @@ function renderTeacherPage() {
           </thead>
           <tbody>${detailRows}</tbody>
           <tfoot>
+            ${shouldDeduct ? `
+            <tr style="background:var(--surface2)">
+              <td colspan="9" style="padding:8px 10px;font-size:12px;color:var(--text2)">課費小計</td>
+              <td style="padding:8px 10px;text-align:right;font-size:15px;color:var(--text2);font-family:'DM Mono',monospace">${fmtMoney(totalPay)}</td>
+            </tr>
+            <tr style="background:var(--surface2)">
+              <td colspan="9" style="padding:8px 10px;font-size:12px;color:var(--red)">扣除轉帳手續費</td>
+              <td style="padding:8px 10px;text-align:right;font-size:15px;color:var(--red);font-family:'DM Mono',monospace">-$15</td>
+            </tr>` : ''}
             <tr style="background:var(--surface2)">
               <td colspan="9" style="padding:14px 10px;font-weight:700;font-size:13px;color:var(--text2)">本月課費合計（停課不計費）</td>
-              <td style="padding:14px 10px;text-align:right;font-weight:900;font-size:22px;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(totalPay)}</td>
+              <td style="padding:14px 10px;text-align:right;font-weight:900;font-size:22px;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(netPay)}</td>
             </tr>
           </tfoot>
         </table>
@@ -2300,7 +2308,7 @@ function renderMonthly() {
   `;
 
   // teacher table
-  const TRANSFER_FEE = 15; // 轉帳手續費
+  const TRANSFER_FEE = 15;
   const teacherRows = teachers.map(t => {
     const tClasses = mClasses.filter(c=>c.teacher===t.name);
     if (!tClasses.length) return null;
@@ -2312,7 +2320,7 @@ function renderMonthly() {
     const rate = tMax>0?Math.round(tBooked/tMax*100):0;
     const basePay = tClasses.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
     const fullPay = fullC * (t.fullBonus||0);
-    const shouldDeduct = t.deductFee !== false; // 預設扣
+    const shouldDeduct = t.deductFee !== false;
     const deductAmt = shouldDeduct ? TRANSFER_FEE : 0;
     const netPay = basePay - deductAmt;
     return `<tr>
