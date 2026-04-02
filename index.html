@@ -732,7 +732,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
       <div class="form-group" style="flex:2"><label>老師姓名</label><input type="text" id="tch_name" placeholder="如：塔塔"></div>
       <div class="form-group" style="flex:1"><label>開課最低人數</label><input type="number" id="tch_minPeople" value="3" min="1"></div>
     </div>
-    <div class="form-row">
+    <div class="form-row" id="tch_basepay_row">
       <div class="form-group" style="flex:1"><label>基本課費 ($)</label><input type="number" id="tch_pay" value="800" min="0" oninput="previewTeacherPay('add')"></div>
       <div class="form-group" style="flex:1"><label>滿班加給 ($)</label><input type="number" id="tch_fullBonus" value="0" min="0" oninput="previewTeacherPay('add')"></div>
     </div>
@@ -911,7 +911,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
       <div class="form-group" style="flex:2"><label>老師姓名</label><input type="text" id="edit_tch_name"></div>
       <div class="form-group" style="flex:1"><label>開課最低人數</label><input type="number" id="edit_tch_minPeople" min="1"></div>
     </div>
-    <div class="form-row">
+    <div class="form-row" id="edit_tch_basepay_row">
       <div class="form-group" style="flex:1"><label>基本課費 ($)</label><input type="number" id="edit_tch_pay" min="0" oninput="previewTeacherPay('edit')"></div>
       <div class="form-group" style="flex:1"><label>滿班加給 ($)</label><input type="number" id="edit_tch_fullBonus" min="0" oninput="previewTeacherPay('edit')"></div>
     </div>
@@ -1500,6 +1500,15 @@ function toggleTeacherPayMode(mode) {
   const isStep = document.getElementById(p+'tch_mode_step').checked;
   document.getElementById(p+'tch_step_section').style.display = isStep?'block':'none';
   document.getElementById(p+'tch_tier_section').style.display = isStep?'none':'block';
+  // 區間固定模式下隱藏「基本課費」欄（課費由區間決定），只保留滿班加給
+  const basePayRow = document.getElementById(p+'tch_basepay_row');
+  if (basePayRow) {
+    const basePayGroup = basePayRow.querySelector('.form-group:first-child');
+    if (basePayGroup) basePayGroup.style.display = isStep ? 'flex' : 'none';
+  }
+  // 更新 label 選取外框
+  document.getElementById(p+'tch_mode_step').closest('label').style.border = isStep ? '2px solid var(--accent2)' : '1px solid var(--border)';
+  document.getElementById(p+'tch_mode_tier').closest('label').style.border = !isStep ? '2px solid var(--accent2)' : '1px solid var(--border)';
   previewTeacherPay(mode);
 }
 
@@ -1601,6 +1610,13 @@ function editTeacher(id) {
       }
     });
   }
+  // 根據 payMode 設定 radio 並切換顯示
+  const isTier = (t.payMode === 'tier') || (t.tiers && t.tiers.length > 0);
+  document.getElementById('edit_tch_mode_tier').checked = isTier;
+  document.getElementById('edit_tch_mode_step').checked = !isTier;
+  document.getElementById('edit_tch_mode_tier').closest('label').style.border = isTier ? '2px solid var(--accent2)' : '1px solid var(--border)';
+  document.getElementById('edit_tch_mode_step').closest('label').style.border = !isTier ? '2px solid var(--accent2)' : '1px solid var(--border)';
+  toggleTeacherPayMode('edit');
   previewTeacherPay('edit'); openModal('editTeacherModal');
 }
 function updateTeacher() {
