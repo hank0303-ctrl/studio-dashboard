@@ -4071,8 +4071,11 @@ function renderBankPage() {
     return;
   }
   if (!_bankMonth || !months.includes(_bankMonth)) _bankMonth = months[0];
+  // 如果使用者透過下拉切換，優先用 sel 目前的值
+  const selVal = sel.value;
+  if (selVal && months.includes(selVal)) _bankMonth = selVal;
   sel.innerHTML = months.map(m=>`<option value="${m}"${m===_bankMonth?'selected':''}>${m}</option>`).join('');
-  _bankMonth = sel.value;
+  sel.value = _bankMonth;
 
   const mTx = bankTx.filter(t=>t.date.slice(0,7)===_bankMonth && t.cat!=='略過');
   const totalIn  = mTx.filter(t=>!t.isOut).reduce((s,t)=>s+t.amount,0);
