@@ -602,20 +602,16 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   </div>
 
   <div class="card">
-    <div class="flex flex-wrap gap-8 mb-16">
-      <input type="text" id="studentSearch" placeholder="搜尋學員姓名..." oninput="renderStudentTable()" style="min-width:180px">
+    <div class="flex flex-wrap gap-8 mb-16" style="align-items:center">
+      <input type="text" id="studentSearch" placeholder="搜尋學員姓名..." oninput="renderStudentTable()" style="min-width:160px;flex:1">
+      <select id="planFilter" onchange="renderStudentTable()" style="min-width:220px;flex:2">
+        <option value="">🔍 所有方案</option>
+      </select>
+      <select id="yearFilter" onchange="renderStudentTable()" style="min-width:120px">
+        <option value="">所有年份</option>
+      </select>
     </div>
-    <div class="tbl-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>購買日期</th><th>學員</th><th>方案</th><th>金額</th>
-            <th>啟用日期</th><th>到期日期</th><th>剩餘堂數</th><th>狀態</th><th>備註</th><th>操作</th>
-          </tr>
-        </thead>
-        <tbody id="studentTableTbody"></tbody>
-      </table>
-    </div>
+    <div id="studentTableGrouped"></div>
   </div>
 </div>
 
@@ -640,7 +636,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <div class="tbl-wrap">
       <table>
         <thead>
-          <tr><th>老師</th><th>開課數</th><th>滿班數</th><th>總學生人次</th><th>預約率</th><th>課費/堂</th><th>滿班加給</th><th>轉帳手續費</th><th>課費小計</th></tr>
+          <tr><th>老師</th><th>開課數</th><th>滿班數</th><th>總學生人次</th><th>預約率</th><th>課費/堂</th><th>滿班加給</th><th>滿額加給</th><th>課費小計</th></tr>
         </thead>
         <tbody id="monthlyTeacherTbody"></tbody>
       </table>
@@ -925,44 +921,51 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
       <div class="form-group" style="flex:1"><label>開課最低人數</label><input type="number" id="edit_tch_minPeople" min="1"></div>
     </div>
     <div class="form-row">
-      <div class="form-group" style="flex:1"><label>固定課費 ($)（只填這欄=全人數固定）</label><input type="number" id="edit_tch_pay" min="0" oninput="previewTeacherPay('edit')"></div>
+      <div class="form-group" style="flex:1"><label>基本課費 ($)</label><input type="number" id="edit_tch_pay" min="0" oninput="previewTeacherPay('edit')"></div>
       <div class="form-group" style="flex:1"><label>滿班加給 ($)</label><input type="number" id="edit_tch_fullBonus" min="0" oninput="previewTeacherPay('edit')"></div>
     </div>
-    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:14px;border:1px solid var(--border)">
-      <input type="checkbox" id="edit_tch_deductFee" style="width:16px;height:16px;accent-color:var(--accent2)" checked>
-      <div>
-        <div style="font-weight:700;font-size:13px">扣除轉帳手續費 <span style="color:var(--red)">-$15</span></div>
-        <div style="font-size:11px;color:var(--text3)">月結時課費小計自動扣 $15 手續費</div>
-      </div>
-    </label>
-    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin:0 0 8px">區間費用設定（有人數差異時填，最多4個區間）</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;align-items:center;margin-bottom:6px">
-      <div style="font-size:11px;color:var(--text3);font-weight:700">起始人數</div>
-      <div style="font-size:11px;color:var(--text3);font-weight:700">結束人數（留空=以上）</div>
-      <div style="font-size:11px;color:var(--text3);font-weight:700">課費 $</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">加給計算方式</div>
+    <div class="form-row" style="margin-bottom:12px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;background:var(--surface2);border-radius:8px;padding:10px 14px;border:1px solid var(--border)">
+        <input type="radio" name="edit_tch_payMode" id="edit_tch_mode_step" value="step" onchange="toggleTeacherPayMode('edit')">
+        <div><div style="font-weight:700;font-size:13px">逐步加給</div><div style="font-size:11px;color:var(--text3)">超過 X 人，每人加 $Y</div></div>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;background:var(--surface2);border-radius:8px;padding:10px 14px;border:1px solid var(--border)">
+        <input type="radio" name="edit_tch_payMode" id="edit_tch_mode_tier" value="tier" onchange="toggleTeacherPayMode('edit')">
+        <div><div style="font-weight:700;font-size:13px">區間固定</div><div style="font-size:11px;color:var(--text3)">人數區間對應固定課費</div></div>
+      </label>
     </div>
-    <div id="tch_ranges_edit">
-      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
-        <input type="number" class="tch-range-from" placeholder="如：1" min="1" oninput="previewTeacherPay('edit')">
-        <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
-        <input type="number" class="tch-range-pay" placeholder="800" min="0" oninput="previewTeacherPay('edit')">
+    <div id="edit_tch_step_section">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">設定人數區間對應課費（最多4個區間）</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;align-items:center;margin-bottom:6px">
+        <div style="font-size:11px;color:var(--text3);font-weight:700">起始人數</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:700">結束人數（留空=以上）</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:700">課費 $</div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
-        <input type="number" class="tch-range-from" placeholder="如：6" min="1" oninput="previewTeacherPay('edit')">
-        <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
-        <input type="number" class="tch-range-pay" placeholder="900" min="0" oninput="previewTeacherPay('edit')">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
-        <input type="number" class="tch-range-from" placeholder="如：9" min="1" oninput="previewTeacherPay('edit')">
-        <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
-        <input type="number" class="tch-range-pay" placeholder="1000" min="0" oninput="previewTeacherPay('edit')">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
-        <input type="number" class="tch-range-from" placeholder="如：12" min="1" oninput="previewTeacherPay('edit')">
-        <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
-        <input type="number" class="tch-range-pay" placeholder="1100" min="0" oninput="previewTeacherPay('edit')">
+      <div id="tch_ranges_edit">
+        <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
+          <input type="number" class="tch-range-from" placeholder="如：1" min="1" oninput="previewTeacherPay('edit')">
+          <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
+          <input type="number" class="tch-range-pay" placeholder="800" min="0" oninput="previewTeacherPay('edit')">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
+          <input type="number" class="tch-range-from" placeholder="如：6" min="1" oninput="previewTeacherPay('edit')">
+          <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
+          <input type="number" class="tch-range-pay" placeholder="900" min="0" oninput="previewTeacherPay('edit')">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
+          <input type="number" class="tch-range-from" placeholder="如：9" min="1" oninput="previewTeacherPay('edit')">
+          <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
+          <input type="number" class="tch-range-pay" placeholder="1000" min="0" oninput="previewTeacherPay('edit')">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:8px">
+          <input type="number" class="tch-range-from" placeholder="如：12" min="1" oninput="previewTeacherPay('edit')">
+          <input type="number" class="tch-range-to" placeholder="留空=以上" min="1" oninput="previewTeacherPay('edit')">
+          <input type="number" class="tch-range-pay" placeholder="1100" min="0" oninput="previewTeacherPay('edit')">
+        </div>
       </div>
     </div>
+    <div id="edit_tch_tier_section" style="display:none"></div>
     <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:12px;color:var(--accent)" id="edit_tch_pay_preview"></div>
     <div class="form-group"><label>備註（留空自動產生）</label><input type="text" id="edit_tch_note"></div>
     <div class="modal-footer">
@@ -1580,27 +1583,24 @@ function editTeacher(id) {
   document.getElementById('edit_tch_id').value = t.id;
   document.getElementById('edit_tch_name').value = t.name;
   document.getElementById('edit_tch_minPeople').value = t.minPeople||1;
+  document.getElementById('edit_tch_pay').value = t.pay||0;
   document.getElementById('edit_tch_fullBonus').value = t.fullBonus||0;
   document.getElementById('edit_tch_note').value = t.note||'';
-  document.getElementById('edit_tch_deductFee').checked = t.deductFee !== false;
   // 填入區間費用到表格
   const container = document.getElementById('tch_ranges_edit');
-  const tiers = t.tiers && t.tiers.length ? t.tiers : [];
-  let loadTiers = tiers;
-  if (!loadTiers.length && t.payGrid && Object.keys(t.payGrid).length) {
-    loadTiers = [];
-    for (let i=1; i<=13; i++) { if (t.payGrid[i]) loadTiers.push({from:i,to:i,pay:t.payGrid[i]}); }
-    if (t.payGrid['14plus']) loadTiers.push({from:14,to:999,pay:t.payGrid['14plus']});
-  }
-  // 單一固定費率顯示在「固定課費」欄，多區間填入表格
-  const isSingleFixed = loadTiers.length === 1 && loadTiers[0].from === 1 && loadTiers[0].to >= 999;
-  document.getElementById('edit_tch_pay').value = isSingleFixed ? loadTiers[0].pay : (t.pay||0);
   if (container) {
     const rows = container.querySelectorAll('[style*="grid"]');
-    const displayTiers = isSingleFixed ? [] : loadTiers;
+    const tiers = t.tiers && t.tiers.length ? t.tiers : [];
+    // 先把舊的 payGrid 轉成 tiers（相容舊資料）
+    let loadTiers = tiers;
+    if (!loadTiers.length && t.payGrid && Object.keys(t.payGrid).length) {
+      loadTiers = [];
+      for (let i=1; i<=13; i++) { if (t.payGrid[i]) loadTiers.push({from:i,to:i,pay:t.payGrid[i]}); }
+      if (t.payGrid['14plus']) loadTiers.push({from:14,to:999,pay:t.payGrid['14plus']});
+    }
     rows.forEach((row, i) => {
       const inputs = row.querySelectorAll('input');
-      const tier = displayTiers[i];
+      const tier = loadTiers[i];
       if (tier) {
         inputs[0].value = tier.from || '';
         inputs[1].value = tier.to >= 999 ? '' : (tier.to || '');
@@ -1615,14 +1615,8 @@ function editTeacher(id) {
 function updateTeacher() {
   const id = document.getElementById('edit_tch_id').value;
   const idx = teachers.findIndex(x=>x.id===id); if (idx<0) return;
-  let editTiers = getRangesFromModal('edit');
-  // 若區間表格全空，用「固定課費」欄位建立單一全區間 tier
-  if (!editTiers.length) {
-    const basePay = parseInt(document.getElementById('edit_tch_pay').value)||0;
-    if (basePay > 0) editTiers = [{from:1, to:999, pay:basePay}];
-  }
-  if (!editTiers.length) return alert('請填寫固定課費，或在下方設定區間費用');
-  const editFirstPay = editTiers[0].pay;
+  const editTiers = getRangesFromModal('edit');
+  const editFirstPay = editTiers.length ? editTiers[0].pay : 0;
   let note = document.getElementById('edit_tch_note').value.trim();
   if (!note) note = (document.getElementById('edit_tch_pay_preview')?.textContent||'').replace('💰 ','');
   teachers[idx] = { ...teachers[idx],
@@ -1630,7 +1624,6 @@ function updateTeacher() {
     pay: editFirstPay,
     minPeople: parseInt(document.getElementById('edit_tch_minPeople').value)||1,
     fullBonus: parseInt(document.getElementById('edit_tch_fullBonus').value)||0,
-    deductFee: document.getElementById('edit_tch_deductFee').checked,
     payMode: 'tier',
     bonusFrom: 0, bonusPerPerson: 0,
     tiers: editTiers,
@@ -2088,8 +2081,6 @@ function renderTeacherPage() {
     const totalMax     = tClasses.reduce((s,c)=>s+c.max,0);
     const avgRate      = totalMax > 0 ? Math.round(totalBooked/totalMax*100) : 0;
     const totalPay     = tClasses.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
-    const shouldDeduct = t.deductFee !== false;
-    const netPay       = shouldDeduct ? totalPay - 15 : totalPay;
 
     let payDesc = '';
     const _mode = t.payMode || (t.payGrid && Object.keys(t.payGrid||{}).length>0 ? 'grid' : 'step');
@@ -2182,8 +2173,8 @@ function renderTeacherPage() {
           <div style="font-size:11px;color:var(--text3)">平均預約率</div>
         </div>
         <div style="text-align:center;background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.2);border-radius:8px;padding:10px 6px">
-          <div style="font-size:22px;font-weight:800;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(netPay)}</div>
-          <div style="font-size:11px;color:var(--text3)">${teacherPageMonth} 課費${shouldDeduct?' (扣手續費)':''}</div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(totalPay)}</div>
+          <div style="font-size:11px;color:var(--text3)">${teacherPageMonth} 課費</div>
         </div>
       </div>
       <!-- 明細表 -->
@@ -2207,18 +2198,9 @@ function renderTeacherPage() {
           </thead>
           <tbody>${detailRows}</tbody>
           <tfoot>
-            ${shouldDeduct ? `
-            <tr style="background:var(--surface2)">
-              <td colspan="9" style="padding:8px 10px;font-size:12px;color:var(--text2)">課費小計</td>
-              <td style="padding:8px 10px;text-align:right;font-size:15px;color:var(--text2);font-family:'DM Mono',monospace">${fmtMoney(totalPay)}</td>
-            </tr>
-            <tr style="background:var(--surface2)">
-              <td colspan="9" style="padding:8px 10px;font-size:12px;color:var(--red)">扣除轉帳手續費</td>
-              <td style="padding:8px 10px;text-align:right;font-size:15px;color:var(--red);font-family:'DM Mono',monospace">-$15</td>
-            </tr>` : ''}
             <tr style="background:var(--surface2)">
               <td colspan="9" style="padding:14px 10px;font-weight:700;font-size:13px;color:var(--text2)">本月課費合計（停課不計費）</td>
-              <td style="padding:14px 10px;text-align:right;font-weight:900;font-size:22px;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(netPay)}</td>
+              <td style="padding:14px 10px;text-align:right;font-weight:900;font-size:22px;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(totalPay)}</td>
             </tr>
           </tfoot>
         </table>
@@ -2278,7 +2260,7 @@ function switchStudentTab(tab, el) {
 function renderStudentPage() {
   const today = todayStr();
   const thisMonth = today.slice(0,7);
-  const active = purchases.filter(p=>p.endDate>=today);
+  const active = purchases.filter(p=>!p.endDate||p.endDate>=today);
   const expired = purchases.filter(p=>p.endDate && p.endDate<today);
   const monthPurchases = purchases.filter(p=>p.date && p.date.slice(0,7)===thisMonth);
   const monthRevenue = monthPurchases.reduce((s,p)=>s+p.amount,0);
@@ -2304,48 +2286,120 @@ function renderStudentPage() {
     </div>
     <div class="stat-card red"><div class="stat-num">${expired.length}</div><div class="stat-label">已到期方案</div></div>
   `;
+
+  // 建立方案下拉選單（去重複、排序）
+  const planSel = document.getElementById('planFilter');
+  const curPlan = planSel.value;
+  const allPlans = [...new Set(purchases.map(p=>p.plan).filter(Boolean))].sort();
+  planSel.innerHTML = `<option value="">🔍 所有方案</option>` +
+    allPlans.map(pl=>`<option value="${pl}"${pl===curPlan?'selected':''}>${pl}</option>`).join('');
+
+  // 建立年份下拉選單
+  const yearSel = document.getElementById('yearFilter');
+  const curYear = yearSel.value;
+  const allYears = [...new Set(purchases.map(p=>p.date&&p.date.slice(0,4)).filter(Boolean))].sort().reverse();
+  yearSel.innerHTML = `<option value="">所有年份</option>` +
+    allYears.map(y=>`<option value="${y}"${y===curYear?'selected':''}>${y} 年</option>`).join('');
+
   renderStudentTable();
 }
 
 function renderStudentTable() {
   const today = todayStr();
-  const keyword = document.getElementById('studentSearch').value.toLowerCase();
+  const keyword   = (document.getElementById('studentSearch')?.value||'').toLowerCase();
+  const planVal   = document.getElementById('planFilter')?.value||'';
+  const yearVal   = document.getElementById('yearFilter')?.value||'';
   let list = [...purchases].sort((a,b)=>b.date.localeCompare(a.date));
 
-  if (_currentStudentTab === 'active') list = list.filter(p=>!p.endDate||p.endDate>=today);
+  // tab 篩選
+  if (_currentStudentTab === 'active')     list = list.filter(p=>!p.endDate||p.endDate>=today);
   if (_currentStudentTab === 'expireSoon') list = list.filter(p => {
     if (!p.endDate || p.endDate < today) return false;
-    const daysLeft = Math.ceil((new Date(p.endDate) - new Date()) / 86400000);
-    return daysLeft <= 14;
+    return Math.ceil((new Date(p.endDate) - new Date()) / 86400000) <= 14;
   });
-  if (_currentStudentTab === 'expired') list = list.filter(p=>p.endDate&&p.endDate<today);
-  if (keyword) list = list.filter(p=>p.student.toLowerCase().includes(keyword)||p.plan.toLowerCase().includes(keyword));
+  if (_currentStudentTab === 'expired')    list = list.filter(p=>p.endDate&&p.endDate<today);
 
-  const tbody = document.getElementById('studentTableTbody');
+  // 關鍵字篩選（姓名 or 方案）
+  if (keyword) list = list.filter(p=>
+    p.student.toLowerCase().includes(keyword) || p.plan.toLowerCase().includes(keyword)
+  );
+
+  // 方案篩選
+  if (planVal) list = list.filter(p => p.plan === planVal);
+
+  // 年份篩選
+  if (yearVal) list = list.filter(p => p.date && p.date.slice(0,4) === yearVal);
+
+  const container = document.getElementById('studentTableGrouped');
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="10" class="empty-state">無資料</td></tr>`;
+    container.innerHTML = `<div class="empty-state" style="padding:30px;text-align:center">無符合條件的資料</div>`;
     return;
   }
-  tbody.innerHTML = list.map(p => {
-    const isExpired = p.endDate && p.endDate < today;
-    const expireSoon = p.endDate && !isExpired && (new Date(p.endDate)-new Date()) < 7*86400000;
-    let status = '';
-    if (!p.endDate) status = `<span class="badge badge-purple">無期限</span>`;
-    else if (isExpired) status = `<span class="badge badge-red">已到期</span>`;
-    else if (expireSoon) status = `<span class="badge badge-yellow">即將到期</span>`;
-    else status = `<span class="badge badge-green">有效</span>`;
-    return `<tr>
-      <td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.date)}</td>
-      <td style="font-weight:600">${p.student}</td>
-      <td>${p.plan}</td>
-      <td style="font-family:'DM Mono',monospace;color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.startDate)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;color:${isExpired?'var(--red)':expireSoon?'var(--yellow)':'var(--text)'}">${fmtDate(p.endDate)}</td>
-      <td style="text-align:center">${p.sessions||'–'}</td>
-      <td>${status}</td>
-      <td style="color:var(--text3);font-size:12px">${p.note||''}</td>
-      <td><button class="btn btn-secondary btn-sm" onclick="editPurchase('${p.id}')">編輯</button></td>
-    </tr>`;
+
+  // 按年份分組
+  const groups = {};
+  list.forEach(p => {
+    const yr = p.date ? p.date.slice(0,4) : '未知';
+    if (!groups[yr]) groups[yr] = [];
+    groups[yr].push(p);
+  });
+
+  const tableHead = `
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr>
+          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">購買日期</th>
+          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">學員</th>
+          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">方案</th>
+          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">金額</th>
+          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">啟用日期</th>
+          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">到期日期</th>
+          <th style="padding:10px 14px;text-align:center;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">剩餘堂數</th>
+          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">狀態</th>
+          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">備註</th>
+          <th style="padding:10px 14px;border-bottom:1px solid var(--border)"></th>
+        </tr>
+      </thead>`;
+
+  const years = Object.keys(groups).sort().reverse();
+  container.innerHTML = years.map(yr => {
+    const rows = groups[yr];
+    const yrTotal = rows.reduce((s,p)=>s+p.amount,0);
+    const rowsHtml = rows.map(p => {
+      const isExpired  = p.endDate && p.endDate < today;
+      const isExpSoon  = p.endDate && !isExpired && (new Date(p.endDate)-new Date()) < 7*86400000;
+      let status = '';
+      if (!p.endDate)   status = `<span class="badge badge-purple">無期限</span>`;
+      else if (isExpired) status = `<span class="badge badge-red">已到期</span>`;
+      else if (isExpSoon) status = `<span class="badge badge-yellow">即將到期</span>`;
+      else                status = `<span class="badge badge-green">有效</span>`;
+      const fromSheet = p.note && (p.note.includes('匯入')||p.note.includes('試算表')) ?
+        `<span style="font-size:10px;background:rgba(124,111,205,0.15);color:var(--accent2);padding:1px 6px;border-radius:8px;margin-left:4px">試算表匯入</span>` : '';
+      return `<tr>
+        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.date)}</td>
+        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-weight:600">${p.student}</td>
+        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5)">${p.plan}</td>
+        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-family:'DM Mono',monospace;color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</td>
+        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.startDate)}</td>
+        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-family:'DM Mono',monospace;font-size:12px;color:${isExpired?'var(--red)':isExpSoon?'var(--yellow)':'var(--text)'}">${fmtDate(p.endDate)}</td>
+        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);text-align:center">${p.sessions||'–'}</td>
+        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5)">${status}</td>
+        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);color:var(--text3);font-size:12px">${(p.note&&!p.note.includes('匯入')&&!p.note.includes('試算表'))?p.note:''}${fromSheet}</td>
+        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5)"><button class="btn btn-secondary btn-sm" onclick="editPurchase('${p.id}')">編輯</button></td>
+      </tr>`;
+    }).join('');
+
+    return `
+      <div style="margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface2);border-radius:10px 10px 0 0;border:1px solid var(--border);border-bottom:none">
+          <div style="font-size:15px;font-weight:900;color:var(--accent)">${yr} 年</div>
+          <div style="font-size:12px;color:var(--text3)">${rows.length} 筆</div>
+          <div style="margin-left:auto;font-family:'DM Mono',monospace;font-weight:700;color:var(--green);font-size:14px">${fmtMoney(yrTotal)}</div>
+        </div>
+        <div style="overflow-x:auto;border:1px solid var(--border);border-radius:0 0 10px 10px">
+          ${tableHead}<tbody>${rowsHtml}</tbody></table>
+        </div>
+      </div>`;
   }).join('');
 }
 
@@ -2388,7 +2442,6 @@ function renderMonthly() {
   `;
 
   // teacher table
-  const TRANSFER_FEE = 15;
   const teacherRows = teachers.map(t => {
     const tClasses = mClasses.filter(c=>c.teacher===t.name);
     if (!tClasses.length) return null;
@@ -2398,21 +2451,20 @@ function renderMonthly() {
     const tBooked = tClasses.reduce((s,c)=>s+(c.booked||0),0);
     const tMax = tClasses.reduce((s,c)=>s+c.max,0);
     const rate = tMax>0?Math.round(tBooked/tMax*100):0;
-    const basePay = tClasses.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
+    const basePay = tClasses.reduce((s,c)=>s+calcPayByGrid(t,c.attended),0);
+    const bonusPay = 0;
     const fullPay = fullC * (t.fullBonus||0);
-    const shouldDeduct = t.deductFee !== false;
-    const deductAmt = shouldDeduct ? TRANSFER_FEE : 0;
-    const netPay = basePay - deductAmt;
+    const totalPay = basePay + fullPay;
     return `<tr>
       <td style="font-weight:700">${t.name}</td>
       <td>${totalC}</td>
       <td>${fullC}</td>
       <td>${totalS}</td>
       <td style="font-family:'DM Mono',monospace">${rate}%</td>
-      <td style="font-family:'DM Mono',monospace">${fmtMoney(t.tiers&&t.tiers.length?t.tiers[0].pay:t.pay)}</td>
+      <td style="font-family:'DM Mono',monospace">${fmtMoney(t.pay)}</td>
       <td style="font-family:'DM Mono',monospace;color:var(--yellow)">${fmtMoney(fullPay)}</td>
-      <td style="font-family:'DM Mono',monospace;color:${shouldDeduct?'var(--red)':'var(--text3)'}">${shouldDeduct?'-$'+TRANSFER_FEE:'—'}</td>
-      <td style="font-family:'DM Mono',monospace;font-weight:800;color:var(--accent)">${fmtMoney(netPay)}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--yellow)">${fmtMoney(bonusPay)}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:800;color:var(--accent)">${fmtMoney(totalPay)}</td>
     </tr>`;
   }).filter(Boolean);
 
