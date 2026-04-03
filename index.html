@@ -428,6 +428,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   <button class="nav-btn" onclick="showPage('student')">🎫 學員方案</button>
   <button class="nav-btn" onclick="showPage('monthly')">📅 月結報表</button>
   <button class="nav-btn" onclick="showPage('kids')">👧 兒童收費</button>
+  <button class="nav-btn" onclick="showPage('bank')">🏦 銀行帳務</button>
   <div class="nav-spacer"></div>
   <button class="btn btn-secondary btn-sm" onclick="syncFromSheet()" id="syncBtn" style="font-size:12px;padding:5px 12px">🔄 同步試算表</button>
   <div class="nav-date" id="navDate" style="margin-left:8px"></div>
@@ -602,16 +603,20 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   </div>
 
   <div class="card">
-    <div class="flex flex-wrap gap-8 mb-16" style="align-items:center">
-      <input type="text" id="studentSearch" placeholder="搜尋學員姓名..." oninput="renderStudentTable()" style="min-width:160px;flex:1">
-      <select id="planFilter" onchange="renderStudentTable()" style="min-width:220px;flex:2">
-        <option value="">🔍 所有方案</option>
-      </select>
-      <select id="yearFilter" onchange="renderStudentTable()" style="min-width:120px">
-        <option value="">所有年份</option>
-      </select>
+    <div class="flex flex-wrap gap-8 mb-16">
+      <input type="text" id="studentSearch" placeholder="搜尋學員姓名..." oninput="renderStudentTable()" style="min-width:180px">
     </div>
-    <div id="studentTableGrouped"></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>購買日期</th><th>學員</th><th>方案</th><th>金額</th>
+            <th>啟用日期</th><th>到期日期</th><th>剩餘堂數</th><th>狀態</th><th>備註</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="studentTableTbody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -659,7 +664,136 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
   <!-- 月結摘要 -->
   <div class="section-title">月結摘要</div>
-  <div class="card" id="monthlySummary"></div>
+  <div class="card mb-16" id="monthlySummary"></div>
+
+  <!-- 銀行帳務摘要 -->
+  <div class="section-title" id="monthlyBankTitle" style="display:none">🏦 本月銀行帳務摘要</div>
+  <div class="card" id="monthlyBankSummary" style="display:none"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 銀行帳務
+════════════════════════════════════════════ -->
+<div class="page" id="page-bank">
+  <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
+    <div>
+      <div style="font-size:24px;font-weight:900">銀行帳務</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">上傳銀行轉帳明細 Excel，自動分類彙整收支</div>
+    </div>
+    <div class="flex gap-8 flex-wrap">
+      <label class="btn btn-primary" style="cursor:pointer">
+        📂 上傳銀行明細
+        <input type="file" accept=".xls,.xlsx,.csv" style="display:none" onchange="importBankExcel(this)">
+      </label>
+      <button class="btn btn-danger btn-sm" onclick="clearBankData()">🗑️ 清除資料</button>
+    </div>
+  </div>
+
+  <!-- 月份選擇 -->
+  <div class="flex flex-wrap gap-8 mb-16" style="align-items:center">
+    <select id="bankMonthSelect" onchange="renderBankPage()" style="min-width:150px"></select>
+    <div style="font-size:12px;color:var(--text3)" id="bankFileInfo"></div>
+  </div>
+
+  <!-- 統計卡片 -->
+  <div class="grid-4 mb-16" id="bankStats"></div>
+
+  <!-- 損益總表 -->
+  <div class="section-title">損益分析</div>
+  <div class="grid-2 mb-16">
+    <div class="card">
+      <div class="card-title">📥 收入明細</div>
+      <div id="bankIncomeBreakdown"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📤 支出明細</div>
+      <div id="bankExpenseBreakdown"></div>
+    </div>
+  </div>
+
+  <!-- 交易明細表 -->
+  <div class="section-title">
+    交易明細
+    <span style="font-size:12px;color:var(--text3);font-weight:400;margin-left:8px">點分類可篩選</span>
+  </div>
+  <div class="card">
+    <div class="flex flex-wrap gap-8 mb-12" style="align-items:center">
+      <select id="bankCatFilter" onchange="renderBankTxTable()" style="min-width:160px">
+        <option value="">所有分類</option>
+      </select>
+      <select id="bankTypeFilter" onchange="renderBankTxTable()" style="min-width:120px">
+        <option value="">收入＋支出</option>
+        <option value="in">僅收入</option>
+        <option value="out">僅支出</option>
+      </select>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">日期</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">附註說明</th>
+            <th style="padding:10px 14px;text-align:right;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">支出</th>
+            <th style="padding:10px 14px;text-align:right;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">存入</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">分類</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">收支原因</th>
+            <th style="padding:10px 14px;width:60px;border-bottom:1px solid var(--border)"></th>
+          </tr>
+        </thead>
+        <tbody id="bankTxTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 銀行交易編輯 Modal -->
+<div class="modal-overlay" id="bankTxEditModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">編輯分類</div>
+    <input type="hidden" id="btx_id">
+    <div class="form-group mb-16">
+      <label>附註說明</label>
+      <input type="text" id="btx_note" readonly style="background:var(--surface);color:var(--text2)">
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>分類</label>
+        <select id="btx_category">
+          <optgroup label="── 收入 ──">
+            <option value="小孩課程收費">小孩課程收費（現金）</option>
+            <option value="大人課程收費">大人課程收費（現金）</option>
+            <option value="刷卡端收入">刷卡端收入</option>
+            <option value="夏令營收入">夏令營收入</option>
+            <option value="冬令營收入">冬令營收入</option>
+            <option value="其他收入">其他收入</option>
+            <option value="老闆墊款">老闆墊款</option>
+            <option value="動茲券">動茲券</option>
+          </optgroup>
+          <optgroup label="── 支出 ──">
+            <option value="租金支出">租金支出</option>
+            <option value="薪資支出">薪資支出</option>
+            <option value="稅金">稅金（勞健保、二代、房屋）</option>
+            <option value="會計費">會計費</option>
+            <option value="水電費">水電費（水電、網路）</option>
+            <option value="夏冬令營支出">夏冬令營支出</option>
+            <option value="修繕費">修繕費</option>
+            <option value="文具用品">文具用品</option>
+            <option value="器材用品">器材用品</option>
+            <option value="其他支出">其他支出</option>
+            <option value="老闆提款">老闆提款</option>
+            <option value="匯出動茲券">匯出動茲券</option>
+          </optgroup>
+          <optgroup label="── 其他 ──">
+            <option value="略過">略過（不計入統計）</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('bankTxEditModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveBankTxCategory()">儲存</button>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════
@@ -1276,7 +1410,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 // ═══════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════
-const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills' };
+const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx' };
 
 function load(key) {
   try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
@@ -1345,7 +1479,7 @@ function showPage(name) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   const btns = document.querySelectorAll('.nav-btn');
-  const idx = ['today','week','class','teacher','student','monthly','kids'].indexOf(name);
+  const idx = ['today','week','class','teacher','student','monthly','kids','bank'].indexOf(name);
   if (idx >= 0) btns[idx].classList.add('active');
   if (name==='today') renderToday();
   if (name==='week') renderWeekFull();
@@ -1354,6 +1488,7 @@ function showPage(name) {
   if (name==='student') renderStudentPage();
   if (name==='monthly') renderMonthlyPage();
   if (name==='kids') renderKidsPage();
+  if (name==='bank') renderBankPage();
 }
 
 // ═══════════════════════════════
@@ -2260,7 +2395,7 @@ function switchStudentTab(tab, el) {
 function renderStudentPage() {
   const today = todayStr();
   const thisMonth = today.slice(0,7);
-  const active = purchases.filter(p=>!p.endDate||p.endDate>=today);
+  const active = purchases.filter(p=>p.endDate>=today);
   const expired = purchases.filter(p=>p.endDate && p.endDate<today);
   const monthPurchases = purchases.filter(p=>p.date && p.date.slice(0,7)===thisMonth);
   const monthRevenue = monthPurchases.reduce((s,p)=>s+p.amount,0);
@@ -2286,120 +2421,48 @@ function renderStudentPage() {
     </div>
     <div class="stat-card red"><div class="stat-num">${expired.length}</div><div class="stat-label">已到期方案</div></div>
   `;
-
-  // 建立方案下拉選單（去重複、排序）
-  const planSel = document.getElementById('planFilter');
-  const curPlan = planSel.value;
-  const allPlans = [...new Set(purchases.map(p=>p.plan).filter(Boolean))].sort();
-  planSel.innerHTML = `<option value="">🔍 所有方案</option>` +
-    allPlans.map(pl=>`<option value="${pl}"${pl===curPlan?'selected':''}>${pl}</option>`).join('');
-
-  // 建立年份下拉選單
-  const yearSel = document.getElementById('yearFilter');
-  const curYear = yearSel.value;
-  const allYears = [...new Set(purchases.map(p=>p.date&&p.date.slice(0,4)).filter(Boolean))].sort().reverse();
-  yearSel.innerHTML = `<option value="">所有年份</option>` +
-    allYears.map(y=>`<option value="${y}"${y===curYear?'selected':''}>${y} 年</option>`).join('');
-
   renderStudentTable();
 }
 
 function renderStudentTable() {
   const today = todayStr();
-  const keyword   = (document.getElementById('studentSearch')?.value||'').toLowerCase();
-  const planVal   = document.getElementById('planFilter')?.value||'';
-  const yearVal   = document.getElementById('yearFilter')?.value||'';
+  const keyword = document.getElementById('studentSearch').value.toLowerCase();
   let list = [...purchases].sort((a,b)=>b.date.localeCompare(a.date));
 
-  // tab 篩選
-  if (_currentStudentTab === 'active')     list = list.filter(p=>!p.endDate||p.endDate>=today);
+  if (_currentStudentTab === 'active') list = list.filter(p=>!p.endDate||p.endDate>=today);
   if (_currentStudentTab === 'expireSoon') list = list.filter(p => {
     if (!p.endDate || p.endDate < today) return false;
-    return Math.ceil((new Date(p.endDate) - new Date()) / 86400000) <= 14;
+    const daysLeft = Math.ceil((new Date(p.endDate) - new Date()) / 86400000);
+    return daysLeft <= 14;
   });
-  if (_currentStudentTab === 'expired')    list = list.filter(p=>p.endDate&&p.endDate<today);
+  if (_currentStudentTab === 'expired') list = list.filter(p=>p.endDate&&p.endDate<today);
+  if (keyword) list = list.filter(p=>p.student.toLowerCase().includes(keyword)||p.plan.toLowerCase().includes(keyword));
 
-  // 關鍵字篩選（姓名 or 方案）
-  if (keyword) list = list.filter(p=>
-    p.student.toLowerCase().includes(keyword) || p.plan.toLowerCase().includes(keyword)
-  );
-
-  // 方案篩選
-  if (planVal) list = list.filter(p => p.plan === planVal);
-
-  // 年份篩選
-  if (yearVal) list = list.filter(p => p.date && p.date.slice(0,4) === yearVal);
-
-  const container = document.getElementById('studentTableGrouped');
+  const tbody = document.getElementById('studentTableTbody');
   if (!list.length) {
-    container.innerHTML = `<div class="empty-state" style="padding:30px;text-align:center">無符合條件的資料</div>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="empty-state">無資料</td></tr>`;
     return;
   }
-
-  // 按年份分組
-  const groups = {};
-  list.forEach(p => {
-    const yr = p.date ? p.date.slice(0,4) : '未知';
-    if (!groups[yr]) groups[yr] = [];
-    groups[yr].push(p);
-  });
-
-  const tableHead = `
-    <table style="width:100%;border-collapse:collapse">
-      <thead>
-        <tr>
-          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">購買日期</th>
-          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">學員</th>
-          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">方案</th>
-          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">金額</th>
-          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">啟用日期</th>
-          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">到期日期</th>
-          <th style="padding:10px 14px;text-align:center;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">剩餘堂數</th>
-          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">狀態</th>
-          <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">備註</th>
-          <th style="padding:10px 14px;border-bottom:1px solid var(--border)"></th>
-        </tr>
-      </thead>`;
-
-  const years = Object.keys(groups).sort().reverse();
-  container.innerHTML = years.map(yr => {
-    const rows = groups[yr];
-    const yrTotal = rows.reduce((s,p)=>s+p.amount,0);
-    const rowsHtml = rows.map(p => {
-      const isExpired  = p.endDate && p.endDate < today;
-      const isExpSoon  = p.endDate && !isExpired && (new Date(p.endDate)-new Date()) < 7*86400000;
-      let status = '';
-      if (!p.endDate)   status = `<span class="badge badge-purple">無期限</span>`;
-      else if (isExpired) status = `<span class="badge badge-red">已到期</span>`;
-      else if (isExpSoon) status = `<span class="badge badge-yellow">即將到期</span>`;
-      else                status = `<span class="badge badge-green">有效</span>`;
-      const fromSheet = p.note && (p.note.includes('匯入')||p.note.includes('試算表')) ?
-        `<span style="font-size:10px;background:rgba(124,111,205,0.15);color:var(--accent2);padding:1px 6px;border-radius:8px;margin-left:4px">試算表匯入</span>` : '';
-      return `<tr>
-        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.date)}</td>
-        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-weight:600">${p.student}</td>
-        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5)">${p.plan}</td>
-        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-family:'DM Mono',monospace;color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</td>
-        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.startDate)}</td>
-        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-family:'DM Mono',monospace;font-size:12px;color:${isExpired?'var(--red)':isExpSoon?'var(--yellow)':'var(--text)'}">${fmtDate(p.endDate)}</td>
-        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);text-align:center">${p.sessions||'–'}</td>
-        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5)">${status}</td>
-        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5);color:var(--text3);font-size:12px">${(p.note&&!p.note.includes('匯入')&&!p.note.includes('試算表'))?p.note:''}${fromSheet}</td>
-        <td style="padding:11px 14px;border-bottom:1px solid rgba(46,46,61,0.5)"><button class="btn btn-secondary btn-sm" onclick="editPurchase('${p.id}')">編輯</button></td>
-      </tr>`;
-    }).join('');
-
-    return `
-      <div style="margin-bottom:24px">
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface2);border-radius:10px 10px 0 0;border:1px solid var(--border);border-bottom:none">
-          <div style="font-size:15px;font-weight:900;color:var(--accent)">${yr} 年</div>
-          <div style="font-size:12px;color:var(--text3)">${rows.length} 筆</div>
-          <div style="margin-left:auto;font-family:'DM Mono',monospace;font-weight:700;color:var(--green);font-size:14px">${fmtMoney(yrTotal)}</div>
-        </div>
-        <div style="overflow-x:auto;border:1px solid var(--border);border-radius:0 0 10px 10px">
-          ${tableHead}<tbody>${rowsHtml}</tbody></table>
-        </div>
-      </div>`;
+  tbody.innerHTML = list.map(p => {
+    const isExpired = p.endDate && p.endDate < today;
+    const expireSoon = p.endDate && !isExpired && (new Date(p.endDate)-new Date()) < 7*86400000;
+    let status = '';
+    if (!p.endDate) status = `<span class="badge badge-purple">無期限</span>`;
+    else if (isExpired) status = `<span class="badge badge-red">已到期</span>`;
+    else if (expireSoon) status = `<span class="badge badge-yellow">即將到期</span>`;
+    else status = `<span class="badge badge-green">有效</span>`;
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.date)}</td>
+      <td style="font-weight:600">${p.student}</td>
+      <td>${p.plan}</td>
+      <td style="font-family:'DM Mono',monospace;color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.startDate)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:${isExpired?'var(--red)':expireSoon?'var(--yellow)':'var(--text)'}">${fmtDate(p.endDate)}</td>
+      <td style="text-align:center">${p.sessions||'–'}</td>
+      <td>${status}</td>
+      <td style="color:var(--text3);font-size:12px">${p.note||''}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="editPurchase('${p.id}')">編輯</button></td>
+    </tr>`;
   }).join('');
 }
 
@@ -2510,6 +2573,8 @@ function renderMonthly() {
       </div>
     </div>
   `;
+  // 銀行帳務摘要
+  renderBankMonthlySummary(month);
 }
 
 // ═══════════════════════════════
@@ -3900,6 +3965,320 @@ function refreshCurrentPage() {
   if (id==='student') renderStudentPage();
   if (id==='monthly') renderMonthlyPage();
   if (id==='kids') renderKidsPage();
+  if (id==='bank') renderBankPage();
+}
+
+// ═══════════════════════════════
+//  BANK DATA
+// ═══════════════════════════════
+let bankTx = load(KEYS.bankTx); // array of tx objects
+
+// 分類規則：關鍵字 → 分類名稱
+const BANK_RULES = [
+  // 收入
+  { keywords:['小孩','哆咚','課後','兒童','親子'], cat:'小孩課程收費', type:'in' },
+  { keywords:['大人','成人'], cat:'大人課程收費', type:'in' },
+  { keywords:['刷卡','端收','新儀'], cat:'刷卡端收入', type:'in' },
+  { keywords:['夏令營','夏令'], cat:'夏令營收入', type:'in' },
+  { keywords:['冬令營','冬令'], cat:'冬令營收入', type:'in' },
+  { keywords:['動茲','動滋'], cat:'動茲券', type:'in' },
+  { keywords:['場地租金','訂金','世泓','武樂'], cat:'其他收入', type:'in' },
+  // 支出
+  { keywords:['店租','租金'], cat:'租金支出', type:'out' },
+  { keywords:['塔塔','Summer','小布','Vanessa','莊佳雯','peggy','joy','劉正弦','小瑜','粒粒','寶泥','游日鴻','漱西','小排','糖糖','劭文','JALY','Apple','璦璦','老師','伶伶','盤思伶','彥彥','粲粲'], cat:'薪資支出', type:'out' },
+  { keywords:['勞健保','勞保','健保','稅金','二代','房屋稅','報稅'], cat:'稅金', type:'out' },
+  { keywords:['會計'], cat:'會計費', type:'out' },
+  { keywords:['水電','網路','電費','水費'], cat:'水電費', type:'out' },
+  { keywords:['夏令營支出','冬令營支出','營隊支出','舞蹈課'], cat:'夏冬令營支出', type:'out' },
+  { keywords:['修繕','維修'], cat:'修繕費', type:'out' },
+  { keywords:['文具'], cat:'文具用品', type:'out' },
+  { keywords:['器材','設備'], cat:'器材用品', type:'out' },
+  { keywords:['發票'], cat:'其他支出', type:'out' },
+  { keywords:['動茲券','動茲','動滋'], cat:'匯出動茲券', type:'out' },
+];
+
+// 收入/支出的分類對照
+const CAT_TYPE = {
+  '小孩課程收費':'in','大人課程收費':'in','刷卡端收入':'in','夏令營收入':'in',
+  '冬令營收入':'in','其他收入':'in','老闆墊款':'in','動茲券':'in',
+  '租金支出':'out','薪資支出':'out','稅金':'out','會計費':'out','水電費':'out',
+  '夏冬令營支出':'out','修繕費':'out','文具用品':'out','器材用品':'out',
+  '其他支出':'out','老闆提款':'out','匯出動茲券':'out','略過':'skip',
+};
+
+function autoClassifyTx(note, isOut) {
+  const n = (note||'').replace(/\s/g,'');
+  for (const rule of BANK_RULES) {
+    if (isOut && rule.type !== 'out') continue;
+    if (!isOut && rule.type !== 'in') continue;
+    if (rule.keywords.some(k => n.includes(k))) return rule.cat;
+  }
+  return isOut ? '其他支出' : '其他收入';
+}
+
+function parseBankAmount(v) {
+  if (!v || v === '' || v === '-' || String(v).trim() === '') return 0;
+  return parseFloat(String(v).replace(/,/g,'')) || 0;
+}
+
+function importBankExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const text = new TextDecoder('utf-8').decode(new Uint8Array(e.target.result));
+      parseBankCSV(text, file.name);
+    } catch {
+      // Try big5
+      const text2 = new TextDecoder('big5').decode(new Uint8Array(e.target.result));
+      parseBankCSV(text2, file.name);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  input.value = '';
+}
+
+function parseBankCSV(text, filename) {
+  // Split into lines
+  const lines = text.split(/\r?\n/);
+  let headerIdx = -1;
+  // Find header row with 帳務日期 or 交易時間
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('帳務日期') || lines[i].includes('交易時間')) {
+      headerIdx = i; break;
+    }
+  }
+  if (headerIdx < 0) { alert('找不到表頭，請確認是銀行明細格式'); return; }
+
+  const parseRow = line => {
+    // Simple CSV parse
+    const result = []; let cur = ''; let inQ = false;
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    result.push(cur.trim());
+    return result;
+  };
+
+  const headers = parseRow(lines[headerIdx]);
+  const idxDate = headers.findIndex(h => h.includes('帳務日期'));
+  const idxTime = headers.findIndex(h => h.includes('交易時間'));
+  const idxOut  = headers.findIndex(h => h.includes('支出'));
+  const idxIn   = headers.findIndex(h => h.includes('存入'));
+  const idxNote = headers.findIndex(h => h.includes('附註') || h.includes('摘要說明'));
+
+  let imported = 0, skipped = 0;
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const cols = parseRow(lines[i]);
+    if (cols.length < 4) continue;
+
+    const rawDate = cols[idxDate] || cols[0] || '';
+    if (!rawDate.match(/\d{4}[\/\-]\d{2}[\/\-]\d{2}/)) continue;
+
+    const date = rawDate.replace(/\//g, '-').trim().slice(0,10);
+    const timeStr = (cols[idxTime]||'').replace(/\//g,'-');
+    const datetime = timeStr.length > 10 ? timeStr : date + ' 00:00';
+    const outAmt = parseBankAmount(cols[idxOut]);
+    const inAmt  = parseBankAmount(cols[idxIn]);
+    const note   = (cols[idxNote]||'').trim();
+
+    if (outAmt === 0 && inAmt === 0) continue;
+
+    const isOut = outAmt > 0;
+    const amount = isOut ? outAmt : inAmt;
+
+    // Deduplicate
+    const dup = bankTx.find(t => t.datetime === datetime && t.amount === amount && t.isOut === isOut);
+    if (dup) { skipped++; continue; }
+
+    const cat = autoClassifyTx(note, isOut);
+    bankTx.push({
+      id: uid(), date, datetime, note, amount, isOut, cat,
+      source: filename
+    });
+    imported++;
+  }
+
+  save(KEYS.bankTx, bankTx);
+  document.getElementById('bankFileInfo').textContent = `已匯入 ${imported} 筆（略過重複 ${skipped} 筆）`;
+  renderBankPage();
+}
+
+let _bankMonth = '';
+
+function renderBankPage() {
+  // Build month selector
+  const months = [...new Set(bankTx.map(t=>t.date.slice(0,7)))].sort().reverse();
+  const sel = document.getElementById('bankMonthSelect');
+  if (!sel) return;
+  if (months.length === 0) {
+    sel.innerHTML = '<option value="">尚無資料</option>';
+    document.getElementById('bankStats').innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text3);padding:30px">尚無銀行帳務資料，請上傳銀行明細 Excel</div>`;
+    document.getElementById('bankIncomeBreakdown').innerHTML = '';
+    document.getElementById('bankExpenseBreakdown').innerHTML = '';
+    document.getElementById('bankTxTbody').innerHTML = '';
+    return;
+  }
+  const cur = _bankMonth || months[0];
+  sel.innerHTML = months.map(m=>`<option value="${m}"${m===cur?'selected':''}>${m}</option>`).join('');
+  _bankMonth = sel.value || months[0];
+
+  const mTx = bankTx.filter(t=>t.date.slice(0,7)===_bankMonth && t.cat !== '略過');
+  const totalIn  = mTx.filter(t=>!t.isOut).reduce((s,t)=>s+t.amount,0);
+  const totalOut = mTx.filter(t=>t.isOut).reduce((s,t)=>s+t.amount,0);
+  const profit   = totalIn - totalOut;
+
+  document.getElementById('bankStats').innerHTML = `
+    <div class="stat-card green"><div class="stat-num">${fmtMoney(totalIn)}</div><div class="stat-label">本月總收入</div></div>
+    <div class="stat-card red"><div class="stat-num">${fmtMoney(totalOut)}</div><div class="stat-label">本月總支出</div></div>
+    <div class="stat-card ${profit>=0?'gold':'red'}">
+      <div class="stat-num" style="color:${profit>=0?'var(--accent)':'var(--red)'}">${profit<0?'-':''}${fmtMoney(Math.abs(profit))}</div>
+      <div class="stat-label">本月盈餘</div>
+    </div>
+    <div class="stat-card purple"><div class="stat-num">${mTx.length}</div><div class="stat-label">交易筆數</div></div>
+  `;
+
+  // Income breakdown
+  const incCats = {};
+  mTx.filter(t=>!t.isOut).forEach(t=>{ incCats[t.cat]=(incCats[t.cat]||0)+t.amount; });
+  document.getElementById('bankIncomeBreakdown').innerHTML = Object.entries(incCats)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([cat,amt])=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600">${cat}</div>
+        <div style="font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtMoney(amt)}</div>
+      </div>`).join('') +
+    `<div style="display:flex;justify-content:space-between;padding:12px 0 0;font-weight:900;font-size:15px">
+      <div>合計</div><div style="font-family:'DM Mono',monospace;color:var(--green)">${fmtMoney(totalIn)}</div>
+    </div>`;
+
+  // Expense breakdown
+  const expCats = {};
+  mTx.filter(t=>t.isOut).forEach(t=>{ expCats[t.cat]=(expCats[t.cat]||0)+t.amount; });
+  document.getElementById('bankExpenseBreakdown').innerHTML = Object.entries(expCats)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([cat,amt])=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600">${cat}</div>
+        <div style="font-family:'DM Mono',monospace;font-weight:700;color:var(--red)">${fmtMoney(amt)}</div>
+      </div>`).join('') +
+    `<div style="display:flex;justify-content:space-between;padding:12px 0 0;font-weight:900;font-size:15px">
+      <div>合計</div><div style="font-family:'DM Mono',monospace;color:var(--red)">${fmtMoney(totalOut)}</div>
+    </div>`;
+
+  // Populate category filter
+  const catSel = document.getElementById('bankCatFilter');
+  const allCats = [...new Set(bankTx.filter(t=>t.date.slice(0,7)===_bankMonth).map(t=>t.cat))].sort();
+  const prevCat = catSel.value;
+  catSel.innerHTML = `<option value="">所有分類</option>` +
+    allCats.map(c=>`<option value="${c}"${c===prevCat?'selected':''}>${c}</option>`).join('');
+
+  renderBankTxTable();
+}
+
+function renderBankTxTable() {
+  const catF  = document.getElementById('bankCatFilter')?.value||'';
+  const typeF = document.getElementById('bankTypeFilter')?.value||'';
+  let list = bankTx.filter(t=>t.date.slice(0,7)===_bankMonth);
+  if (catF)  list = list.filter(t=>t.cat===catF);
+  if (typeF==='in')  list = list.filter(t=>!t.isOut);
+  if (typeF==='out') list = list.filter(t=>t.isOut);
+  list.sort((a,b)=>a.datetime.localeCompare(b.datetime));
+
+  const tbody = document.getElementById('bankTxTbody');
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--text3)">無資料</td></tr>`; return; }
+
+  tbody.innerHTML = list.map(t => {
+    const catColor = t.cat==='略過' ? 'var(--text3)' : !t.isOut ? 'rgba(74,222,128,0.15)' : 'rgba(248,113,113,0.12)';
+    const catText  = t.cat==='略過' ? 'var(--text3)' : !t.isOut ? 'var(--green)' : 'var(--red)';
+    return `<tr>
+      <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${t.date}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-size:13px;max-width:260px">${t.note||'-'}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5);text-align:right;font-family:'DM Mono',monospace;color:var(--red)">${t.isOut?fmtMoney(t.amount):''}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5);text-align:right;font-family:'DM Mono',monospace;color:var(--green)">${!t.isOut?fmtMoney(t.amount):''}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5)">
+        <span style="background:${catColor};color:${catText};padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700">${t.cat}</span>
+      </td>
+      <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-size:12px;color:var(--text2)">${t.isOut?'支出':'收入'}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5)">
+        <button class="btn btn-secondary btn-sm" onclick="editBankTx('${t.id}')">編輯</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function editBankTx(id) {
+  const t = bankTx.find(x=>x.id===id); if (!t) return;
+  document.getElementById('btx_id').value = t.id;
+  document.getElementById('btx_note').value = t.note;
+  document.getElementById('btx_category').value = t.cat;
+  openModal('bankTxEditModal');
+}
+
+function saveBankTxCategory() {
+  const id  = document.getElementById('btx_id').value;
+  const cat = document.getElementById('btx_category').value;
+  const idx = bankTx.findIndex(x=>x.id===id); if (idx<0) return;
+  bankTx[idx].cat = cat;
+  bankTx[idx].isOut = CAT_TYPE[cat] === 'out';
+  save(KEYS.bankTx, bankTx);
+  closeModal('bankTxEditModal');
+  renderBankPage();
+}
+
+function clearBankData() {
+  if (!confirm('確定清除所有銀行帳務資料？')) return;
+  bankTx = [];
+  save(KEYS.bankTx, bankTx);
+  renderBankPage();
+}
+
+// ═══════════════════════════════
+//  MONTHLY PAGE - bank summary
+// ═══════════════════════════════
+function renderBankMonthlySummary(month) {
+  const el = document.getElementById('monthlyBankSummary');
+  const titleEl = document.getElementById('monthlyBankTitle');
+  if (!el || !titleEl) return;
+
+  const mTx = bankTx.filter(t=>t.date.slice(0,7)===month && t.cat!=='略過');
+  if (!mTx.length) { el.style.display='none'; titleEl.style.display='none'; return; }
+
+  el.style.display='block'; titleEl.style.display='';
+  const totalIn  = mTx.filter(t=>!t.isOut).reduce((s,t)=>s+t.amount,0);
+  const totalOut = mTx.filter(t=>t.isOut).reduce((s,t)=>s+t.amount,0);
+  const profit   = totalIn - totalOut;
+
+  const incCats = {}, expCats = {};
+  mTx.filter(t=>!t.isOut).forEach(t=>{ incCats[t.cat]=(incCats[t.cat]||0)+t.amount; });
+  mTx.filter(t=>t.isOut).forEach(t=>{ expCats[t.cat]=(expCats[t.cat]||0)+t.amount; });
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:20px">
+      <div><div class="card-title">總收入</div><div style="font-size:28px;font-weight:900;color:var(--green);font-family:'DM Mono',monospace">${fmtMoney(totalIn)}</div></div>
+      <div><div class="card-title">總支出</div><div style="font-size:28px;font-weight:900;color:var(--red);font-family:'DM Mono',monospace">${fmtMoney(totalOut)}</div></div>
+      <div><div class="card-title">本月盈餘</div><div style="font-size:28px;font-weight:900;font-family:'DM Mono',monospace;color:${profit>=0?'var(--accent)':'var(--red)'}">${profit<0?'-':''}${fmtMoney(Math.abs(profit))}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">收入分類</div>
+        ${Object.entries(incCats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+            <span>${c}</span><span style="font-family:'DM Mono',monospace;color:var(--green);font-weight:700">${fmtMoney(v)}</span>
+          </div>`).join('')}
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">支出分類</div>
+        ${Object.entries(expCats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+            <span>${c}</span><span style="font-family:'DM Mono',monospace;color:var(--red);font-weight:700">${fmtMoney(v)}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
 }
 
 // ═══════════════════════════════
