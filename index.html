@@ -688,7 +688,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     </div>
   </div>
   <div class="flex flex-wrap gap-8 mb-16" style="align-items:center">
-    <select id="bankMonthSelect" onchange="onBankMonthChange()" style="min-width:150px"></select>
+    <select id="bankMonthSelect" onchange="renderBankPage()" style="min-width:150px"></select>
     <div style="font-size:12px;color:var(--text3)" id="bankFileInfo"></div>
   </div>
   <div class="grid-4 mb-16" id="bankStats"></div>
@@ -2888,27 +2888,30 @@ function importScheduleExcel(input) {
 
       function saveCourse(c) {
         if (!c || !c.date || !c.name) return;
-        const existIdx = classes.findIndex(x => x.date===c.date && x.timeStart===c.timeStart && x.name===c.name && (x.teacher===c.teacher || !x.teacher || !c.teacher));
+        // 正規化名稱避免全形/半形差異造成重複
+        const cName = c.name.trim();
+        const cTeacher = (c.teacher||'').trim();
+        const existIdx = classes.findIndex(x =>
+          x.date === c.date &&
+          x.timeStart === c.timeStart &&
+          x.name.trim() === cName
+        );
         if (existIdx >= 0) {
-          // 更新預約人數
-          if (classes[existIdx].booked !== c.booked) {
-            classes[existIdx].booked = c.booked;
-            classes[existIdx].teacher = c.teacher || classes[existIdx].teacher;
-            classes[existIdx].status = c.status;
-            updated++;
-          } else {
-            skipped++;
-          }
+          // 找到同一堂課：直接更新預約人數（覆蓋，不累加）
+          classes[existIdx].booked = c.booked;
+          if (cTeacher) classes[existIdx].teacher = cTeacher;
+          classes[existIdx].status = c.status;
+          updated++;
         } else {
           // 找同課程取得 max
-          const similar = classes.find(x => x.name===c.name && x.teacher===c.teacher);
+          const similar = classes.find(x => x.name.trim()===cName && x.teacher.trim()===cTeacher);
           classes.push({
             id: uid(),
             date: c.date,
             timeStart: c.timeStart,
             timeEnd: c.timeEnd,
-            name: c.name,
-            teacher: c.teacher,
+            name: cName,
+            teacher: cTeacher,
             room: '',
             max: similar ? similar.max : 10,
             booked: c.booked,
@@ -3647,17 +3650,33 @@ ${k.bank||'台北富邦銀行（代碼 012）中壢分行'}
 //  清除重複課程工具
 // ═══════════════════════════════
 function deduplicateClasses() {
-  const seen = new Set();
   const before = classes.length;
-  classes = classes.filter(c => {
-    const key = `${c.date}_${c.timeStart}_${c.name}_${c.teacher||''}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
+  const merged = {};
+
+  classes.forEach(c => {
+    // 正規化 key：去除前後空格、統一半形
+    const name = (c.name||'').trim();
+    const teacher = (c.teacher||'').trim();
+    const key = `${c.date}_${c.timeStart}_${name}_${teacher}`;
+    if (!merged[key]) {
+      merged[key] = { ...c, name, teacher };
+    } else {
+      // 合併：取較大的 booked（不累加，取最大值避免重複計算）
+      merged[key].booked = Math.max(merged[key].booked||0, c.booked||0);
+      merged[key].attended = Math.max(merged[key].attended||0, c.attended||0);
+      merged[key].max = Math.max(merged[key].max||0, c.max||0);
+      // 保留有值的欄位
+      if (!merged[key].room && c.room) merged[key].room = c.room;
+      if (!merged[key].teacher && c.teacher) merged[key].teacher = c.teacher;
+      if (c.status === '滿班') merged[key].status = '滿班';
+      if (c.status === '停課') merged[key].status = '停課';
+    }
   });
+
+  classes = Object.values(merged);
   const removed = before - classes.length;
   save(KEYS.classes, classes);
-  showToast(`✅ 已清除 ${removed} 筆重複課程`, 'success');
+  showToast(`✅ 已清除 ${removed} 筆重複課程（人數已合併取最大值）`, 'success');
   refreshCurrentPage();
 }
 
@@ -4061,12 +4080,6 @@ function importBankExcel(input) {
 }
 
 let _bankMonth = '';
-function onBankMonthChange() {
-  const sel = document.getElementById('bankMonthSelect');
-  if (!sel || !sel.value) return;
-  _bankMonth = sel.value;
-  renderBankData();
-}
 function renderBankPage() {
   const months = [...new Set(bankTx.map(t=>t.date.slice(0,7)))].sort().reverse();
   const sel = document.getElementById('bankMonthSelect'); if (!sel) return;
@@ -4078,9 +4091,8 @@ function renderBankPage() {
   }
   if (!_bankMonth || !months.includes(_bankMonth)) _bankMonth = months[0];
   sel.innerHTML = months.map(m=>`<option value="${m}"${m===_bankMonth?'selected':''}>${m}</option>`).join('');
-  renderBankData();
-}
-function renderBankData() {
+  _bankMonth = sel.value;
+
   const mTx = bankTx.filter(t=>t.date.slice(0,7)===_bankMonth && t.cat!=='略過');
   const totalIn  = mTx.filter(t=>!t.isOut).reduce((s,t)=>s+t.amount,0);
   const totalOut = mTx.filter(t=>t.isOut).reduce((s,t)=>s+t.amount,0);
