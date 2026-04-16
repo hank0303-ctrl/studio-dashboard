@@ -1145,6 +1145,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     </div>
     <div class="flex gap-8 flex-wrap">
       <select id="kidsMonthSelect" onchange="renderKidsPage()" style="min-width:130px"></select>
+      <button class="btn btn-secondary" onclick="openKidCostModal()">💸 填寫月支出</button>
       <button class="btn btn-primary" onclick="openModal('addKidModal')">＋ 新增學童</button>
     </div>
   </div>
@@ -1152,8 +1153,46 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   <!-- 月份統計 -->
   <div class="grid-4 mb-16" id="kidsStats"></div>
 
+  <!-- 獲利摘要 -->
+  <div class="card mb-16" id="kidsProfitSummary" style="display:none"></div>
   <!-- 學童列表 -->
   <div id="kidsContainer"></div>
+</div>
+
+<!-- 月支出設定 Modal -->
+<div class="modal-overlay" id="kidCostModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">💸 兒童部門月支出設定</div>
+    <input type="hidden" id="kidcost_month">
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px">填寫本月兒童部門實際支出，系統將平均分攤到每位學童計算獲利</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1"><label>🍎 點心費 ($)</label><input type="number" id="kc_snack" value="0" min="0" oninput="previewKidCostTotal()"></div>
+      <div class="form-group" style="flex:1"><label>👤 人力成本 ($)</label><input type="number" id="kc_labor" value="0" min="0" oninput="previewKidCostTotal()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1"><label>💡 水電費 ($)</label><input type="number" id="kc_utility" value="0" min="0" oninput="previewKidCostTotal()"></div>
+      <div class="form-group" style="flex:1"><label>🧾 稅金 ($)</label><input type="number" id="kc_tax" value="0" min="0" oninput="previewKidCostTotal()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1"><label>🚌 交通費 ($)</label><input type="number" id="kc_transport" value="0" min="0" oninput="previewKidCostTotal()"></div>
+      <div class="form-group" style="flex:1"><label>🏠 房租 ($)</label><input type="number" id="kc_rent" value="0" min="0" oninput="previewKidCostTotal()"></div>
+    </div>
+    <div class="form-group">
+      <label>📦 其他費用（格式：項目名稱:金額，每行一個）</label>
+      <textarea id="kc_other" rows="3" placeholder="教材費:2000&#10;清潔費:500" style="width:100%;resize:vertical" oninput="previewKidCostTotal()"></textarea>
+    </div>
+    <div style="background:var(--surface2);border-radius:10px;padding:16px;margin:12px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:12px;font-weight:700;color:var(--text3)">本月總支出</span>
+        <span style="font-size:22px;font-weight:900;color:var(--red);font-family:'DM Mono',monospace" id="kc_total_preview">$0</span>
+      </div>
+      <div style="font-size:11px;color:var(--text3)" id="kc_per_kid_preview"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('kidCostModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveKidCost()">儲存支出</button>
+    </div>
+  </div>
 </div>
 
 <!-- 新增/編輯學童 Modal -->
@@ -1383,7 +1422,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 // ═══════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════
-const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx' };
+const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs' };
 
 function load(key) {
   try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
@@ -3139,7 +3178,8 @@ function renderWeekFull() {
 //  兒童收費
 // ═══════════════════════════════
 let kids     = load(KEYS.kids);
-let kidBills = load(KEYS.kidBills); // { "kidId_yyyy-MM": { mainFee, count, extraItems:[{name,amount}] } }
+let kidBills = load(KEYS.kidBills);
+let kidCosts = (() => { try { return JSON.parse(localStorage.getItem('studio_kid_costs')) || {}; } catch { return {}; } })();
 
 // ── CRUD ──
 function saveKid() {
@@ -3506,105 +3546,173 @@ ${k.bank||'台北富邦銀行（代碼 012）中壢分行'}
 }
 
 // ── 渲染 ──
+function openKidCostModal() {
+  const month = document.getElementById('kidsMonthSelect').value;
+  document.getElementById('kidcost_month').value = month;
+  const cost = kidCosts[month] || {};
+  document.getElementById('kc_snack').value     = cost.snack||0;
+  document.getElementById('kc_labor').value     = cost.labor||0;
+  document.getElementById('kc_utility').value   = cost.utility||0;
+  document.getElementById('kc_tax').value       = cost.tax||0;
+  document.getElementById('kc_transport').value = cost.transport||0;
+  document.getElementById('kc_rent').value      = cost.rent||0;
+  document.getElementById('kc_other').value     = (cost.other||[]).map(e=>e.name+':'+e.amount).join('\n');
+  previewKidCostTotal();
+  openModal('kidCostModal');
+}
+function parseKidCostOther(text) {
+  if (!text) return [];
+  return text.split('\n').map(line => {
+    const parts = line.split(':');
+    if (parts.length < 2) return null;
+    const amount = parseInt(parts.slice(1).join(':'))||0;
+    return amount > 0 ? { name: parts[0].trim(), amount } : null;
+  }).filter(Boolean);
+}
+function previewKidCostTotal() {
+  const snack=parseInt(document.getElementById('kc_snack').value)||0;
+  const labor=parseInt(document.getElementById('kc_labor').value)||0;
+  const utility=parseInt(document.getElementById('kc_utility').value)||0;
+  const tax=parseInt(document.getElementById('kc_tax').value)||0;
+  const transport=parseInt(document.getElementById('kc_transport').value)||0;
+  const rent=parseInt(document.getElementById('kc_rent').value)||0;
+  const other=parseKidCostOther(document.getElementById('kc_other').value);
+  const total=snack+labor+utility+tax+transport+rent+other.reduce((s,e)=>s+e.amount,0);
+  document.getElementById('kc_total_preview').textContent='$'+total.toLocaleString();
+  const n=kids.length;
+  document.getElementById('kc_per_kid_preview').textContent=n>0?`平均每位學童分攤：$${Math.round(total/n).toLocaleString()}（共 ${n} 位）`:'尚無學童資料';
+}
+function saveKidCost() {
+  const month=document.getElementById('kidcost_month').value;
+  kidCosts[month]={
+    snack:parseInt(document.getElementById('kc_snack').value)||0,
+    labor:parseInt(document.getElementById('kc_labor').value)||0,
+    utility:parseInt(document.getElementById('kc_utility').value)||0,
+    tax:parseInt(document.getElementById('kc_tax').value)||0,
+    transport:parseInt(document.getElementById('kc_transport').value)||0,
+    rent:parseInt(document.getElementById('kc_rent').value)||0,
+    other:parseKidCostOther(document.getElementById('kc_other').value),
+  };
+  localStorage.setItem('studio_kid_costs', JSON.stringify(kidCosts));
+  closeModal('kidCostModal');
+  renderKidsPage();
+}
+function getKidCostTotal(month) {
+  const c=kidCosts[month]; if(!c) return 0;
+  return (c.snack||0)+(c.labor||0)+(c.utility||0)+(c.tax||0)+(c.transport||0)+(c.rent||0)+(c.other||[]).reduce((s,e)=>s+e.amount,0);
+}
+function getKidRevenue(k, month) {
+  const bill=kidBills[k.id+'_'+month]; if(!bill) return 0;
+  let base=bill.mainFee||0;
+  if(k.feeType==='perClass'||k.feeType==='perDay') base=(bill.mainFee||0)*(bill.count||0);
+  return base+(bill.extraItems||[]).reduce((s,e)=>s+e.amount,0);
+}
 function renderKidsPage() {
-  // 月份選單
-  const now = new Date();
-  const months = [];
-  for (let i=0; i<6; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+  const now=new Date();
+  const months=[];
+  for(let i=-3;i<=6;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()+i,1);
     months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
   }
-  const sel = document.getElementById('kidsMonthSelect');
-  const cur = sel.value || months[0];
-  sel.innerHTML = months.map(m=>`<option value="${m}">${m}</option>`).join('');
-  sel.value = cur;
-
-  const month = sel.value;
-  const mNum = parseInt(month.split('-')[1]);
-
-  // 統計
-  const totalKids = kids.length;
-  const billedKids = kids.filter(k => kidBills[k.id+'_'+month]).length;
-  const totalAmount = kids.reduce((s,k) => {
-    const bill = kidBills[k.id+'_'+month];
-    if (!bill) return s;
-    let base = bill.mainFee||0;
-    if (k.feeType==='perClass'||k.feeType==='perDay') base = (bill.mainFee||0)*(bill.count||0);
-    const extra = (bill.extraItems||[]).reduce((ss,e)=>ss+e.amount,0);
-    return s + base + extra;
-  }, 0);
-
-  document.getElementById('kidsStats').innerHTML = `
+  months.sort().reverse();
+  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const sel=document.getElementById('kidsMonthSelect');
+  const cur=sel.value||thisMonth;
+  sel.innerHTML=months.map(m=>`<option value="${m}"${m===cur?'selected':''}>${m}${m>thisMonth?' （預收）':''}</option>`).join('');
+  sel.value=months.includes(cur)?cur:thisMonth;
+  const month=sel.value;
+  const mNum=parseInt(month.split('-')[1]);
+  const totalKids=kids.length;
+  const billedKids=kids.filter(k=>kidBills[k.id+'_'+month]).length;
+  const totalRevenue=kids.reduce((s,k)=>s+getKidRevenue(k,month),0);
+  const totalCost=getKidCostTotal(month);
+  const perKidCost=totalKids>0?Math.round(totalCost/totalKids):0;
+  const profit=totalRevenue-totalCost;
+  const hasCost=totalCost>0;
+  document.getElementById('kidsStats').innerHTML=`
     <div class="stat-card gold"><div class="stat-num">${totalKids}</div><div class="stat-label">學童總數</div></div>
-    <div class="stat-card green"><div class="stat-num">${billedKids}</div><div class="stat-label">已完成費用計算</div><div class="stat-sub">${month}</div></div>
-    <div class="stat-card red"><div class="stat-num">${totalKids-billedKids}</div><div class="stat-label">尚未計算</div></div>
-    <div class="stat-card purple"><div class="stat-num">${fmtMoney(totalAmount)}</div><div class="stat-label">本月應收合計</div></div>
-  `;
-
-  // 學童卡片
-  const container = document.getElementById('kidsContainer');
-  if (!kids.length) {
-    container.innerHTML = `<div class="card empty-state">尚無學童資料，請新增學童</div>`;
-    return;
-  }
-
-  const feeTypeLabel = { monthly:'月費', perClass:'按堂數', perDay:'按天數', mixed:'混合' };
-
-  container.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px">` +
-    kids.map(k => {
-      const bill = kidBills[k.id+'_'+month];
-      let base = 0, extra = 0, total = 0;
-      if (bill) {
-        base = bill.mainFee||0;
-        if (k.feeType==='perClass'||k.feeType==='perDay') base = (bill.mainFee||0)*(bill.count||0);
-        extra = (bill.extraItems||[]).reduce((s,e)=>s+e.amount,0);
-        total = base + extra;
+    <div class="stat-card green"><div class="stat-num">${fmtMoney(totalRevenue)}</div><div class="stat-label">本月總收入</div></div>
+    <div class="stat-card red"><div class="stat-num">${fmtMoney(totalCost)}</div><div class="stat-label">本月總支出</div><div class="stat-sub">${hasCost?'':'尚未填寫支出'}</div></div>
+    <div class="stat-card ${profit>=0?'purple':'red'}">
+      <div class="stat-num" style="color:${profit>=0?'var(--accent2)':'var(--red)'}">${profit<0?'-':''}${fmtMoney(Math.abs(profit))}</div>
+      <div class="stat-label">本月淨利</div>
+    </div>`;
+  const profitEl=document.getElementById('kidsProfitSummary');
+  if(hasCost){
+    profitEl.style.display='';
+    const cost=kidCosts[month];
+    const costItems=[
+      {label:'點心費',val:cost.snack||0},{label:'人力成本',val:cost.labor||0},
+      {label:'水電費',val:cost.utility||0},{label:'稅金',val:cost.tax||0},
+      {label:'交通費',val:cost.transport||0},{label:'房租',val:cost.rent||0},
+      ...(cost.other||[]).map(e=>({label:e.name,val:e.amount})),
+    ].filter(x=>x.val>0);
+    profitEl.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div class="card-title">📊 支出明細（每人分攤 ${fmtMoney(perKidCost)}）</div>
+        ${costItems.map(x=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">${x.label}</span><span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--red)">${fmtMoney(x.val)}</span></div>`).join('')}
+        <div style="display:flex;justify-content:space-between;padding:10px 0 0;font-weight:900;font-size:15px"><span>總支出</span><span style="font-family:'DM Mono',monospace;color:var(--red)">${fmtMoney(totalCost)}</span></div>
+      </div>
+      <div>
+        <div class="card-title">💰 獲利摘要</div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">總收入</span><span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtMoney(totalRevenue)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">總支出</span><span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--red)">-${fmtMoney(totalCost)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:12px 0 0;font-weight:900;font-size:18px"><span>淨利</span><span style="font-family:'DM Mono',monospace;color:${profit>=0?'var(--accent)':'var(--red)'}">${profit<0?'-':''}${fmtMoney(Math.abs(profit))}</span></div>
+        ${totalKids>0?`<div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin-top:14px;font-size:12px;color:var(--text3)">毛利率：<strong style="color:var(--text)">${totalRevenue>0?Math.round(profit/totalRevenue*100):0}%</strong> &nbsp;·&nbsp; 每位學童平均獲利：<strong style="color:var(--text)">${fmtMoney(totalKids>0?Math.round(profit/totalKids):0)}</strong></div>`:''}
+      </div>
+    </div>`;
+  } else { profitEl.style.display='none'; }
+  const container=document.getElementById('kidsContainer');
+  if(!kids.length){container.innerHTML=`<div class="card empty-state">尚無學童資料，請新增學童</div>`;return;}
+  const feeTypeLabel={monthly:'月費',perClass:'按堂數',perDay:'按天數',mixed:'混合'};
+  container.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px">`+
+    kids.map(k=>{
+      const bill=kidBills[k.id+'_'+month];
+      const revenue=getKidRevenue(k,month);
+      const costShare=perKidCost;
+      const kidProfit=revenue-costShare;
+      const hasBill=!!bill;
+      let base=0,extra=0;
+      if(bill){
+        base=bill.mainFee||0;
+        if(k.feeType==='perClass'||k.feeType==='perDay') base=(bill.mainFee||0)*(bill.count||0);
+        extra=(bill.extraItems||[]).reduce((s,e)=>s+e.amount,0);
       }
-      const hasBill = !!bill;
-
       return `<div class="card" style="position:relative">
         <div class="flex items-center justify-between mb-16" style="flex-wrap:wrap;gap:8px">
           <div>
             <div style="font-size:18px;font-weight:900">${k.name}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:2px">
-              ${k.grade||''} ${k.course ? '· '+k.course : ''} ${k.teacher ? '· '+k.teacher : ''}
-            </div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px">${k.grade||''} ${k.course?'· '+k.course:''} ${k.teacher?'· '+k.teacher:''}</div>
           </div>
           <div class="flex gap-8">
             <button class="btn btn-secondary btn-sm" onclick="editKid('${k.id}')">⚙️ 設定</button>
-            <button class="btn ${hasBill?'btn-secondary':'btn-primary'} btn-sm" onclick="openBillModal('${k.id}')">
-              ${hasBill?'✏️ 編輯費用':'📝 填寫費用'}
-            </button>
+            <button class="btn ${hasBill?'btn-secondary':'btn-primary'} btn-sm" onclick="openBillModal('${k.id}')">${hasBill?'✏️ 編輯費用':'📝 填寫費用'}</button>
           </div>
         </div>
-
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
           <span class="badge badge-purple">${feeTypeLabel[k.feeType]||'月費'} · 基本 ${fmtMoney(k.baseFee)}</span>
-          ${k.note ? `<span class="badge badge-gold">${k.note}</span>` : ''}
+          ${k.note?`<span class="badge badge-gold">${k.note}</span>`:''}
         </div>
-
-        ${hasBill ? `
-          <div style="background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.2);border-radius:10px;padding:14px">
+        ${hasBill?`
+          <div style="background:rgba(140,115,85,0.08);border:1px solid rgba(140,115,85,0.2);border-radius:10px;padding:14px;margin-bottom:10px">
             <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:700">${mNum}月費用明細</div>
             <div style="font-size:12px;color:var(--text2);line-height:1.8">
-              ${bill.mainFee!==undefined ? `<div>月費：${fmtMoney(base)}</div>` : ''}
+              ${bill.mainFee!==undefined?`<div>月費：${fmtMoney(base)}</div>`:''}
               ${(bill.extraItems||[]).map(e=>`<div>${e.name}：${fmtMoney(e.amount)}</div>`).join('')}
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid rgba(200,169,110,0.2)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid rgba(140,115,85,0.2)">
               <div style="font-size:13px;font-weight:700;color:var(--text2)">應繳合計</div>
-              <div style="font-size:22px;font-weight:900;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(total)}</div>
+              <div style="font-size:22px;font-weight:900;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(revenue)}</div>
             </div>
-            <button class="btn btn-primary" style="width:100%;margin-top:10px;justify-content:center" onclick="copyKidBill('${k.id}','${month}')">
-              📋 複製家長通知
-            </button>
+            <button class="btn btn-primary" style="width:100%;margin-top:10px;justify-content:center" onclick="copyKidBill('${k.id}','${month}')">📋 複製家長通知</button>
           </div>
-        ` : `
-          <div style="background:var(--surface2);border-radius:10px;padding:14px;text-align:center;color:var(--text3);font-size:13px">
-            尚未填寫 ${mNum}月費用，點「填寫費用」開始
-          </div>
-        `}
+          ${hasCost?`<div style="background:var(--surface2);border-radius:10px;padding:12px;font-size:12px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text3)">成本分攤</span><span style="color:var(--red);font-weight:700">-${fmtMoney(costShare)}</span></div>
+            <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border)"><span style="font-weight:700">個人淨利</span><span style="font-family:'DM Mono',monospace;font-weight:900;color:${kidProfit>=0?'var(--green)':'var(--red)'}">${kidProfit<0?'-':''}${fmtMoney(Math.abs(kidProfit))}</span></div>
+          </div>`:''}
+        `:`<div style="background:var(--surface2);border-radius:10px;padding:14px;text-align:center;color:var(--text3);font-size:13px">尚未填寫 ${mNum}月費用，點「填寫費用」開始</div>`}
       </div>`;
-    }).join('') + `</div>`;
+    }).join('')+`</div>`;
 }
 
 function copyKidBill(kidId, month) {
