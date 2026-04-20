@@ -1427,6 +1427,12 @@ const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'
 function load(key) {
   try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
 }
+function loadObj(key) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key));
+    return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+  } catch { return {}; }
+}
 function save(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
 }
@@ -3178,8 +3184,8 @@ function renderWeekFull() {
 //  兒童收費
 // ═══════════════════════════════
 let kids     = load(KEYS.kids);
-let kidBills = load(KEYS.kidBills);
-let kidCosts = (() => { try { return JSON.parse(localStorage.getItem('studio_kid_costs')) || {}; } catch { return {}; } })();
+let kidBills = loadObj(KEYS.kidBills);
+let kidCosts = loadObj(KEYS.kidCosts);
 
 // ── CRUD ──
 function saveKid() {
@@ -3593,7 +3599,7 @@ function saveKidCost() {
     rent:parseInt(document.getElementById('kc_rent').value)||0,
     other:parseKidCostOther(document.getElementById('kc_other').value),
   };
-  localStorage.setItem('studio_kid_costs', JSON.stringify(kidCosts));
+  save(KEYS.kidCosts, kidCosts);
   closeModal('kidCostModal');
   renderKidsPage();
 }
