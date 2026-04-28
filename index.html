@@ -4,37 +4,39 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>武樂教室管理系統</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Shippori+Mincho:wght@400;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0f0f13;
-  --surface: #18181f;
-  --surface2: #22222d;
-  --border: #2e2e3d;
-  --accent: #c8a96e;
-  --accent2: #7c6fcd;
-  --green: #4ade80;
-  --red: #f87171;
-  --yellow: #fbbf24;
-  --text: #e8e8f0;
-  --text2: #9090a8;
-  --text3: #5a5a72;
-  --radius: 12px;
-  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --bg:      #f7f5f2;
+  --surface: #ffffff;
+  --surface2:#f0ede9;
+  --border:  #e3ded9;
+  --accent:  #5c7a6b;
+  --accent2: #7b8fa1;
+  --green:   #4a8060;
+  --red:     #b85450;
+  --yellow:  #9a7535;
+  --text:    #2a2924;
+  --text2:   #6b6660;
+  --text3:   #b0aaa4;
+  --radius:  6px;
+  --shadow:  0 1px 6px rgba(0,0,0,0.06);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Noto Sans TC', sans-serif;
+  font-family: 'Noto Sans JP', 'Noto Sans TC', sans-serif;
   font-size: 14px;
   min-height: 100vh;
+  letter-spacing: 0.01em;
 }
 /* ── NAV ── */
 .nav {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(15,15,19,0.95);
-  backdrop-filter: blur(12px);
+  background: rgba(247,245,242,0.96);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 4px;
   padding: 0 20px; height: 56px;
@@ -47,11 +49,11 @@ body {
 .nav-btn {
   background: none; border: none; color: var(--text2);
   font-family: inherit; font-size: 13px; font-weight: 500;
-  padding: 6px 14px; border-radius: 8px; cursor: pointer;
-  transition: all .2s; white-space: nowrap;
+  padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  transition: all .15s; white-space: nowrap;
 }
 .nav-btn:hover { background: var(--surface2); color: var(--text); }
-.nav-btn.active { background: var(--surface2); color: var(--accent); }
+.nav-btn.active { background: var(--accent); color: #fff; font-weight: 700; }
 .nav-spacer { flex: 1; }
 .nav-date { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text3); }
 
@@ -267,7 +269,7 @@ select option { background: var(--bg); }
 /* ── MODAL ── */
 .modal-overlay {
   display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.7); z-index: 999;
+  background: rgba(42,41,36,0.3); z-index: 999;
   align-items: center; justify-content: center;
   padding: 20px;
 }
@@ -429,6 +431,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   <button class="nav-btn" onclick="showPage('monthly')">📅 月結報表</button>
   <button class="nav-btn" onclick="showPage('kids')">👧 兒童收費</button>
   <button class="nav-btn" onclick="showPage('bank')">🏦 銀行帳務</button>
+  <button class="nav-btn" onclick="showPage('staff')">👔 PT薪資</button>
   <div class="nav-spacer"></div>
   <button class="btn btn-secondary btn-sm" onclick="syncFromSheet()" id="syncBtn" style="font-size:12px;padding:5px 12px">🔄 同步試算表</button>
   <div class="nav-date" id="navDate" style="margin-left:8px"></div>
@@ -765,6 +768,100 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('bankTxEditModal')">取消</button>
       <button class="btn btn-primary" onclick="saveBankTxCategory()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE PT薪資
+════════════════════════════════════════════ -->
+<div class="page" id="page-staff">
+  <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
+    <div>
+      <div style="font-size:24px;font-weight:700;letter-spacing:-0.5px">PT 薪資計算</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">兼職員工打卡時數與薪資管理</div>
+    </div>
+    <div class="flex gap-8 flex-wrap">
+      <select id="staffMonthSelect" onchange="renderStaffPage()" style="min-width:130px"></select>
+      <button class="btn btn-primary" onclick="openModal('addStaffModal')">＋ 新增員工</button>
+    </div>
+  </div>
+  <div class="grid-4 mb-16" id="staffStats"></div>
+  <div id="staffContainer"></div>
+</div>
+
+<!-- 新增員工 Modal -->
+<div class="modal-overlay" id="addStaffModal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title">新增 PT 員工</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2"><label>姓名</label><input type="text" id="staff_name" placeholder="員工姓名"></div>
+      <div class="form-group" style="flex:1"><label>時薪 ($)</label><input type="number" id="staff_hourly" value="180" min="0"></div>
+    </div>
+    <div class="form-group"><label>備註</label><input type="text" id="staff_note" placeholder="職稱或備注"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addStaffModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveStaff()">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯員工 Modal -->
+<div class="modal-overlay" id="editStaffModal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title">編輯員工設定</div>
+    <input type="hidden" id="edit_staff_id">
+    <div class="form-row">
+      <div class="form-group" style="flex:2"><label>姓名</label><input type="text" id="edit_staff_name"></div>
+      <div class="form-group" style="flex:1"><label>時薪 ($)</label><input type="number" id="edit_staff_hourly" min="0"></div>
+    </div>
+    <div class="form-group"><label>備註</label><input type="text" id="edit_staff_note"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" onclick="deleteStaff(document.getElementById('edit_staff_id').value)">刪除</button>
+      <button class="btn btn-secondary" onclick="closeModal('editStaffModal')">取消</button>
+      <button class="btn btn-primary" onclick="updateStaff()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 打卡記錄 Modal -->
+<div class="modal-overlay" id="staffShiftModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="staffShiftModalTitle">打卡記錄</div>
+    <input type="hidden" id="shift_staff_id">
+    <input type="hidden" id="shift_month">
+
+    <!-- 新增一筆打卡 -->
+    <div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">新增班次</div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1"><label>日期</label><input type="date" id="shift_date"></div>
+        <div class="form-group" style="flex:1"><label>上班時間</label><input type="time" id="shift_in" value="09:00"></div>
+        <div class="form-group" style="flex:1"><label>下班時間</label><input type="time" id="shift_out" value="17:00"></div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addShift()" style="width:100%;justify-content:center">＋ 加入班次</button>
+    </div>
+
+    <!-- 班次列表 -->
+    <div style="max-height:260px;overflow-y:auto;margin-bottom:14px" id="shiftList"></div>
+
+    <!-- 加/扣項目 -->
+    <div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">加給 / 扣款</div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2"><label>項目名稱</label><input type="text" id="adj_name" placeholder="如：獎金、勞保、健保"></div>
+        <div class="form-group" style="flex:1"><label>金額（負數=扣）</label><input type="number" id="adj_amount" placeholder="2000"></div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="addAdjustment()" style="width:100%;justify-content:center">＋ 加入項目</button>
+      <div id="adjList" style="margin-top:10px"></div>
+    </div>
+
+    <!-- 薪資預覽 -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px" id="staffPayPreview"></div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('staffShiftModal')">關閉</button>
+      <button class="btn btn-primary" onclick="downloadStaffImage()">🖼️ 下載薪資單</button>
     </div>
   </div>
 </div>
@@ -1422,7 +1519,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 // ═══════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════
-const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs' };
+const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff' };
 
 function load(key) {
   try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
@@ -1497,7 +1594,7 @@ function showPage(name) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   const btns = document.querySelectorAll('.nav-btn');
-  const idx = ['today','week','class','teacher','student','monthly','kids','bank'].indexOf(name);
+  const idx = ['today','week','class','teacher','student','monthly','kids','bank','staff'].indexOf(name);
   if (idx >= 0) btns[idx].classList.add('active');
   if (name==='today') renderToday();
   if (name==='week') renderWeekFull();
@@ -1507,6 +1604,7 @@ function showPage(name) {
   if (name==='monthly') renderMonthlyPage();
   if (name==='kids') renderKidsPage();
   if (name==='bank') renderBankPage();
+  if (name==='staff') renderStaffPage();
 }
 
 // ═══════════════════════════════
@@ -4342,6 +4440,280 @@ function renderBankMonthlySummary(month) {
       </div>
     </div>`;
 }
+
+// ═══════════════════════════════
+//  PT 薪資
+// ═══════════════════════════════
+let staffList = load(KEYS.staff);
+let staffData  = loadObj('studio_staff_data');
+
+function saveStaff() {
+  const name=document.getElementById('staff_name').value.trim();
+  if(!name) return alert('請填寫姓名');
+  staffList.push({id:uid(),name,hourly:parseInt(document.getElementById('staff_hourly').value)||180,note:document.getElementById('staff_note').value.trim()});
+  save(KEYS.staff,staffList); closeModal('addStaffModal'); renderStaffPage();
+}
+function editStaffModal(id) {
+  const s=staffList.find(x=>x.id===id); if(!s) return;
+  document.getElementById('edit_staff_id').value=s.id;
+  document.getElementById('edit_staff_name').value=s.name;
+  document.getElementById('edit_staff_hourly').value=s.hourly||180;
+  document.getElementById('edit_staff_note').value=s.note||'';
+  openModal('editStaffModal');
+}
+function updateStaff() {
+  const id=document.getElementById('edit_staff_id').value;
+  const idx=staffList.findIndex(x=>x.id===id); if(idx<0) return;
+  staffList[idx]={...staffList[idx],name:document.getElementById('edit_staff_name').value.trim(),hourly:parseInt(document.getElementById('edit_staff_hourly').value)||180,note:document.getElementById('edit_staff_note').value.trim()};
+  save(KEYS.staff,staffList); closeModal('editStaffModal'); renderStaffPage();
+}
+function deleteStaff(id) {
+  if(!confirm('確定刪除此員工？')) return;
+  staffList=staffList.filter(x=>x.id!==id);
+  save(KEYS.staff,staffList); closeModal('editStaffModal'); renderStaffPage();
+}
+function calcHours(timeIn,timeOut) {
+  if(!timeIn||!timeOut) return 0;
+  const [ih,im]=timeIn.split(':').map(Number);
+  const [oh,om]=timeOut.split(':').map(Number);
+  const mins=(oh*60+om)-(ih*60+im);
+  return mins>0?Math.round(mins/60*10)/10:0;
+}
+let _shiftStaffId='',_shiftMonth='';
+function openShiftModal(staffId,month) {
+  _shiftStaffId=staffId; _shiftMonth=month;
+  const s=staffList.find(x=>x.id===staffId);
+  document.getElementById('staffShiftModalTitle').textContent=`${s.name} — ${month} 打卡記錄`;
+  document.getElementById('shift_staff_id').value=staffId;
+  document.getElementById('shift_month').value=month;
+  const[y,m2]=month.split('-');
+  document.getElementById('shift_date').value=`${y}-${m2}-01`;
+  renderShiftList(); renderAdjList(); renderStaffPayPreview();
+  openModal('staffShiftModal');
+}
+function getStaffKey(){return _shiftStaffId+'_'+_shiftMonth;}
+function getStaffEntry(){return staffData[getStaffKey()]||{shifts:[],adjustments:[]};}
+function saveStaffEntry(entry){staffData[getStaffKey()]=entry;save('studio_staff_data',staffData);}
+function addShift() {
+  const date=document.getElementById('shift_date').value;
+  const timeIn=document.getElementById('shift_in').value;
+  const timeOut=document.getElementById('shift_out').value;
+  if(!date||!timeIn||!timeOut) return alert('請填寫完整日期和時間');
+  const hours=calcHours(timeIn,timeOut);
+  if(hours<=0) return alert('下班時間必須晚於上班時間');
+  const entry=getStaffEntry();
+  entry.shifts.push({date,in:timeIn,out:timeOut,hours});
+  entry.shifts.sort((a,b)=>a.date.localeCompare(b.date));
+  saveStaffEntry(entry); renderShiftList(); renderStaffPayPreview();
+}
+function removeShift(idx) {
+  const entry=getStaffEntry(); entry.shifts.splice(idx,1);
+  saveStaffEntry(entry); renderShiftList(); renderStaffPayPreview();
+}
+function addAdjustment() {
+  const name=document.getElementById('adj_name').value.trim();
+  const amount=parseInt(document.getElementById('adj_amount').value)||0;
+  if(!name||amount===0) return alert('請填寫項目名稱和金額（負數=扣款）');
+  const entry=getStaffEntry();
+  entry.adjustments=entry.adjustments||[];
+  entry.adjustments.push({name,amount});
+  saveStaffEntry(entry);
+  document.getElementById('adj_name').value=''; document.getElementById('adj_amount').value='';
+  renderAdjList(); renderStaffPayPreview();
+}
+function removeAdj(idx) {
+  const entry=getStaffEntry(); entry.adjustments.splice(idx,1);
+  saveStaffEntry(entry); renderAdjList(); renderStaffPayPreview();
+}
+function renderShiftList() {
+  const entry=getStaffEntry();
+  const el=document.getElementById('shiftList');
+  if(!entry.shifts.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0">尚無班次記錄</div>';return;}
+  el.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="color:var(--text3);font-size:11px;border-bottom:1px solid var(--border)">
+      <th style="padding:6px 8px;text-align:left">日期</th><th style="padding:6px 8px;text-align:center">上班</th><th style="padding:6px 8px;text-align:center">下班</th><th style="padding:6px 8px;text-align:center">時數</th><th style="width:30px"></th>
+    </tr></thead><tbody>${entry.shifts.map((sh,i)=>`<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:7px 8px;font-family:'DM Mono',monospace;font-size:12px">${sh.date.slice(5).replace('-','/')}</td>
+      <td style="padding:7px 8px;text-align:center;font-family:'DM Mono',monospace">${sh.in}</td>
+      <td style="padding:7px 8px;text-align:center;font-family:'DM Mono',monospace">${sh.out}</td>
+      <td style="padding:7px 8px;text-align:center;font-weight:700;color:var(--accent)">${sh.hours}h</td>
+      <td style="padding:7px 8px;text-align:center"><button onclick="removeShift(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px">×</button></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+function renderAdjList() {
+  const entry=getStaffEntry();
+  const el=document.getElementById('adjList');
+  if(!(entry.adjustments||[]).length){el.innerHTML='';return;}
+  el.innerHTML=entry.adjustments.map((a,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span>${a.name}</span>
+      <div style="display:flex;gap:12px;align-items:center">
+        <span style="font-family:'DM Mono',monospace;font-weight:700;color:${a.amount>=0?'var(--green)':'var(--red)'}">${a.amount>=0?'+':''}$${Math.abs(a.amount).toLocaleString()}</span>
+        <button onclick="removeAdj(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px">×</button>
+      </div>
+    </div>`).join('');
+}
+function renderStaffPayPreview() {
+  const s=staffList.find(x=>x.id===_shiftStaffId); if(!s) return;
+  const entry=getStaffEntry();
+  const totalHours=(entry.shifts||[]).reduce((sum,sh)=>sum+sh.hours,0);
+  const basePay=Math.round(totalHours*s.hourly);
+  const adjTotal=(entry.adjustments||[]).reduce((sum,a)=>sum+a.amount,0);
+  const netPay=basePay+adjTotal;
+  document.getElementById('staffPayPreview').innerHTML=`
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">總時數</span><span style="font-family:'DM Mono',monospace;font-weight:700">${totalHours}h</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">基本薪資（＄${s.hourly}/h × ${totalHours}h）</span><span style="font-family:'DM Mono',monospace;font-weight:700">$${basePay.toLocaleString()}</span></div>
+    ${(entry.adjustments||[]).map(a=>`<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">${a.name}</span><span style="font-family:'DM Mono',monospace;color:${a.amount>=0?'var(--green)':'var(--red)'}">${a.amount>=0?'+':''}$${Math.abs(a.amount).toLocaleString()}</span></div>`).join('')}
+    <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);font-size:16px;font-weight:700"><span>實領薪資</span><span style="font-family:'DM Mono',monospace;color:var(--accent)">$${netPay.toLocaleString()}</span></div>`;
+}
+function downloadStaffImage() {
+  const s=staffList.find(x=>x.id===_shiftStaffId); if(!s) return;
+  const entry=getStaffEntry();
+  const shifts=entry.shifts||[], adjs=entry.adjustments||[];
+  const totalHours=shifts.reduce((sum,sh)=>sum+sh.hours,0);
+  const basePay=Math.round(totalHours*s.hourly);
+  const adjTotal=adjs.reduce((sum,a)=>sum+a.amount,0);
+  const netPay=basePay+adjTotal;
+  const scale=2, W=700, rowH=38, pad=40;
+  const headerH=140, thH=36;
+  const footerH=60+(adjs.length+1)*32;
+  const H=headerH+thH+shifts.length*rowH+footerH+20;
+  const canvas=document.createElement('canvas');
+  canvas.width=W*scale; canvas.height=H*scale;
+  const ctx=canvas.getContext('2d');
+  ctx.scale(scale,scale);
+  // BG
+  ctx.fillStyle='#f7f5f2'; ctx.fillRect(0,0,W,H);
+  // 左色條
+  ctx.fillStyle='#5c7a6b'; ctx.fillRect(0,0,4,H);
+  // 品牌名
+  ctx.fillStyle='#b0aaa4'; ctx.font='11px sans-serif'; ctx.fillText('武樂教室', pad, 28);
+  // 員工名
+  ctx.fillStyle='#2a2924'; ctx.font='bold 26px sans-serif'; ctx.fillText(s.name, pad, 60);
+  // 副標
+  ctx.fillStyle='#5c7a6b'; ctx.font='500 13px sans-serif'; ctx.fillText(_shiftMonth+' 薪資明細', pad, 82);
+  ctx.fillStyle='#b0aaa4'; ctx.font='12px sans-serif'; ctx.fillText(`時薪 $${s.hourly}/h　${s.note||''}`, pad, 100);
+  // 月份右上
+  ctx.fillStyle='#b0aaa4'; ctx.font='bold 11px sans-serif'; ctx.textAlign='right';
+  ctx.fillText(_shiftMonth, W-pad, 28);
+  ctx.textAlign='left';
+  // 分隔
+  ctx.fillStyle='#e3ded9'; ctx.fillRect(pad,headerH-10,W-pad*2,1);
+  // 表頭
+  ctx.fillStyle='#f0ede9'; ctx.fillRect(0,headerH,W,thH);
+  ['日期','上班','下班','時數'].forEach((c,i)=>{
+    const xs=[pad,200,310,420];
+    ctx.fillStyle='#6b6660'; ctx.font='bold 11px sans-serif'; ctx.fillText(c,xs[i],headerH+24);
+  });
+  // 班次列
+  shifts.forEach((sh,i)=>{
+    const y=headerH+thH+i*rowH;
+    if(i%2===0){ctx.fillStyle='rgba(0,0,0,0.015)';ctx.fillRect(0,y,W,rowH);}
+    ctx.fillStyle='#2a2924'; ctx.font='13px monospace';
+    ctx.fillText(sh.date.slice(5).replace('-','/'), pad, y+25);
+    ctx.fillText(sh.in, 200, y+25);
+    ctx.fillText(sh.out, 310, y+25);
+    ctx.fillStyle='#5c7a6b'; ctx.font='bold 13px monospace';
+    ctx.fillText(sh.hours+'h', 420, y+25);
+  });
+  // Footer
+  let fy=headerH+thH+shifts.length*rowH+14;
+  ctx.fillStyle='#e3ded9'; ctx.fillRect(pad,fy,W-pad*2,1); fy+=20;
+  // 基本薪資
+  ctx.fillStyle='#6b6660'; ctx.font='13px sans-serif';
+  ctx.fillText(`基本薪資（$${s.hourly}/h × ${totalHours}h）`, pad, fy+14);
+  ctx.fillStyle='#2a2924'; ctx.font='bold 13px monospace';
+  ctx.textAlign='right'; ctx.fillText('$'+basePay.toLocaleString(), W-pad, fy+14);
+  ctx.textAlign='left'; fy+=32;
+  // 加扣項目
+  adjs.forEach(a=>{
+    ctx.fillStyle='#6b6660'; ctx.font='13px sans-serif'; ctx.fillText(a.name, pad, fy+14);
+    ctx.fillStyle=a.amount>=0?'#4a8060':'#b85450'; ctx.font='bold 13px monospace';
+    ctx.textAlign='right'; ctx.fillText((a.amount>=0?'+':'')+'$'+Math.abs(a.amount).toLocaleString(), W-pad, fy+14);
+    ctx.textAlign='left'; fy+=32;
+  });
+  // 實領
+  ctx.fillStyle='#e3ded9'; ctx.fillRect(pad,fy,W-pad*2,1); fy+=14;
+  ctx.fillStyle='#2a2924'; ctx.font='bold 16px sans-serif'; ctx.fillText('實領薪資', pad, fy+26);
+  ctx.fillStyle='#5c7a6b'; ctx.font='bold 24px monospace';
+  ctx.textAlign='right'; ctx.fillText('$'+netPay.toLocaleString(), W-pad, fy+28);
+  ctx.textAlign='left';
+  const link=document.createElement('a');
+  link.download=`${_shiftMonth}_${s.name}_薪資單.png`;
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+}
+function downloadStaffImageDirect(staffId,month) {
+  _shiftStaffId=staffId; _shiftMonth=month; downloadStaffImage();
+}
+function renderStaffPage() {
+  const now=new Date();
+  const months=[];
+  for(let i=-3;i<=1;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()+i,1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  months.sort().reverse();
+  const sel=document.getElementById('staffMonthSelect');
+  const cur=sel.value||months[0];
+  sel.innerHTML=months.map(m=>`<option value="${m}"${m===cur?'selected':''}>${m}</option>`).join('');
+  const month=sel.value;
+  let totalHours=0,totalPay=0;
+  staffList.forEach(s=>{
+    const entry=staffData[s.id+'_'+month]||{shifts:[],adjustments:[]};
+    const h=(entry.shifts||[]).reduce((sum,sh)=>sum+sh.hours,0);
+    const base=Math.round(h*s.hourly);
+    const adj=(entry.adjustments||[]).reduce((sum,a)=>sum+a.amount,0);
+    totalHours+=h; totalPay+=base+adj;
+  });
+  document.getElementById('staffStats').innerHTML=`
+    <div class="stat-card gold"><div class="stat-num">${staffList.length}</div><div class="stat-label">員工人數</div></div>
+    <div class="stat-card purple"><div class="stat-num">${totalHours}h</div><div class="stat-label">本月總時數</div></div>
+    <div class="stat-card red"><div class="stat-num">${fmtMoney(totalPay)}</div><div class="stat-label">本月薪資總計</div></div>
+    <div class="stat-card green"><div class="stat-num">${staffList.filter(s=>(staffData[s.id+'_'+month]?.shifts||[]).length>0).length}</div><div class="stat-label">已有記錄人數</div></div>`;
+  const container=document.getElementById('staffContainer');
+  if(!staffList.length){container.innerHTML=`<div class="card empty-state">尚無員工資料，請點右上角「＋ 新增員工」</div>`;return;}
+  container.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">`+
+    staffList.map(s=>{
+      const entry=staffData[s.id+'_'+month]||{shifts:[],adjustments:[]};
+      const h=(entry.shifts||[]).reduce((sum,sh)=>sum+sh.hours,0);
+      const base=Math.round(h*s.hourly);
+      const adj=(entry.adjustments||[]).reduce((sum,a)=>sum+a.amount,0);
+      const net=base+adj;
+      const hasData=(entry.shifts||[]).length>0;
+      return `<div class="card">
+        <div class="flex items-center justify-between mb-12">
+          <div>
+            <div style="font-size:17px;font-weight:700">${s.name}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">${s.note||'PT 員工'} · $${s.hourly}/h</div>
+          </div>
+          <div class="flex gap-8">
+            <button class="btn btn-secondary btn-sm" onclick="editStaffModal('${s.id}')">設定</button>
+            <button class="btn ${hasData?'btn-secondary':'btn-primary'} btn-sm" onclick="openShiftModal('${s.id}','${month}')">${hasData?'編輯記錄':'填寫打卡'}</button>
+          </div>
+        </div>
+        ${hasData?`
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;text-align:center">
+          <div style="background:var(--surface2);border-radius:6px;padding:10px">
+            <div style="font-size:20px;font-weight:700;color:var(--accent)">${h}h</div>
+            <div style="font-size:11px;color:var(--text3)">總時數</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:6px;padding:10px">
+            <div style="font-size:20px;font-weight:700">${(entry.shifts||[]).length}</div>
+            <div style="font-size:11px;color:var(--text3)">出勤天數</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:6px;padding:10px">
+            <div style="font-size:20px;font-weight:700;color:var(--green)">${fmtMoney(net)}</div>
+            <div style="font-size:11px;color:var(--text3)">實領</div>
+          </div>
+        </div>
+        ${(entry.adjustments||[]).length?`<div style="font-size:12px;color:var(--text3);margin-bottom:10px">${entry.adjustments.map(a=>`${a.name}：<span style="color:${a.amount>=0?'var(--green)':'var(--red)'}">${a.amount>=0?'+':''}$${Math.abs(a.amount).toLocaleString()}</span>`).join('　')}</div>`:''}
+        <button class="btn btn-primary" style="width:100%;justify-content:center;font-size:13px" onclick="downloadStaffImageDirect('${s.id}','${month}')">🖼️ 下載薪資單</button>
+        `:`<div style="background:var(--surface2);border-radius:8px;padding:14px;text-align:center;color:var(--text3);font-size:13px">尚未填寫 ${parseInt(month.split('-')[1])}月打卡記錄</div>`}
+      </div>`;
+    }).join('')+`</div>`;
+}
+
 function init() {
   seedIfEmpty();
   const now = new Date();
