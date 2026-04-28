@@ -831,6 +831,21 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <input type="hidden" id="shift_staff_id">
     <input type="hidden" id="shift_month">
 
+    <!-- 預設班次快捷 -->
+    <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">預設班次</div>
+      <div class="form-row" style="margin-bottom:10px">
+        <div class="form-group" style="flex:1"><label>上班</label><input type="time" id="preset_in" value="09:00"></div>
+        <div class="form-group" style="flex:1"><label>下班</label><input type="time" id="preset_out" value="17:00"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="applyPresetToSelected()">套用到已選日期</button>
+        <button class="btn btn-secondary btn-sm" onclick="applyPresetToWeekdays()">套用到週一～五</button>
+        <button class="btn btn-secondary btn-sm" onclick="applyPresetToAll()">套用到全月</button>
+        <button class="btn btn-danger btn-sm" onclick="clearAllShifts()">清除全部</button>
+      </div>
+    </div>
+
     <!-- 月曆選出勤日 -->
     <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">
       點選出勤日期
@@ -4529,6 +4544,61 @@ function renderShiftCalendar() {
   document.getElementById('shift_day_count').textContent=count>0?`已記錄 ${count} 天`:'';
 }
 
+function getPreset() {
+  const timeIn=document.getElementById('preset_in').value||'09:00';
+  const timeOut=document.getElementById('preset_out').value||'17:00';
+  const hours=calcHours(timeIn,timeOut);
+  return {timeIn,timeOut,hours};
+}
+function applyShiftToDates(dates) {
+  const {timeIn,timeOut,hours}=getPreset();
+  if(hours<=0){alert('請確認預設班次時間正確');return;}
+  const entry=getStaffEntry();
+  entry.shifts=entry.shifts||[];
+  dates.forEach(dateStr=>{
+    const idx=entry.shifts.findIndex(s=>s.date===dateStr);
+    if(idx>=0) entry.shifts[idx]={date:dateStr,in:timeIn,out:timeOut,hours};
+    else entry.shifts.push({date:dateStr,in:timeIn,out:timeOut,hours});
+  });
+  entry.shifts.sort((a,b)=>a.date.localeCompare(b.date));
+  saveStaffEntry(entry); renderShiftCalendar(); renderStaffPayPreview();
+}
+function applyPresetToSelected() {
+  if(!_selectedShiftDate){alert('請先點選一個日期');return;}
+  applyShiftToDates([_selectedShiftDate]);
+  // 同步更新時間編輯器
+  const {timeIn,timeOut}=getPreset();
+  document.getElementById('shift_in').value=timeIn;
+  document.getElementById('shift_out').value=timeOut;
+  updateShiftTime();
+}
+function applyPresetToWeekdays() {
+  const [y,m]=_shiftMonth.split('-').map(Number);
+  const daysInMonth=new Date(y,m,0).getDate();
+  const dates=[];
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=`${_shiftMonth}-${String(d).padStart(2,'0')}`;
+    const dow=new Date(y,m-1,d).getDay();
+    if(dow>=1&&dow<=5) dates.push(dateStr); // 週一到週五
+  }
+  applyShiftToDates(dates);
+}
+function applyPresetToAll() {
+  const [y,m]=_shiftMonth.split('-').map(Number);
+  const daysInMonth=new Date(y,m,0).getDate();
+  const dates=[];
+  for(let d=1;d<=daysInMonth;d++) dates.push(`${_shiftMonth}-${String(d).padStart(2,'0')}`);
+  applyShiftToDates(dates);
+}
+function clearAllShifts() {
+  if(!confirm('確定清除本月所有打卡記錄？')) return;
+  const entry=getStaffEntry();
+  entry.shifts=[];
+  saveStaffEntry(entry);
+  _selectedShiftDate='';
+  document.getElementById('shift_time_editor').style.display='none';
+  renderShiftCalendar(); renderStaffPayPreview();
+}
 function selectShiftDay(dateStr) {
   _selectedShiftDate=dateStr;
   const entry=getStaffEntry();
