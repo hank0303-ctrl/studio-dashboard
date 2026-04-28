@@ -4642,6 +4642,23 @@ function removeShiftDay(dateStr) {
   document.getElementById('shift_time_editor').style.display='none';
   renderShiftCalendar(); renderStaffPayPreview();
 }
+function addAdjustment() {
+  const name=document.getElementById('adj_name').value.trim();
+  const amount=parseInt(document.getElementById('adj_amount').value)||0;
+  if(!name||amount===0) return alert('請填寫項目名稱和金額（負數=扣款）');
+  const entry=getStaffEntry();
+  entry.adjustments=entry.adjustments||[];
+  entry.adjustments.push({name,amount});
+  saveStaffEntry(entry);
+  document.getElementById('adj_name').value='';
+  document.getElementById('adj_amount').value='';
+  renderAdjList(); renderStaffPayPreview();
+}
+function removeAdj(idx) {
+  const entry=getStaffEntry();
+  entry.adjustments.splice(idx,1);
+  saveStaffEntry(entry); renderAdjList(); renderStaffPayPreview();
+}
 function renderAdjList() {
   const entry=getStaffEntry();
   const el=document.getElementById('adjList');
