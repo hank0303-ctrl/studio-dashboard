@@ -831,19 +831,22 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <input type="hidden" id="shift_staff_id">
     <input type="hidden" id="shift_month">
 
-    <!-- 新增一筆打卡 -->
-    <div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:16px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">新增班次</div>
-      <div class="form-row">
-        <div class="form-group" style="flex:1"><label>日期</label><input type="date" id="shift_date"></div>
-        <div class="form-group" style="flex:1"><label>上班時間</label><input type="time" id="shift_in" value="09:00"></div>
-        <div class="form-group" style="flex:1"><label>下班時間</label><input type="time" id="shift_out" value="17:00"></div>
-      </div>
-      <button class="btn btn-primary btn-sm" onclick="addShift()" style="width:100%;justify-content:center">＋ 加入班次</button>
+    <!-- 月曆選出勤日 -->
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">
+      點選出勤日期
+      <span style="font-weight:400;color:var(--text3);font-size:11px;margin-left:8px" id="shift_day_count"></span>
     </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:16px" id="shift_calendar"></div>
 
-    <!-- 班次列表 -->
-    <div style="max-height:260px;overflow-y:auto;margin-bottom:14px" id="shiftList"></div>
+    <!-- 點日期後展開時間設定 -->
+    <div id="shift_time_editor" style="display:none;background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px" id="shift_time_editor_label">設定上下班時間</div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1"><label>上班時間</label><input type="time" id="shift_in" value="09:00" oninput="updateShiftTime()"></div>
+        <div class="form-group" style="flex:1"><label>下班時間</label><input type="time" id="shift_out" value="17:00" oninput="updateShiftTime()"></div>
+      </div>
+      <div style="font-size:12px;color:var(--accent);font-weight:700" id="shift_hours_preview"></div>
+    </div>
 
     <!-- 加/扣項目 -->
     <div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:14px">
@@ -4479,66 +4482,95 @@ function calcHours(timeIn,timeOut) {
   const mins=(oh*60+om)-(ih*60+im);
   return mins>0?Math.round(mins/60*10)/10:0;
 }
-let _shiftStaffId='',_shiftMonth='';
+let _shiftStaffId='',_shiftMonth='',_selectedShiftDate='';
 function openShiftModal(staffId,month) {
-  _shiftStaffId=staffId; _shiftMonth=month;
+  _shiftStaffId=staffId; _shiftMonth=month; _selectedShiftDate='';
   const s=staffList.find(x=>x.id===staffId);
   document.getElementById('staffShiftModalTitle').textContent=`${s.name} — ${month} 打卡記錄`;
   document.getElementById('shift_staff_id').value=staffId;
   document.getElementById('shift_month').value=month;
-  const[y,m2]=month.split('-');
-  document.getElementById('shift_date').value=`${y}-${m2}-01`;
-  renderShiftList(); renderAdjList(); renderStaffPayPreview();
+  document.getElementById('shift_time_editor').style.display='none';
+  renderShiftCalendar(); renderAdjList(); renderStaffPayPreview();
   openModal('staffShiftModal');
 }
 function getStaffKey(){return _shiftStaffId+'_'+_shiftMonth;}
 function getStaffEntry(){return staffData[getStaffKey()]||{shifts:[],adjustments:[]};}
 function saveStaffEntry(entry){staffData[getStaffKey()]=entry;save('studio_staff_data',staffData);}
-function addShift() {
-  const date=document.getElementById('shift_date').value;
+
+function renderShiftCalendar() {
+  const [y,m]=_shiftMonth.split('-').map(Number);
+  const daysInMonth=new Date(y,m,0).getDate();
+  const firstDay=new Date(y,m-1,1).getDay();
+  const dayNames=['日','一','二','三','四','五','六'];
+  const entry=getStaffEntry();
+  const shiftMap={};
+  (entry.shifts||[]).forEach(sh=>{shiftMap[sh.date]=sh;});
+  let html='';
+  dayNames.forEach(d=>{html+=`<div style="text-align:center;font-size:10px;color:var(--text3);font-weight:700;padding:4px 0">${d}</div>`;});
+  for(let i=0;i<firstDay;i++) html+='<div></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=`${_shiftMonth}-${String(d).padStart(2,'0')}`;
+    const sh=shiftMap[dateStr];
+    const isSelected=!!sh;
+    const isActive=dateStr===_selectedShiftDate;
+    const dow=(firstDay+d-1)%7;
+    const isWeekend=dow===0||dow===6;
+    html+=`<div onclick="selectShiftDay('${dateStr}')"
+      style="text-align:center;padding:5px 2px;border-radius:6px;cursor:pointer;font-size:12px;line-height:1.3;
+      background:${isActive?'var(--accent2)':isSelected?'var(--accent)':'transparent'};
+      color:${isActive||isSelected?'#fff':isWeekend?'var(--text3)':'var(--text)'};
+      border:2px solid ${isActive?'var(--accent2)':isSelected?'var(--accent)':'var(--border)'};
+      transition:all .12s">
+      ${d}${sh?`<div style="font-size:9px;font-weight:700;opacity:0.9">${sh.hours}h</div>`:''}
+    </div>`;
+  }
+  document.getElementById('shift_calendar').innerHTML=html;
+  const count=Object.keys(shiftMap).length;
+  document.getElementById('shift_day_count').textContent=count>0?`已記錄 ${count} 天`:'';
+}
+
+function selectShiftDay(dateStr) {
+  _selectedShiftDate=dateStr;
+  const entry=getStaffEntry();
+  const existing=(entry.shifts||[]).find(s=>s.date===dateStr);
+  const editor=document.getElementById('shift_time_editor');
+  editor.style.display='block';
+  const dayNum=parseInt(dateStr.split('-')[2]);
+  document.getElementById('shift_time_editor_label').innerHTML=
+    `${dayNum}日 上下班時間 <button onclick="removeShiftDay('${dateStr}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;margin-left:8px">× 移除這天</button>`;
+  document.getElementById('shift_in').value=existing?existing.in:'09:00';
+  document.getElementById('shift_out').value=existing?existing.out:'17:00';
+  updateShiftTime();
+  renderShiftCalendar();
+}
+
+function updateShiftTime() {
   const timeIn=document.getElementById('shift_in').value;
   const timeOut=document.getElementById('shift_out').value;
-  if(!date||!timeIn||!timeOut) return alert('請填寫完整日期和時間');
   const hours=calcHours(timeIn,timeOut);
-  if(hours<=0) return alert('下班時間必須晚於上班時間');
+  document.getElementById('shift_hours_preview').textContent=hours>0?`時數：${hours}h（${timeIn} ～ ${timeOut}）`:'請確認時間';
+  if(!_selectedShiftDate||hours<=0) return;
   const entry=getStaffEntry();
-  entry.shifts.push({date,in:timeIn,out:timeOut,hours});
-  entry.shifts.sort((a,b)=>a.date.localeCompare(b.date));
-  saveStaffEntry(entry); renderShiftList(); renderStaffPayPreview();
-}
-function removeShift(idx) {
-  const entry=getStaffEntry(); entry.shifts.splice(idx,1);
-  saveStaffEntry(entry); renderShiftList(); renderStaffPayPreview();
-}
-function addAdjustment() {
-  const name=document.getElementById('adj_name').value.trim();
-  const amount=parseInt(document.getElementById('adj_amount').value)||0;
-  if(!name||amount===0) return alert('請填寫項目名稱和金額（負數=扣款）');
-  const entry=getStaffEntry();
-  entry.adjustments=entry.adjustments||[];
-  entry.adjustments.push({name,amount});
+  entry.shifts=entry.shifts||[];
+  const idx=entry.shifts.findIndex(s=>s.date===_selectedShiftDate);
+  if(idx>=0){
+    entry.shifts[idx]={date:_selectedShiftDate,in:timeIn,out:timeOut,hours};
+  } else {
+    entry.shifts.push({date:_selectedShiftDate,in:timeIn,out:timeOut,hours});
+    entry.shifts.sort((a,b)=>a.date.localeCompare(b.date));
+  }
   saveStaffEntry(entry);
-  document.getElementById('adj_name').value=''; document.getElementById('adj_amount').value='';
-  renderAdjList(); renderStaffPayPreview();
+  renderShiftCalendar();
+  renderStaffPayPreview();
 }
-function removeAdj(idx) {
-  const entry=getStaffEntry(); entry.adjustments.splice(idx,1);
-  saveStaffEntry(entry); renderAdjList(); renderStaffPayPreview();
-}
-function renderShiftList() {
+
+function removeShiftDay(dateStr) {
   const entry=getStaffEntry();
-  const el=document.getElementById('shiftList');
-  if(!entry.shifts.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0">尚無班次記錄</div>';return;}
-  el.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:13px">
-    <thead><tr style="color:var(--text3);font-size:11px;border-bottom:1px solid var(--border)">
-      <th style="padding:6px 8px;text-align:left">日期</th><th style="padding:6px 8px;text-align:center">上班</th><th style="padding:6px 8px;text-align:center">下班</th><th style="padding:6px 8px;text-align:center">時數</th><th style="width:30px"></th>
-    </tr></thead><tbody>${entry.shifts.map((sh,i)=>`<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:7px 8px;font-family:'DM Mono',monospace;font-size:12px">${sh.date.slice(5).replace('-','/')}</td>
-      <td style="padding:7px 8px;text-align:center;font-family:'DM Mono',monospace">${sh.in}</td>
-      <td style="padding:7px 8px;text-align:center;font-family:'DM Mono',monospace">${sh.out}</td>
-      <td style="padding:7px 8px;text-align:center;font-weight:700;color:var(--accent)">${sh.hours}h</td>
-      <td style="padding:7px 8px;text-align:center"><button onclick="removeShift(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px">×</button></td>
-    </tr>`).join('')}</tbody></table>`;
+  entry.shifts=(entry.shifts||[]).filter(s=>s.date!==dateStr);
+  saveStaffEntry(entry);
+  _selectedShiftDate='';
+  document.getElementById('shift_time_editor').style.display='none';
+  renderShiftCalendar(); renderStaffPayPreview();
 }
 function renderAdjList() {
   const entry=getStaffEntry();
