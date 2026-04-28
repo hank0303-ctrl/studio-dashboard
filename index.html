@@ -606,8 +606,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   </div>
 
   <div class="card">
-    <div class="flex flex-wrap gap-8 mb-16">
-      <input type="text" id="studentSearch" placeholder="搜尋學員姓名..." oninput="renderStudentTable()" style="min-width:180px">
+    <div class="flex flex-wrap gap-8 mb-16" style="align-items:center">
+      <input type="text" id="studentSearch" placeholder="搜尋學員姓名..." oninput="renderStudentTable()" style="min-width:160px;flex:1">
+      <select id="planFilter" onchange="renderStudentTable()" style="min-width:220px;flex:2">
+        <option value="">🔍 所有方案</option>
+      </select>
+      <select id="yearFilter" onchange="renderStudentTable()" style="min-width:110px">
+        <option value="">所有年份</option>
+      </select>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -2541,7 +2547,7 @@ function switchStudentTab(tab, el) {
 function renderStudentPage() {
   const today = todayStr();
   const thisMonth = today.slice(0,7);
-  const active = purchases.filter(p=>p.endDate>=today);
+  const active = purchases.filter(p=>!p.endDate||p.endDate>=today);
   const expired = purchases.filter(p=>p.endDate && p.endDate<today);
   const monthPurchases = purchases.filter(p=>p.date && p.date.slice(0,7)===thisMonth);
   const monthRevenue = monthPurchases.reduce((s,p)=>s+p.amount,0);
@@ -2567,22 +2573,40 @@ function renderStudentPage() {
     </div>
     <div class="stat-card red"><div class="stat-num">${expired.length}</div><div class="stat-label">已到期方案</div></div>
   `;
+
+  // 建立方案下拉（去重複、排序）
+  const planSel = document.getElementById('planFilter');
+  const curPlan = planSel ? planSel.value : '';
+  const allPlans = [...new Set(purchases.map(p=>p.plan).filter(Boolean))].sort();
+  if (planSel) planSel.innerHTML = `<option value="">🔍 所有方案</option>` +
+    allPlans.map(pl=>`<option value="${pl}"${pl===curPlan?'selected':''}>${pl}</option>`).join('');
+
+  // 建立年份下拉
+  const yearSel = document.getElementById('yearFilter');
+  const curYear = yearSel ? yearSel.value : '';
+  const allYears = [...new Set(purchases.map(p=>p.date&&p.date.slice(0,4)).filter(Boolean))].sort().reverse();
+  if (yearSel) yearSel.innerHTML = `<option value="">所有年份</option>` +
+    allYears.map(y=>`<option value="${y}"${y===curYear?'selected':''}>${y} 年</option>`).join('');
+
   renderStudentTable();
 }
 
 function renderStudentTable() {
   const today = todayStr();
-  const keyword = document.getElementById('studentSearch').value.toLowerCase();
+  const keyword  = (document.getElementById('studentSearch')?.value||'').toLowerCase();
+  const planVal  = document.getElementById('planFilter')?.value||'';
+  const yearVal  = document.getElementById('yearFilter')?.value||'';
   let list = [...purchases].sort((a,b)=>b.date.localeCompare(a.date));
 
-  if (_currentStudentTab === 'active') list = list.filter(p=>!p.endDate||p.endDate>=today);
+  if (_currentStudentTab === 'active')     list = list.filter(p=>!p.endDate||p.endDate>=today);
   if (_currentStudentTab === 'expireSoon') list = list.filter(p => {
     if (!p.endDate || p.endDate < today) return false;
-    const daysLeft = Math.ceil((new Date(p.endDate) - new Date()) / 86400000);
-    return daysLeft <= 14;
+    return Math.ceil((new Date(p.endDate) - new Date()) / 86400000) <= 14;
   });
-  if (_currentStudentTab === 'expired') list = list.filter(p=>p.endDate&&p.endDate<today);
+  if (_currentStudentTab === 'expired')    list = list.filter(p=>p.endDate&&p.endDate<today);
   if (keyword) list = list.filter(p=>p.student.toLowerCase().includes(keyword)||p.plan.toLowerCase().includes(keyword));
+  if (planVal) list = list.filter(p=>p.plan===planVal);
+  if (yearVal) list = list.filter(p=>p.date&&p.date.slice(0,4)===yearVal);
 
   const tbody = document.getElementById('studentTableTbody');
   if (!list.length) {
