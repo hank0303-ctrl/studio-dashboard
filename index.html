@@ -510,10 +510,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
       <button class="btn btn-secondary" onclick="changeWeek(-1)">← 上週</button>
       <button class="btn btn-secondary" onclick="changeWeek(0)">本週</button>
       <button class="btn btn-secondary" onclick="changeWeek(1)">下週 →</button>
-      <label class="btn btn-primary" style="cursor:pointer">
-        📂 匯入課表
-        <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importScheduleExcel(this)">
-      </label>
     </div>
   </div>
   <div id="weekTableFull" style="overflow-x:auto"></div>
@@ -527,7 +523,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <div style="font-size:24px;font-weight:900">課程管理</div>
     <div class="flex gap-8 flex-wrap">
       <label class="btn btn-secondary" style="cursor:pointer">
-        📂 上傳 Excel 報表
+        📂 匯入課表
         <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importClassExcel(this)">
       </label>
       <button class="btn btn-secondary" onclick="deduplicateClasses()">🧹 清除重複課程</button>
@@ -3173,7 +3169,28 @@ function importClassExcel(input) {
       save(KEYS.classes, classes);
       showToast(`✅ 匯入完成！新增 ${added} 堂，跳過 ${skipped} 筆重複`, 'success');
       renderClassPage();
-      if (document.getElementById('page-today').classList.contains('active')) renderToday();
+
+      // ★ 匯入後自動跳到週課表，並定位到最新匯入課程的那週
+      if (added > 0) {
+        // 找最新匯入課程的日期
+        const newClasses = classes.filter(c=>c.note==='📂 Excel匯入');
+        if (newClasses.length > 0) {
+          const latestDate = newClasses.map(c=>c.date).sort().reverse()[0];
+          // 計算那個日期相對本週的 offset
+          const today = new Date();
+          today.setHours(0,0,0,0);
+          const target = new Date(latestDate);
+          // 找本週一
+          const todayDow = today.getDay();
+          const thisMonday = new Date(today);
+          thisMonday.setDate(today.getDate() - (todayDow===0?6:todayDow-1));
+          // 目標日期在哪週
+          const diffMs = target - thisMonday;
+          const diffWeeks = Math.floor(diffMs / (7*24*60*60*1000));
+          weekOffset = diffWeeks;
+        }
+        showPage('week');
+      }
     } catch(err) {
       console.error(err);
       showToast('❌ 匯入失敗：' + err.message, 'error');
