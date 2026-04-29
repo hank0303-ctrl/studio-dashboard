@@ -537,6 +537,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
   <div class="tab-row" id="classMonthTabs"></div>
 
+  <!-- 月份統計卡片 -->
+  <div class="grid-4 mb-16" id="classStats"></div>
+
   <div class="card">
     <div class="flex flex-wrap gap-8 mb-16" style="align-items:center">
       <select id="filterTeacher" onchange="renderClassTable()" style="min-width:120px">
@@ -2220,11 +2223,77 @@ function renderClassPage() {
   const months = [...new Set(classes.map(c=>c.date.slice(0,7)))].sort().reverse();
   const cur = todayStr().slice(0,7);
   if (!months.includes(cur)) months.unshift(cur);
+  // 確保有下個月（週課表可能已匯入下月課程）
+  const nextDate = new Date(); nextDate.setMonth(nextDate.getMonth()+1);
+  const nextMonth = `${nextDate.getFullYear()}-${String(nextDate.getMonth()+1).padStart(2,'0')}`;
+  if (!months.includes(nextMonth) && classes.some(c=>c.date.slice(0,7)===nextMonth)) months.unshift(nextMonth);
   classPageMonth = classPageMonth || cur;
 
   document.getElementById('classMonthTabs').innerHTML = months.map(m => `
     <div class="tab ${m===classPageMonth?'active':''}" onclick="classPageMonth='${m}';renderClassPage()">${m}</div>
   `).join('');
+
+  // 本月統計
+  const mClasses = classes.filter(c=>c.date.slice(0,7)===classPageMonth);
+  const totalC   = mClasses.length;
+  const activeC  = mClasses.filter(c=>c.status!=='停課');
+  const stopC    = mClasses.filter(c=>c.status==='停課');
+  const totalBooked = activeC.reduce((s,c)=>s+c.booked,0);
+  const totalMax    = activeC.reduce((s,c)=>s+c.max,0);
+  const avgRate  = totalMax>0?Math.round(totalBooked/totalMax*100):0;
+
+  // 上月統計
+  const [y,m] = classPageMonth.split('-').map(Number);
+  const prevDate = new Date(y, m-2, 1);
+  const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`;
+  const prevClasses = classes.filter(c=>c.date.slice(0,7)===prevMonth);
+  const prevActive  = prevClasses.filter(c=>c.status!=='停課');
+  const prevStop    = prevClasses.filter(c=>c.status==='停課');
+  const prevBooked  = prevActive.reduce((s,c)=>s+c.booked,0);
+  const prevMax     = prevActive.reduce((s,c)=>s+c.max,0);
+  const prevRate    = prevMax>0?Math.round(prevBooked/prevMax*100):0;
+
+  // 總課費
+  const totalPay = activeC.reduce((s,c)=>{
+    const t=teachers.find(t=>t.name===c.teacher);
+    return s+(c.customPay!==undefined?c.customPay:(t?calcTeacherPay(t,c):0));
+  },0);
+  const prevPay = prevActive.reduce((s,c)=>{
+    const t=teachers.find(t=>t.name===c.teacher);
+    return s+(c.customPay!==undefined?c.customPay:(t?calcTeacherPay(t,c):0));
+  },0);
+
+  const diff = (cur, prev, unit='', isReverse=false) => {
+    if (!prev) return '';
+    const d = cur - prev;
+    const pct = Math.round(Math.abs(d)/prev*100);
+    const up = d >= 0;
+    const color = isReverse ? (up?'var(--red)':'var(--green)') : (up?'var(--green)':'var(--red)');
+    return `<span style="font-size:11px;color:${color};margin-left:4px">${up?'▲':'▼'}${Math.abs(d)}${unit}（${pct}%）</span>`;
+  };
+
+  document.getElementById('classStats').innerHTML = `
+    <div class="stat-card gold">
+      <div class="stat-num">${fmtMoney(totalPay)}</div>
+      <div class="stat-label">${classPageMonth} 總課費</div>
+      <div class="stat-sub" style="display:flex;align-items:center;flex-wrap:wrap">共 ${totalC} 堂課${diff(totalPay,prevPay,'',true)}</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-num">${activeC.length}</div>
+      <div class="stat-label">總開課堂數</div>
+      <div class="stat-sub" style="display:flex;align-items:center;flex-wrap:wrap">上月 ${prevActive.length} 堂${diff(activeC.length,prevActive.length)}</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-num">${stopC.length}</div>
+      <div class="stat-label">總停課數</div>
+      <div class="stat-sub" style="display:flex;align-items:center;flex-wrap:wrap">上月 ${prevStop.length} 堂${diff(stopC.length,prevStop.length,'',true)}</div>
+    </div>
+    <div class="stat-card gold" style="border-top-color:var(--yellow)">
+      <div class="stat-num" style="color:var(--yellow)">${avgRate}%</div>
+      <div class="stat-label">停課率</div>
+      <div class="stat-sub" style="display:flex;align-items:center;flex-wrap:wrap">共 ${totalC} 堂課${diff(stopC.length,prevStop.length,'',true)}</div>
+    </div>
+  `;
 
   // teacher filter
   const filterSel = document.getElementById('filterTeacher');
