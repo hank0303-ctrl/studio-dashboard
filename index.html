@@ -2236,7 +2236,9 @@ function renderClassPage() {
   const stopC    = mClasses.filter(c=>c.status==='停課');
   const totalBooked = activeC.reduce((s,c)=>s+c.booked,0);
   const totalMax    = activeC.reduce((s,c)=>s+c.max,0);
-  const avgRate  = totalMax>0?Math.round(totalBooked/totalMax*100):0;
+  const avgRate    = totalMax>0 ? Math.round(totalBooked/totalMax*100) : 0;
+  const stopRate   = totalC>0   ? Math.round(stopC.length/totalC*100)  : 0;
+  const prevStopRate = prevClasses.length>0 ? Math.round(prevStop.length/prevClasses.length*100) : 0;
 
   // 上月統計
   const [y,m] = classPageMonth.split('-').map(Number);
@@ -2285,9 +2287,9 @@ function renderClassPage() {
       <div class="stat-sub" style="display:flex;align-items:center;flex-wrap:wrap">上月 ${prevStop.length} 堂${diff(stopC.length,prevStop.length,'',true)}</div>
     </div>
     <div class="stat-card gold" style="border-top-color:var(--yellow)">
-      <div class="stat-num" style="color:var(--yellow)">${avgRate}%</div>
+      <div class="stat-num" style="color:var(--yellow)">${stopRate}%</div>
       <div class="stat-label">停課率</div>
-      <div class="stat-sub" style="display:flex;align-items:center;flex-wrap:wrap">共 ${totalC} 堂課${diff(stopC.length,prevStop.length,'',true)}</div>
+      <div class="stat-sub" style="display:flex;align-items:center;flex-wrap:wrap">上月 ${prevStopRate}%${diff(stopRate,prevStopRate,'%',true)}</div>
     </div>
   `;
 
