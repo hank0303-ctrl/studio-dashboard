@@ -601,7 +601,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 <div class="page" id="page-student">
   <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
     <div style="font-size:24px;font-weight:900">學員方案</div>
-    <button class="btn btn-primary" onclick="openModal('addPurchaseModal')">＋ 新增購買</button>
+    <div class="flex gap-8">
+      <button class="btn btn-secondary" onclick="openModal('addSubscriptionModal')">📋 新增訂閱</button>
+      <button class="btn btn-primary" onclick="openModal('addPurchaseModal')">＋ 新增購買</button>
+    </div>
   </div>
 
   <div class="grid-4 mb-16" id="studentStats"></div>
@@ -611,28 +614,113 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <div class="tab" onclick="switchStudentTab('active',this)">有效中</div>
     <div class="tab" onclick="switchStudentTab('expireSoon',this)">⚠️ 即將到期</div>
     <div class="tab" onclick="switchStudentTab('expired',this)">已到期</div>
+    <div class="tab" onclick="switchStudentTab('subscription',this)">📋 月扣訂閱</div>
   </div>
 
-  <div class="card">
-    <div class="flex flex-wrap gap-8 mb-16" style="align-items:center">
-      <input type="text" id="studentSearch" placeholder="搜尋學員姓名..." oninput="renderStudentTable()" style="min-width:160px;flex:1">
-      <select id="planFilter" onchange="renderStudentTable()" style="min-width:220px;flex:2">
-        <option value="">🔍 所有方案</option>
-      </select>
-      <select id="yearFilter" onchange="renderStudentTable()" style="min-width:110px">
-        <option value="">所有年份</option>
-      </select>
-    </div>
-    <div class="tbl-wrap">
-      <table>
+  <!-- 月扣訂閱區塊（只在 subscription tab 顯示）-->
+  <div id="subscriptionSection" style="display:none">
+    <div class="card mb-16">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div>
+          <div class="card-title">📋 月扣訂閱管理</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">系統自動從有效月卡方案抓取，也可手動新增</div>
+        </div>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary btn-sm" onclick="autoImportSubscriptions()">🔄 自動抓取月卡學員</button>
+          <select id="subMonthSelect" onchange="renderSubscriptionSection()" style="min-width:120px"></select>
+        </div>
+      </div>
+      <!-- 本月統計 -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px" id="subStats"></div>
+      <!-- 訂閱列表 -->
+      <table style="width:100%;border-collapse:collapse" id="subTable">
         <thead>
-          <tr>
-            <th>購買日期</th><th>學員</th><th>方案</th><th>金額</th>
-            <th>啟用日期</th><th>到期日期</th><th>剩餘堂數</th><th>狀態</th><th>備註</th><th>操作</th>
+          <tr style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:1px;text-transform:uppercase">
+            <th style="padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)">學員</th>
+            <th style="padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)">方案</th>
+            <th style="padding:10px 14px;text-align:center;border-bottom:1px solid var(--border)">每月金額</th>
+            <th style="padding:10px 14px;text-align:center;border-bottom:1px solid var(--border)">扣款日</th>
+            <th style="padding:10px 14px;text-align:center;border-bottom:1px solid var(--border)">本月狀態</th>
+            <th style="padding:10px 14px;text-align:center;border-bottom:1px solid var(--border)">有效期限</th>
+            <th style="padding:10px 14px;border-bottom:1px solid var(--border)"></th>
           </tr>
         </thead>
-        <tbody id="studentTableTbody"></tbody>
+        <tbody id="subTbody"></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- 一般方案列表 -->
+  <div id="purchaseSection">
+    <div class="card">
+      <div class="flex flex-wrap gap-8 mb-16" style="align-items:center">
+        <input type="text" id="studentSearch" placeholder="搜尋學員姓名..." oninput="renderStudentTable()" style="min-width:160px;flex:1">
+        <select id="planFilter" onchange="renderStudentTable()" style="min-width:220px;flex:2">
+          <option value="">🔍 所有方案</option>
+        </select>
+        <select id="yearFilter" onchange="renderStudentTable()" style="min-width:110px">
+          <option value="">所有年份</option>
+        </select>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>購買日期</th><th>學員</th><th>方案</th><th>金額</th>
+              <th>啟用日期</th><th>到期日期</th><th>剩餘堂數</th><th>狀態</th><th>備註</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     新增訂閱 Modal
+════════════════════════════════════════════ -->
+<div class="modal-overlay" id="addSubscriptionModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">新增月扣訂閱</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2"><label>學員姓名</label><input type="text" id="sub_student" placeholder="如：鍾瑞盈"></div>
+      <div class="form-group" style="flex:1"><label>每月扣款 ($)</label><input type="number" id="sub_amount" value="2699" min="0"></div>
+    </div>
+    <div class="form-group"><label>方案名稱</label><input type="text" id="sub_plan" placeholder="如：武樂 5週年限定月卡(13堂)"></div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1"><label>扣款日（每月幾號）</label><input type="number" id="sub_dayOfMonth" value="22" min="1" max="28"></div>
+      <div class="form-group" style="flex:1"><label>開始月份</label><input type="month" id="sub_startMonth"></div>
+      <div class="form-group" style="flex:1"><label>結束月份（留空=持續）</label><input type="month" id="sub_endMonth"></div>
+    </div>
+    <div class="form-group"><label>備註</label><input type="text" id="sub_note" placeholder="選填"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addSubscriptionModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveSubscription()">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯訂閱 Modal -->
+<div class="modal-overlay" id="editSubscriptionModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">編輯月扣訂閱</div>
+    <input type="hidden" id="edit_sub_id">
+    <div class="form-row">
+      <div class="form-group" style="flex:2"><label>學員姓名</label><input type="text" id="edit_sub_student"></div>
+      <div class="form-group" style="flex:1"><label>每月扣款 ($)</label><input type="number" id="edit_sub_amount" min="0"></div>
+    </div>
+    <div class="form-group"><label>方案名稱</label><input type="text" id="edit_sub_plan"></div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1"><label>扣款日</label><input type="number" id="edit_sub_dayOfMonth" min="1" max="28"></div>
+      <div class="form-group" style="flex:1"><label>開始月份</label><input type="month" id="edit_sub_startMonth"></div>
+      <div class="form-group" style="flex:1"><label>結束月份</label><input type="month" id="edit_sub_endMonth"></div>
+    </div>
+    <div class="form-group"><label>備註</label><input type="text" id="edit_sub_note"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" onclick="deleteSubscription(document.getElementById('edit_sub_id').value)">刪除</button>
+      <button class="btn btn-secondary" onclick="closeModal('editSubscriptionModal')">取消</button>
+      <button class="btn btn-primary" onclick="updateSubscription()">儲存</button>
     </div>
   </div>
 </div>
@@ -1324,7 +1412,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <div style="background:var(--surface2);border-radius:10px;padding:16px;margin:12px 0">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="font-size:12px;font-weight:700;color:var(--text3)">本月總支出</span>
-        <span style="font-size:22px;font-weight:900;color:var(--red);font-family:'DM Mono',monospace" id="kc_total_preview">$0</span>
+        <span style="font-size:22px;font-weight:900;color:var(--red);font-family:DM Mono,monospace" id="kc_total_preview">$0</span>
       </div>
       <div style="font-size:11px;color:var(--text3)" id="kc_per_kid_preview"></div>
     </div>
@@ -1547,7 +1635,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <div style="background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div style="font-size:12px;color:var(--text3);font-weight:700">應繳合計</div>
-        <div id="bill_total_preview" style="font-size:28px;font-weight:900;color:var(--accent);font-family:'DM Mono',monospace">$0</div>
+        <div id="bill_total_preview" style="font-size:28px;font-weight:900;color:var(--accent);font-family:DM Mono,monospace">$0</div>
       </div>
     </div>
 
@@ -1577,7 +1665,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 // ═══════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════
-const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff' };
+const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', subscriptions:'studio_subscriptions' };
 
 function load(key) {
   try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
@@ -2230,22 +2318,22 @@ function renderDashContent() {
     document.getElementById('dashTopCards').innerHTML = `
       <div class="card" style="border-left:3px solid var(--green)">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">本月銀行實收</div>
-        <div style="font-size:26px;font-weight:900;color:var(--green);font-family:'DM Mono',monospace">${fmtMoney(bankIn)}</div>
+        <div style="font-size:26px;font-weight:900;color:var(--green);font-family:DM Mono,monospace">${fmtMoney(bankIn)}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">方案收入 ${fmtMoney(purRevenue)}（${purMonth.length} 筆）</div>
       </div>
       <div class="card" style="border-left:3px solid var(--accent2)">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">已分類收入</div>
-        <div style="font-size:26px;font-weight:900;color:var(--accent2);font-family:'DM Mono',monospace">${fmtMoney(classedIn)}</div>
+        <div style="font-size:26px;font-weight:900;color:var(--accent2);font-family:DM Mono,monospace">${fmtMoney(classedIn)}</div>
         <div style="font-size:11px;color:${unclassIn.length>0?'var(--yellow)':`var(--text3)`};margin-top:4px">${unclassIn.length>0?'⚠️ '+unclassIn.length+' 筆待分類':'✅ 全部已分類'}</div>
       </div>
       <div class="card" style="border-left:3px solid var(--red)">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">本月現金支出</div>
-        <div style="font-size:26px;font-weight:900;color:var(--red);font-family:'DM Mono',monospace">-${fmtMoney(totalCost)}</div>
+        <div style="font-size:26px;font-weight:900;color:var(--red);font-family:DM Mono,monospace">-${fmtMoney(totalCost)}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">老師 ${fmtMoney(teacherPay)} · PT ${fmtMoney(staffPay)} · 兒童 ${fmtMoney(kidCostAmt)}</div>
       </div>
       <div class="card" style="border-left:3px solid ${cashBalance>=0?'var(--accent)':`var(--red)`}">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">本月現金結餘</div>
-        <div style="font-size:26px;font-weight:900;color:${cashBalance>=0?'var(--accent)':`var(--red)`};font-family:'DM Mono',monospace">${cashBalance<0?'-':''}${fmtMoney(Math.abs(cashBalance))}</div>
+        <div style="font-size:26px;font-weight:900;color:${cashBalance>=0?'var(--accent)':`var(--red)`};font-family:DM Mono,monospace">${cashBalance<0?'-':''}${fmtMoney(Math.abs(cashBalance))}</div>
         <div style="font-size:11px;color:${unclassOut.length>0?'var(--yellow)':`var(--text3)`};margin-top:4px">${unclassOut.length>0?'⚠️ '+unclassOut.length+' 筆支出待分類':''}</div>
       </div>`;
     document.getElementById('dashCashRow').innerHTML='';
@@ -2257,22 +2345,22 @@ function renderDashContent() {
     document.getElementById('dashTopCards').innerHTML = `
       <div class="card" style="border-left:3px solid var(--green)">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">歸屬本月收入</div>
-        <div style="font-size:26px;font-weight:900;color:var(--green);font-family:'DM Mono',monospace">${fmtMoney(opsRev)}</div>
+        <div style="font-size:26px;font-weight:900;color:var(--green);font-family:DM Mono,monospace">${fmtMoney(opsRev)}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">${opsPur.length} 筆（依服務月份）</div>
       </div>
       <div class="card" style="border-left:3px solid var(--red)">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">本月成本支出</div>
-        <div style="font-size:26px;font-weight:900;color:var(--red);font-family:'DM Mono',monospace">-${fmtMoney(totalCost)}</div>
+        <div style="font-size:26px;font-weight:900;color:var(--red);font-family:DM Mono,monospace">-${fmtMoney(totalCost)}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">老師 + PT + 兒童支出</div>
       </div>
       <div class="card" style="border-left:3px solid ${opsNet>=0?'var(--accent)':'var(--red)'};background:${opsNet>=0?'rgba(92,122,107,0.06)':'rgba(184,84,80,0.05)'}">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">本月營運損益</div>
-        <div style="font-size:26px;font-weight:900;color:${opsNet>=0?'var(--accent)':'var(--red)'};font-family:'DM Mono',monospace">${opsNet<0?'-':''}${fmtMoney(Math.abs(opsNet))}</div>
+        <div style="font-size:26px;font-weight:900;color:${opsNet>=0?'var(--accent)':'var(--red)'};font-family:DM Mono,monospace">${opsNet<0?'-':''}${fmtMoney(Math.abs(opsNet))}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">收入 - 人事 - 部門支出</div>
       </div>
       <div class="card" style="border-left:3px solid var(--accent2)">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">本月銀行實收</div>
-        <div style="font-size:26px;font-weight:900;color:var(--accent2);font-family:'DM Mono',monospace">${fmtMoney(bankIn)}</div>
+        <div style="font-size:26px;font-weight:900;color:var(--accent2);font-family:DM Mono,monospace">${fmtMoney(bankIn)}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">現金流 ${fmtMoney(cashBalance)}</div>
       </div>`;
     document.getElementById('dashCashRow').innerHTML='';
@@ -2297,22 +2385,22 @@ function renderDashContent() {
     document.getElementById('dashTopCards').innerHTML = `
       <div class="card" style="border-left:3px solid var(--green)">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">${prevMonth} 總收入</div>
-        <div style="font-size:26px;font-weight:900;color:var(--green);font-family:'DM Mono',monospace">${fmtMoney(prevRev)}</div>
+        <div style="font-size:26px;font-weight:900;color:var(--green);font-family:DM Mono,monospace">${fmtMoney(prevRev)}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">${prevPur.length} 筆方案購買</div>
       </div>
       <div class="card" style="border-left:3px solid var(--red)">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">${prevMonth} 老師課費</div>
-        <div style="font-size:26px;font-weight:900;color:var(--red);font-family:'DM Mono',monospace">-${fmtMoney(prevTeacherPay)}</div>
+        <div style="font-size:26px;font-weight:900;color:var(--red);font-family:DM Mono,monospace">-${fmtMoney(prevTeacherPay)}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">PT ${fmtMoney(prevSP)} · 兒童 ${fmtMoney(prevKidCost)}</div>
       </div>
       <div class="card" style="border-left:3px solid ${prevNet>=0?'var(--accent)':'var(--red)'};background:${prevNet>=0?'rgba(92,122,107,0.06)':'rgba(184,84,80,0.05)'}">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">${prevMonth} 淨利</div>
-        <div style="font-size:26px;font-weight:900;color:${prevNet>=0?'var(--accent)':'var(--red)'};font-family:'DM Mono',monospace">${prevNet<0?'-':''}${fmtMoney(Math.abs(prevNet))}</div>
+        <div style="font-size:26px;font-weight:900;color:${prevNet>=0?'var(--accent)':'var(--red)'};font-family:DM Mono,monospace">${prevNet<0?'-':''}${fmtMoney(Math.abs(prevNet))}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">收入 - 人事 - 兒童支出</div>
       </div>
       <div class="card" style="border-left:3px solid var(--accent2)">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">本月即時（${thisMonth}）</div>
-        <div style="font-size:26px;font-weight:900;color:var(--accent2);font-family:'DM Mono',monospace">${fmtMoney(purRevenue)}</div>
+        <div style="font-size:26px;font-weight:900;color:var(--accent2);font-family:DM Mono,monospace">${fmtMoney(purRevenue)}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">方案收入 · 課費 ${fmtMoney(teacherPay)}</div>
       </div>`;
     document.getElementById('dashCashRow').innerHTML='';
@@ -2341,36 +2429,40 @@ function renderDashContent() {
   const perClassRev = prevActiveC2.length>0?Math.round(prevPurRev2/prevActiveC2.length):0;
   const perClassCost= prevActiveC2.length>0?Math.round((prevTP+prevSP2)/prevActiveC2.length):0;
 
-  document.getElementById('dashSportContent').innerHTML = `
-    <div style="font-size:10px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:8px">▲ ${prevMonth} 完整結算</div>
-    ${row2('上月方案收入', fmtMoney(prevPurRev2), 'var(--green)')}
-    ${row2('上月老師課費', '-'+fmtMoney(prevTP), 'var(--red)')}
-    ${row2('上月 PT 薪資', '-'+fmtMoney(prevSP2), 'var(--red)')}
-    <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);font-weight:700;font-size:14px">
-      <span>上月淨利</span>
-      <span style="font-family:'DM Mono',monospace;color:${prevSportNet>=0?'var(--green)':`var(--red)`}">${prevSportNet<0?'-':''}${fmtMoney(Math.abs(prevSportNet))}</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;text-align:center">
-      <div style="background:var(--surface2);border-radius:6px;padding:7px">
-        <div style="font-size:14px;font-weight:700">${prevActiveC2.length}</div>
-        <div style="font-size:10px;color:var(--text3)">開課</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:6px;padding:7px">
-        <div style="font-size:14px;font-weight:700">${prevStopC.length}</div>
-        <div style="font-size:10px;color:var(--text3)">停課</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:6px;padding:7px">
-        <div style="font-size:14px;font-weight:700">${prevAttended}</div>
-        <div style="font-size:10px;color:var(--text3)">到課</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:6px;padding:7px">
-        <div style="font-size:13px;font-weight:700;color:${perClassRev-perClassCost>=0?'var(--green)':`var(--red)`}">${fmtMoney(perClassRev-perClassCost)}</div>
-        <div style="font-size:10px;color:var(--text3)">每堂淨利</div>
-      </div>
-    </div>
-    <div style="border-top:1px dashed var(--border);margin-top:10px;padding-top:8px;font-size:11px;color:var(--text3)">
-      本月即時：開課 ${mActiveC.length} 堂 · 方案收入 ${fmtMoney(purRevenue)} · 課費 ${fmtMoney(teacherPay)}
-    </div>`;
+  // 月扣訂閱
+  const subTotal     = getSubTotalForMonth(thisMonth);
+  const subConfirmed = subscriptions.filter(s=>isSubActiveInMonth(s,thisMonth)&&(s.confirmedMonths||[]).includes(thisMonth)).reduce((t,s)=>t+s.amount,0);
+  const subCount     = subscriptions.filter(s=>isSubActiveInMonth(s,thisMonth)).length;
+  const prevSubTotal = getSubTotalForMonth(prevMonth);
+
+  document.getElementById('dashSportContent').innerHTML =
+    '<div style="font-size:10px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:8px">▲ '+prevMonth+' 完整結算</div>'+
+    row2('上月方案收入', fmtMoney(prevPurRev2), 'var(--green)')+
+    (prevSubTotal>0 ? row2('上月月扣訂閱（'+subscriptions.filter(s=>isSubActiveInMonth(s,prevMonth)).length+'人）', fmtMoney(prevSubTotal), 'var(--green)') : '')+
+    row2('上月老師課費', '-'+fmtMoney(prevTP), 'var(--red)')+
+    row2('上月 PT 薪資', '-'+fmtMoney(prevSP2), 'var(--red)')+
+    '<div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);font-weight:700;font-size:14px">'+
+      '<span>上月淨利</span>'+
+      '<span style="font-family:DM Mono,monospace;color:'+(prevSportNet>=0?'var(--green)':'var(--red)')+'">'+
+        (prevSportNet<0?'-':'')+fmtMoney(Math.abs(prevSportNet))+'</span></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;text-align:center">'+
+      '<div style="background:var(--surface2);border-radius:6px;padding:7px"><div style="font-size:14px;font-weight:700">'+prevActiveC2.length+'</div><div style="font-size:10px;color:var(--text3)">開課</div></div>'+
+      '<div style="background:var(--surface2);border-radius:6px;padding:7px"><div style="font-size:14px;font-weight:700">'+prevStopC.length+'</div><div style="font-size:10px;color:var(--text3)">停課</div></div>'+
+      '<div style="background:var(--surface2);border-radius:6px;padding:7px"><div style="font-size:14px;font-weight:700">'+prevAttended+'</div><div style="font-size:10px;color:var(--text3)">到課</div></div>'+
+      '<div style="background:var(--surface2);border-radius:6px;padding:7px"><div style="font-size:13px;font-weight:700;color:'+(perClassRev-perClassCost>=0?'var(--green)':'var(--red)')+'">'+fmtMoney(perClassRev-perClassCost)+'</div><div style="font-size:10px;color:var(--text3)">每堂淨利</div></div>'+
+    '</div>'+
+    (subCount>0 ?
+      '<div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px">'+
+        '<div style="font-size:10px;color:var(--accent2);font-weight:700;letter-spacing:1px;margin-bottom:6px">▶ '+thisMonth+' 月扣訂閱</div>'+
+        '<div style="display:flex;justify-content:space-between;font-size:13px">'+
+          '<span style="color:var(--text2)">'+subCount+' 位月卡學員</span>'+
+          '<span style="font-family:DM Mono,monospace;font-weight:700;color:var(--green)">'+fmtMoney(subTotal)+'</span></div>'+
+        '<div style="font-size:11px;color:'+(subConfirmed<subTotal?'var(--yellow)':'var(--green)')+';margin-top:4px">'+
+          (subConfirmed>0?'已確認 '+fmtMoney(subConfirmed):'')+(subConfirmed<subTotal?' · 待確認 '+fmtMoney(subTotal-subConfirmed):'✅ 全部已收款')+
+          ' <button class="btn btn-secondary btn-sm" style="margin-left:8px;font-size:10px;padding:2px 8px" onclick="showPage(\'student\')">管理月扣</button></div>'+
+      '</div>' : '')+
+    '<div style="border-top:1px dashed var(--border);margin-top:10px;padding-top:8px;font-size:11px;color:var(--text3)">'+
+      '本月即時：開課 '+mActiveC.length+' 堂 · 方案收入 '+fmtMoney(purRevenue)+' · 課費 '+fmtMoney(teacherPay)+'</div>';
 
   // ── ③ 兒童部門（依 feeType 分三類：月費 / 按天數 / 其他）──
   const kidRevenue     = kids.reduce((s,k)=>s+getKidRevenue(k,thisMonth),0);
@@ -2396,7 +2488,7 @@ function renderDashContent() {
     ${row2('本月部門支出', '-'+fmtMoney(kidCostAmt), 'var(--red)')}
     <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);font-weight:700;font-size:14px">
       <span>部門淨利</span>
-      <span style="font-family:'DM Mono',monospace;color:${kidProfit>=0?'var(--green)':`var(--red)`}">${kidProfit<0?'-':''}${fmtMoney(Math.abs(kidProfit))}</span>
+      <span style="font-family:DM Mono,monospace;color:${kidProfit>=0?'var(--green)':`var(--red)`}">${kidProfit<0?'-':''}${fmtMoney(Math.abs(kidProfit))}</span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;text-align:center">
       <div style="background:rgba(74,128,96,0.08);border-radius:6px;padding:7px;border:1px solid rgba(74,128,96,0.2)">
@@ -2478,11 +2570,11 @@ function renderDashContent() {
       <div class="rank-item">
         <div class="rank-info"><div class="rank-name">${t.name}</div><div class="rank-meta">${t.done}/${t.all} 堂</div></div>
         <div style="text-align:right">
-          <div style="font-family:'DM Mono',monospace;font-weight:700;color:var(--red);font-size:14px">${fmtMoney(t.paid)}</div>
+          <div style="font-family:DM Mono,monospace;font-weight:700;color:var(--red);font-size:14px">${fmtMoney(t.paid)}</div>
           ${t.total!==t.paid?'<div style="font-size:11px;color:var(--text3)">預計 '+fmtMoney(t.total)+'</div>':''}
         </div>
       </div>`).join('')+
-      `<div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:1px solid var(--border);margin-top:6px;font-size:13px;font-weight:700"><span>合計</span><span style="font-family:'DM Mono',monospace;color:var(--red)">${fmtMoney(grand)}</span></div>`;
+      `<div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:1px solid var(--border);margin-top:6px;font-size:13px;font-weight:700"><span>合計</span><span style="font-family:DM Mono,monospace;color:var(--red)">${fmtMoney(grand)}</span></div>`;
   }
 
   // ── ⑥ 購買明細 ──
@@ -2505,7 +2597,7 @@ function renderDashContent() {
         </div>
         <div class="rank-val" style="color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</div>
       </div>`).join('')+
-      `<div style="text-align:right;margin-top:8px;font-weight:700;font-size:13px;border-top:1px solid var(--border);padding-top:8px">合計 <span style="font-family:'DM Mono',monospace;color:var(--green)">${fmtMoney(purRevenue)}</span></div>`;
+      `<div style="text-align:right;margin-top:8px;font-weight:700;font-size:13px;border-top:1px solid var(--border);padding-top:8px">合計 <span style="font-family:DM Mono,monospace;color:var(--green)">${fmtMoney(purRevenue)}</span></div>`;
   }
 
   renderWeekSimple();
@@ -2514,7 +2606,7 @@ function renderDashContent() {
 function row2(label, val, color='var(--text)') {
   return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
     <span style="color:var(--text2)">${label}</span>
-    <span style="font-family:'DM Mono',monospace;font-weight:700;color:${color}">${val}</span>
+    <span style="font-family:DM Mono,monospace;font-weight:700;color:${color}">${val}</span>
   </div>`;
 }
 
@@ -2646,15 +2738,15 @@ function renderClassTable() {
     else if (underMinFlag) statusBadge = `<span class="badge badge-yellow">未達</span>`;
     else statusBadge = `<span class="badge badge-purple">正常</span>`;
     return `<tr>
-      <td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(c.date)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${c.timeStart}–${c.timeEnd}</td>
+      <td style="font-family:DM Mono,monospace;font-size:12px">${fmtDate(c.date)}</td>
+      <td style="font-family:DM Mono,monospace;font-size:12px;color:var(--text2)">${c.timeStart}–${c.timeEnd}</td>
       <td style="font-weight:600">${c.name}</td>
       <td>${c.teacher}</td>
       <td style="color:var(--text3)">${c.room}</td>
       <td>${c.max}</td>
       <td>${c.booked}</td>
       <td>${c.attended}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px">${rate}%</td>
+      <td style="font-family:DM Mono,monospace;font-size:12px">${rate}%</td>
       <td>${statusBadge}</td>
       <td><button class="btn btn-secondary btn-sm" onclick="editClass('${c.id}')">編輯</button></td>
     </tr>`;
@@ -2765,24 +2857,24 @@ function renderTeacherPage() {
         ? `<span style="background:rgba(248,113,113,0.15);color:var(--red);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">停課</span>`
         : `<span style="background:rgba(124,111,205,0.15);color:var(--accent2);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">正常</span>`;
       return `<tr style="opacity:${isCancelled?'0.45':'1'}">
-        <td style="font-family:'DM Mono',monospace;font-size:11px;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap">${fmtDate(c.date)}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:11px;padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2)">${c.timeStart}</td>
+        <td style="font-family:DM Mono,monospace;font-size:11px;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap">${fmtDate(c.date)}</td>
+        <td style="font-family:DM Mono,monospace;font-size:11px;padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2)">${c.timeStart}</td>
         <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-weight:600;font-size:12px">${c.name}</td>
         <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;font-size:12px">${c.max}</td>
         <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;font-size:12px">${c.booked}</td>
         <td style="padding:4px 10px;border-bottom:1px solid var(--border);text-align:center">
           <input type="number" value="${c.attended}" min="0" max="${c.max}"
-            style="width:52px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:3px 4px;font-family:'DM Mono',monospace"
+            style="width:52px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:3px 4px;font-family:DM Mono,monospace"
             onchange="updateClassAttended('${c.id}',this.value)"
             ${isCancelled?'disabled':''}
           >
         </td>
-        <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;font-size:11px;font-family:'DM Mono',monospace">${isCancelled?'-':rate+'%'}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;font-size:11px;font-family:DM Mono,monospace">${isCancelled?'-':rate+'%'}</td>
         <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${statusChip}</td>
         <td style="padding:4px 10px;border-bottom:1px solid var(--border);text-align:right">
           ${isCancelled ? `<span style="color:var(--text3);font-size:12px">－</span>` :
           `<input type="number" value="${pay}" min="0"
-            style="width:80px;text-align:right;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:13px;font-weight:700;padding:3px 6px;font-family:'DM Mono',monospace"
+            style="width:80px;text-align:right;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:13px;font-weight:700;padding:3px 6px;font-family:DM Mono,monospace"
             onchange="updateClassCustomPay('${c.id}',this.value)"
           >`}
         </td>
@@ -2814,23 +2906,23 @@ function renderTeacherPage() {
       <!-- 統計數字 -->
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px">
         <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px 6px">
-          <div style="font-size:22px;font-weight:800;color:var(--accent);font-family:'DM Mono',monospace">${totalClasses}</div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent);font-family:DM Mono,monospace">${totalClasses}</div>
           <div style="font-size:11px;color:var(--text3)">開課數</div>
         </div>
         <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px 6px">
-          <div style="font-size:22px;font-weight:800;color:var(--red);font-family:'DM Mono',monospace">${stopCount}</div>
+          <div style="font-size:22px;font-weight:800;color:var(--red);font-family:DM Mono,monospace">${stopCount}</div>
           <div style="font-size:11px;color:var(--text3)">停課數</div>
         </div>
         <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px 6px">
-          <div style="font-size:22px;font-weight:800;color:var(--green);font-family:'DM Mono',monospace">${fullClasses}</div>
+          <div style="font-size:22px;font-weight:800;color:var(--green);font-family:DM Mono,monospace">${fullClasses}</div>
           <div style="font-size:11px;color:var(--text3)">滿班數</div>
         </div>
         <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px 6px">
-          <div style="font-size:22px;font-weight:800;color:var(--accent2);font-family:'DM Mono',monospace">${avgRate}%</div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent2);font-family:DM Mono,monospace">${avgRate}%</div>
           <div style="font-size:11px;color:var(--text3)">平均預約率</div>
         </div>
         <div style="text-align:center;background:rgba(200,169,110,0.1);border:1px solid rgba(200,169,110,0.2);border-radius:8px;padding:10px 6px">
-          <div style="font-size:22px;font-weight:800;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(netPay)}</div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent);font-family:DM Mono,monospace">${fmtMoney(netPay)}</div>
           <div style="font-size:11px;color:var(--text3)">${teacherPageMonth} 課費${shouldDeduct?' (扣手續費)':''}</div>
         </div>
       </div>
@@ -2858,15 +2950,15 @@ function renderTeacherPage() {
             ${shouldDeduct ? `
             <tr style="background:var(--surface2)">
               <td colspan="9" style="padding:8px 10px;font-size:12px;color:var(--text2)">課費小計</td>
-              <td style="padding:8px 10px;text-align:right;font-size:15px;color:var(--text2);font-family:'DM Mono',monospace">${fmtMoney(totalPay)}</td>
+              <td style="padding:8px 10px;text-align:right;font-size:15px;color:var(--text2);font-family:DM Mono,monospace">${fmtMoney(totalPay)}</td>
             </tr>
             <tr style="background:var(--surface2)">
               <td colspan="9" style="padding:8px 10px;font-size:12px;color:var(--red)">扣除轉帳手續費</td>
-              <td style="padding:8px 10px;text-align:right;font-size:15px;color:var(--red);font-family:'DM Mono',monospace">-$15</td>
+              <td style="padding:8px 10px;text-align:right;font-size:15px;color:var(--red);font-family:DM Mono,monospace">-$15</td>
             </tr>` : ''}
             <tr style="background:var(--surface2)">
               <td colspan="9" style="padding:14px 10px;font-weight:700;font-size:13px;color:var(--text2)">本月課費合計（停課不計費）</td>
-              <td style="padding:14px 10px;text-align:right;font-weight:900;font-size:22px;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(netPay)}</td>
+              <td style="padding:14px 10px;text-align:right;font-weight:900;font-size:22px;color:var(--accent);font-family:DM Mono,monospace">${fmtMoney(netPay)}</td>
             </tr>
           </tfoot>
         </table>
@@ -2919,8 +3011,14 @@ function copyTeacherDetail(teacherId, month) {
 function switchStudentTab(tab, el) {
   _currentStudentTab = tab;
   document.querySelectorAll('#page-student .tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  renderStudentTable();
+  if(el) el.classList.add('active');
+  const isSub = tab==='subscription';
+  const subEl = document.getElementById('subscriptionSection');
+  const purEl = document.getElementById('purchaseSection');
+  if(subEl) subEl.style.display = isSub?'':'none';
+  if(purEl) purEl.style.display = isSub?'none':'';
+  if(isSub) renderSubscriptionSection();
+  else renderStudentTable();
 }
 
 function renderStudentPage() {
@@ -3001,12 +3099,12 @@ function renderStudentTable() {
     else if (expireSoon) status = `<span class="badge badge-yellow">即將到期</span>`;
     else status = `<span class="badge badge-green">有效</span>`;
     return `<tr>
-      <td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.date)}</td>
+      <td style="font-family:DM Mono,monospace;font-size:12px">${fmtDate(p.date)}</td>
       <td style="font-weight:600">${p.student}</td>
       <td>${p.plan}</td>
-      <td style="font-family:'DM Mono',monospace;color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.startDate)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;color:${isExpired?'var(--red)':expireSoon?'var(--yellow)':'var(--text)'}">${fmtDate(p.endDate)}</td>
+      <td style="font-family:DM Mono,monospace;color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</td>
+      <td style="font-family:DM Mono,monospace;font-size:12px">${fmtDate(p.startDate)}</td>
+      <td style="font-family:DM Mono,monospace;font-size:12px;color:${isExpired?'var(--red)':expireSoon?'var(--yellow)':'var(--text)'}">${fmtDate(p.endDate)}</td>
       <td style="text-align:center">${p.sessions||'–'}</td>
       <td>${status}</td>
       <td style="color:var(--text3);font-size:12px">${p.note||''}</td>
@@ -3074,11 +3172,11 @@ function renderMonthly() {
       <td>${totalC}</td>
       <td>${fullC}</td>
       <td>${totalS}</td>
-      <td style="font-family:'DM Mono',monospace">${rate}%</td>
-      <td style="font-family:'DM Mono',monospace">${fmtMoney(t.tiers&&t.tiers.length?t.tiers[0].pay:t.pay)}</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--yellow)">${fmtMoney(fullPay)}</td>
-      <td style="font-family:'DM Mono',monospace;color:${shouldDeduct?'var(--red)':'var(--text3)'}">${shouldDeduct?'-$'+TRANSFER_FEE:'—'}</td>
-      <td style="font-family:'DM Mono',monospace;font-weight:800;color:var(--accent)">${fmtMoney(netPay)}</td>
+      <td style="font-family:DM Mono,monospace">${rate}%</td>
+      <td style="font-family:DM Mono,monospace">${fmtMoney(t.tiers&&t.tiers.length?t.tiers[0].pay:t.pay)}</td>
+      <td style="font-family:DM Mono,monospace;color:var(--yellow)">${fmtMoney(fullPay)}</td>
+      <td style="font-family:DM Mono,monospace;color:${shouldDeduct?'var(--red)':'var(--text3)'}">${shouldDeduct?'-$'+TRANSFER_FEE:'—'}</td>
+      <td style="font-family:DM Mono,monospace;font-weight:800;color:var(--accent)">${fmtMoney(netPay)}</td>
     </tr>`;
   }).filter(Boolean);
 
@@ -3090,10 +3188,10 @@ function renderMonthly() {
   const purRows = mPurchases.sort((a,b)=>a.date.localeCompare(b.date));
   document.getElementById('monthlyPurchaseTbody').innerHTML = purRows.length
     ? purRows.map(p=>`<tr>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${fmtDate(p.date)}</td>
+        <td style="font-family:DM Mono,monospace;font-size:12px">${fmtDate(p.date)}</td>
         <td style="font-weight:600">${p.student}</td>
         <td>${p.plan}</td>
-        <td style="font-family:'DM Mono',monospace;color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</td>
+        <td style="font-family:DM Mono,monospace;color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</td>
       </tr>`).join('')
     : `<tr><td colspan="4" class="empty-state">本月無購買記錄</td></tr>`;
   document.getElementById('monthlyPurchaseTotal').textContent = `本月方案總收入：${fmtMoney(totalRevenue)}`;
@@ -3119,28 +3217,28 @@ function renderMonthly() {
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px;margin-bottom:${hasStaffData?'20px':'0'}">
       <div>
         <div class="card-title">💰 方案總營收</div>
-        <div style="font-size:26px;font-weight:900;font-family:'DM Mono',monospace;color:var(--green)">${fmtMoney(totalRevenue)}</div>
+        <div style="font-size:26px;font-weight:900;font-family:DM Mono,monospace;color:var(--green)">${fmtMoney(totalRevenue)}</div>
       </div>
       <div>
         <div class="card-title">👩‍🏫 老師課費</div>
-        <div style="font-size:26px;font-weight:900;font-family:'DM Mono',monospace;color:var(--red)">-${fmtMoney(totalTeacherPay)}</div>
+        <div style="font-size:26px;font-weight:900;font-family:DM Mono,monospace;color:var(--red)">-${fmtMoney(totalTeacherPay)}</div>
       </div>
       ${hasStaffData ? `<div>
         <div class="card-title">👔 PT 薪資</div>
-        <div style="font-size:26px;font-weight:900;font-family:'DM Mono',monospace;color:var(--red)">-${fmtMoney(staffTotal)}</div>
+        <div style="font-size:26px;font-weight:900;font-family:DM Mono,monospace;color:var(--red)">-${fmtMoney(staffTotal)}</div>
       </div>` : ''}
       <div style="background:rgba(184,84,80,0.06);border-radius:8px;padding:12px 14px;border:1px solid rgba(184,84,80,0.15)">
         <div class="card-title">🏢 人事成本合計</div>
-        <div style="font-size:26px;font-weight:900;font-family:'DM Mono',monospace;color:var(--red)">-${fmtMoney(personnelCost)}</div>
+        <div style="font-size:26px;font-weight:900;font-family:DM Mono,monospace;color:var(--red)">-${fmtMoney(personnelCost)}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px">老師課費${hasStaffData?' + PT 薪資':''}</div>
       </div>
       <div>
         <div class="card-title">📊 開課堂數</div>
-        <div style="font-size:26px;font-weight:900;font-family:'DM Mono',monospace;color:var(--accent)">${totalClasses}</div>
+        <div style="font-size:26px;font-weight:900;font-family:DM Mono,monospace;color:var(--accent)">${totalClasses}</div>
       </div>
       <div>
         <div class="card-title">📈 平均預約率</div>
-        <div style="font-size:26px;font-weight:900;font-family:'DM Mono',monospace;color:var(--accent2)">${avgRate}%</div>
+        <div style="font-size:26px;font-weight:900;font-family:DM Mono,monospace;color:var(--accent2)">${avgRate}%</div>
       </div>
     </div>
     ${hasStaffData ? `
@@ -3157,7 +3255,7 @@ function renderMonthly() {
           return `<div style="background:var(--surface2);border-radius:8px;padding:10px 14px">
             <div style="font-weight:700;font-size:14px">${st.name}</div>
             <div style="font-size:12px;color:var(--text3);margin:2px 0">${h}h × $${st.hourly}${adj!==0?`　${adj>0?'+':''}$${Math.abs(adj).toLocaleString()}`:''}</div>
-            <div style="font-family:'DM Mono',monospace;font-weight:700;color:var(--accent);font-size:16px">${fmtMoney(net)}</div>
+            <div style="font-family:DM Mono,monospace;font-weight:700;color:var(--accent);font-size:16px">${fmtMoney(net)}</div>
           </div>`;
         }).join('')}
       </div>
@@ -3693,9 +3791,9 @@ function buildWeekGrid(weekDays, isSimple) {
         const bg = isFull ? 'rgba(248,113,113,0.06)' : isLow ? 'rgba(248,113,113,0.08)' : isSatisfied ? 'rgba(74,222,128,0.08)' : 'var(--surface2)';
         const border = isFull ? 'var(--red)' : isLow ? 'var(--yellow)' : isSatisfied ? 'var(--green)' : 'var(--accent2)';
         html += `<div style="background:${bg};border-left:2px solid ${border};border-radius:4px;padding:3px 5px;margin-bottom:4px;font-size:10px">
-          <div style="color:var(--text3);font-family:'DM Mono',monospace">${c.timeStart}</div>
+          <div style="color:var(--text3);font-family:DM Mono,monospace">${c.timeStart}</div>
           <div style="font-weight:700;color:${isFull?'var(--text3)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
-          <div style="color:${color};font-weight:700;font-family:'DM Mono',monospace">${isFull?'停課':`${c.booked}/${c.max}`}</div>
+          <div style="color:${color};font-weight:700;font-family:DM Mono,monospace">${isFull?'停課':`${c.booked}/${c.max}`}</div>
         </div>`;
       });
       if (!dayClasses.length) html += `<div style="color:var(--text3);font-size:10px;text-align:center;padding:8px 0">—</div>`;
@@ -3739,10 +3837,10 @@ function buildWeekGrid(weekDays, isSimple) {
         const bg = isCancelled ? 'rgba(248,113,113,0.06)' : isFull ? 'rgba(74,222,128,0.08)' : isLow ? 'rgba(251,191,36,0.08)' : 'var(--surface2)';
         const countColor = isCancelled ? 'var(--text3)' : isFull ? 'var(--green)' : isLow ? 'var(--red)' : 'var(--text)';
         html += `<div style="background:${bg};border-left:3px solid ${border};border-radius:6px;padding:7px 9px;margin-bottom:6px" onclick="editClass('${c.id}')">
-          <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:2px">${c.timeStart}–${c.timeEnd}</div>
+          <div style="font-size:10px;color:var(--text3);font-family:DM Mono,monospace;margin-bottom:2px">${c.timeStart}–${c.timeEnd}</div>
           <div style="font-size:13px;font-weight:700;color:${isCancelled?'var(--text3)':'var(--text)'};margin-bottom:2px">${c.name}</div>
           <div style="font-size:11px;color:var(--text2);margin-bottom:4px">${c.teacher} · ${c.room||''}</div>
-          <div style="font-size:13px;font-weight:800;color:${countColor};font-family:'DM Mono',monospace">
+          <div style="font-size:13px;font-weight:800;color:${countColor};font-family:DM Mono,monospace">
             ${isCancelled ? '🚫 停課' : `${c.booked}/${c.max}${isFull?' 🔥':isLow?' ⚠️':''}`}
           </div>
           ${!isCancelled && c.attended>0 ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">到課 ${c.attended} 人</div>` : ''}
@@ -4264,14 +4362,14 @@ function renderKidsPage() {
     profitEl.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
       <div>
         <div class="card-title">📊 支出明細（每人分攤 ${fmtMoney(perKidCost)}）</div>
-        ${costItems.map(x=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">${x.label}</span><span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--red)">${fmtMoney(x.val)}</span></div>`).join('')}
-        <div style="display:flex;justify-content:space-between;padding:10px 0 0;font-weight:900;font-size:15px"><span>總支出</span><span style="font-family:'DM Mono',monospace;color:var(--red)">${fmtMoney(totalCost)}</span></div>
+        ${costItems.map(x=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">${x.label}</span><span style="font-family:DM Mono,monospace;font-weight:700;color:var(--red)">${fmtMoney(x.val)}</span></div>`).join('')}
+        <div style="display:flex;justify-content:space-between;padding:10px 0 0;font-weight:900;font-size:15px"><span>總支出</span><span style="font-family:DM Mono,monospace;color:var(--red)">${fmtMoney(totalCost)}</span></div>
       </div>
       <div>
         <div class="card-title">💰 獲利摘要</div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">總收入</span><span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtMoney(totalRevenue)}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">總支出</span><span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--red)">-${fmtMoney(totalCost)}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:12px 0 0;font-weight:900;font-size:18px"><span>淨利</span><span style="font-family:'DM Mono',monospace;color:${profit>=0?'var(--accent)':'var(--red)'}">${profit<0?'-':''}${fmtMoney(Math.abs(profit))}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">總收入</span><span style="font-family:DM Mono,monospace;font-weight:700;color:var(--green)">${fmtMoney(totalRevenue)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--text2)">總支出</span><span style="font-family:DM Mono,monospace;font-weight:700;color:var(--red)">-${fmtMoney(totalCost)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:12px 0 0;font-weight:900;font-size:18px"><span>淨利</span><span style="font-family:DM Mono,monospace;color:${profit>=0?'var(--accent)':'var(--red)'}">${profit<0?'-':''}${fmtMoney(Math.abs(profit))}</span></div>
         ${totalKids>0?`<div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin-top:14px;font-size:12px;color:var(--text3)">毛利率：<strong style="color:var(--text)">${totalRevenue>0?Math.round(profit/totalRevenue*100):0}%</strong> &nbsp;·&nbsp; 每位學童平均獲利：<strong style="color:var(--text)">${fmtMoney(totalKids>0?Math.round(profit/totalKids):0)}</strong></div>`:''}
       </div>
     </div>`;
@@ -4316,13 +4414,13 @@ function renderKidsPage() {
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid rgba(140,115,85,0.2)">
               <div style="font-size:13px;font-weight:700;color:var(--text2)">應繳合計</div>
-              <div style="font-size:22px;font-weight:900;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(revenue)}</div>
+              <div style="font-size:22px;font-weight:900;color:var(--accent);font-family:DM Mono,monospace">${fmtMoney(revenue)}</div>
             </div>
             <button class="btn btn-primary" style="width:100%;margin-top:10px;justify-content:center" onclick="copyKidBill('${k.id}','${month}')">📋 複製家長通知</button>
           </div>
           ${hasCost?`<div style="background:var(--surface2);border-radius:10px;padding:12px;font-size:12px">
             <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text3)">成本分攤</span><span style="color:var(--red);font-weight:700">-${fmtMoney(costShare)}</span></div>
-            <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border)"><span style="font-weight:700">個人淨利</span><span style="font-family:'DM Mono',monospace;font-weight:900;color:${kidProfit>=0?'var(--green)':'var(--red)'}">${kidProfit<0?'-':''}${fmtMoney(Math.abs(kidProfit))}</span></div>
+            <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border)"><span style="font-weight:700">個人淨利</span><span style="font-family:DM Mono,monospace;font-weight:900;color:${kidProfit>=0?'var(--green)':'var(--red)'}">${kidProfit<0?'-':''}${fmtMoney(Math.abs(kidProfit))}</span></div>
           </div>`:''}
         `:`<div style="background:var(--surface2);border-radius:10px;padding:14px;text-align:center;color:var(--text3);font-size:13px">尚未填寫 ${mNum}月費用，點「填寫費用」開始</div>`}
       </div>`;
@@ -4867,10 +4965,10 @@ function renderBankData() {
   mTx.filter(t=>t.isOut).forEach(t=>{expCats[t.cat]=(expCats[t.cat]||0)+t.amount;});
 
   const breakdownHtml = (obj, color) => Object.entries(obj).sort((a,b)=>b[1]-a[1])
-    .map(([c,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;font-weight:600">${c}</span><span style="font-family:'DM Mono',monospace;font-weight:700;color:${color}">${fmtMoney(v)}</span></div>`).join('');
+    .map(([c,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;font-weight:600">${c}</span><span style="font-family:DM Mono,monospace;font-weight:700;color:${color}">${fmtMoney(v)}</span></div>`).join('');
   const total = v => Object.values(v).reduce((s,x)=>s+x,0);
-  document.getElementById('bankIncomeBreakdown').innerHTML  = breakdownHtml(incCats,'var(--green)') + `<div style="display:flex;justify-content:space-between;padding:12px 0 0;font-weight:900;font-size:15px"><span>合計</span><span style="font-family:'DM Mono',monospace;color:var(--green)">${fmtMoney(total(incCats))}</span></div>`;
-  document.getElementById('bankExpenseBreakdown').innerHTML = breakdownHtml(expCats,'var(--red)')  + `<div style="display:flex;justify-content:space-between;padding:12px 0 0;font-weight:900;font-size:15px"><span>合計</span><span style="font-family:'DM Mono',monospace;color:var(--red)">${fmtMoney(total(expCats))}</span></div>`;
+  document.getElementById('bankIncomeBreakdown').innerHTML  = breakdownHtml(incCats,'var(--green)') + `<div style="display:flex;justify-content:space-between;padding:12px 0 0;font-weight:900;font-size:15px"><span>合計</span><span style="font-family:DM Mono,monospace;color:var(--green)">${fmtMoney(total(incCats))}</span></div>`;
+  document.getElementById('bankExpenseBreakdown').innerHTML = breakdownHtml(expCats,'var(--red)')  + `<div style="display:flex;justify-content:space-between;padding:12px 0 0;font-weight:900;font-size:15px"><span>合計</span><span style="font-family:DM Mono,monospace;color:var(--red)">${fmtMoney(total(expCats))}</span></div>`;
 
   const catSel = document.getElementById('bankCatFilter');
   const allCats = [...new Set(bankTx.filter(t=>t.date.slice(0,7)===_bankMonth).map(t=>t.cat))].sort();
@@ -4893,10 +4991,10 @@ function renderBankTxTable() {
     const bg = t.cat==='略過'?'rgba(255,255,255,0.05)':!t.isOut?'rgba(74,222,128,0.12)':'rgba(248,113,113,0.10)';
     const tc = t.cat==='略過'?'var(--text3)':!t.isOut?'var(--green)':'var(--red)';
     return `<tr>
-      <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${t.date}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-family:DM Mono,monospace;font-size:12px;white-space:nowrap">${t.date}</td>
       <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5);font-size:13px">${t.note||'-'}</td>
-      <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5);text-align:right;font-family:'DM Mono',monospace;color:var(--red)">${t.isOut?fmtMoney(t.amount):''}</td>
-      <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5);text-align:right;font-family:'DM Mono',monospace;color:var(--green)">${!t.isOut?fmtMoney(t.amount):''}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5);text-align:right;font-family:DM Mono,monospace;color:var(--red)">${t.isOut?fmtMoney(t.amount):''}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5);text-align:right;font-family:DM Mono,monospace;color:var(--green)">${!t.isOut?fmtMoney(t.amount):''}</td>
       <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5)"><span style="background:${bg};color:${tc};padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700">${t.cat}</span></td>
       <td style="padding:10px 14px;border-bottom:1px solid rgba(46,46,61,0.5)"><button class="btn btn-secondary btn-sm" onclick="editBankTx('${t.id}')">編輯</button></td>
     </tr>`;
@@ -4939,12 +5037,12 @@ function renderBankMonthlySummary(month) {
   const incCats={}, expCats={};
   mTx.filter(t=>!t.isOut).forEach(t=>{incCats[t.cat]=(incCats[t.cat]||0)+t.amount;});
   mTx.filter(t=>t.isOut).forEach(t=>{expCats[t.cat]=(expCats[t.cat]||0)+t.amount;});
-  const row=(c,v,col)=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px"><span>${c}</span><span style="font-family:'DM Mono',monospace;color:${col};font-weight:700">${fmtMoney(v)}</span></div>`;
+  const row=(c,v,col)=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px"><span>${c}</span><span style="font-family:DM Mono,monospace;color:${col};font-weight:700">${fmtMoney(v)}</span></div>`;
   el.innerHTML=`
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:20px">
-      <div><div class="card-title">總收入</div><div style="font-size:28px;font-weight:900;color:var(--green);font-family:'DM Mono',monospace">${fmtMoney(totalIn)}</div></div>
-      <div><div class="card-title">總支出</div><div style="font-size:28px;font-weight:900;color:var(--red);font-family:'DM Mono',monospace">${fmtMoney(totalOut)}</div></div>
-      <div><div class="card-title">本月盈餘</div><div style="font-size:28px;font-weight:900;font-family:'DM Mono',monospace;color:${profit>=0?'var(--accent)':'var(--red)'}">${profit<0?'-':''}${fmtMoney(Math.abs(profit))}</div></div>
+      <div><div class="card-title">總收入</div><div style="font-size:28px;font-weight:900;color:var(--green);font-family:DM Mono,monospace">${fmtMoney(totalIn)}</div></div>
+      <div><div class="card-title">總支出</div><div style="font-size:28px;font-weight:900;color:var(--red);font-family:DM Mono,monospace">${fmtMoney(totalOut)}</div></div>
+      <div><div class="card-title">本月盈餘</div><div style="font-size:28px;font-weight:900;font-family:DM Mono,monospace;color:${profit>=0?'var(--accent)':'var(--red)'}">${profit<0?'-':''}${fmtMoney(Math.abs(profit))}</div></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
       <div>
@@ -5166,7 +5264,7 @@ function renderAdjList() {
     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">
       <span>${a.name}</span>
       <div style="display:flex;gap:12px;align-items:center">
-        <span style="font-family:'DM Mono',monospace;font-weight:700;color:${a.amount>=0?'var(--green)':'var(--red)'}">${a.amount>=0?'+':''}$${Math.abs(a.amount).toLocaleString()}</span>
+        <span style="font-family:DM Mono,monospace;font-weight:700;color:${a.amount>=0?'var(--green)':'var(--red)'}">${a.amount>=0?'+':''}$${Math.abs(a.amount).toLocaleString()}</span>
         <button onclick="removeAdj(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px">×</button>
       </div>
     </div>`).join('');
@@ -5179,10 +5277,10 @@ function renderStaffPayPreview() {
   const adjTotal=(entry.adjustments||[]).reduce((sum,a)=>sum+a.amount,0);
   const netPay=basePay+adjTotal;
   document.getElementById('staffPayPreview').innerHTML=`
-    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">總時數</span><span style="font-family:'DM Mono',monospace;font-weight:700">${totalHours}h</span></div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">基本薪資（＄${s.hourly}/h × ${totalHours}h）</span><span style="font-family:'DM Mono',monospace;font-weight:700">$${basePay.toLocaleString()}</span></div>
-    ${(entry.adjustments||[]).map(a=>`<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">${a.name}</span><span style="font-family:'DM Mono',monospace;color:${a.amount>=0?'var(--green)':'var(--red)'}">${a.amount>=0?'+':''}$${Math.abs(a.amount).toLocaleString()}</span></div>`).join('')}
-    <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);font-size:16px;font-weight:700"><span>實領薪資</span><span style="font-family:'DM Mono',monospace;color:var(--accent)">$${netPay.toLocaleString()}</span></div>`;
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">總時數</span><span style="font-family:DM Mono,monospace;font-weight:700">${totalHours}h</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">基本薪資（＄${s.hourly}/h × ${totalHours}h）</span><span style="font-family:DM Mono,monospace;font-weight:700">$${basePay.toLocaleString()}</span></div>
+    ${(entry.adjustments||[]).map(a=>`<div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px"><span style="color:var(--text2)">${a.name}</span><span style="font-family:DM Mono,monospace;color:${a.amount>=0?'var(--green)':'var(--red)'}">${a.amount>=0?'+':''}$${Math.abs(a.amount).toLocaleString()}</span></div>`).join('')}
+    <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);font-size:16px;font-weight:700"><span>實領薪資</span><span style="font-family:DM Mono,monospace;color:var(--accent)">$${netPay.toLocaleString()}</span></div>`;
 }
 function downloadStaffImage() {
   const s=staffList.find(x=>x.id===_shiftStaffId); if(!s) return;
@@ -5330,6 +5428,184 @@ function renderStaffPage() {
         `:`<div style="background:var(--surface2);border-radius:8px;padding:14px;text-align:center;color:var(--text3);font-size:13px">尚未填寫 ${parseInt(month.split('-')[1])}月打卡記錄</div>`}
       </div>`;
     }).join('')+`</div>`;
+}
+
+// ═══════════════════════════════
+//  月扣訂閱
+// ═══════════════════════════════
+let subscriptions = load(KEYS.subscriptions);
+// 結構：{ id, student, plan, amount, dayOfMonth, startMonth, endMonth, note, confirmedMonths:[] }
+
+// 判斷某個訂閱在指定月份是否有效
+function isSubActiveInMonth(sub, month) {
+  if (!sub.startMonth || month < sub.startMonth) return false;
+  if (sub.endMonth && month > sub.endMonth) return false;
+  return true;
+}
+
+// 本月月扣總額
+function getSubTotalForMonth(month) {
+  return subscriptions.filter(s=>isSubActiveInMonth(s,month)).reduce((t,s)=>t+s.amount,0);
+}
+
+function saveSubscription() {
+  const s = {
+    id: uid(),
+    student:    document.getElementById('sub_student').value.trim(),
+    plan:       document.getElementById('sub_plan').value.trim(),
+    amount:     parseInt(document.getElementById('sub_amount').value)||0,
+    dayOfMonth: parseInt(document.getElementById('sub_dayOfMonth').value)||22,
+    startMonth: document.getElementById('sub_startMonth').value||'',
+    endMonth:   document.getElementById('sub_endMonth').value||'',
+    note:       document.getElementById('sub_note').value.trim(),
+    confirmedMonths: [],
+  };
+  if(!s.student||!s.amount) return alert('請填寫學員姓名和金額');
+  subscriptions.push(s);
+  save(KEYS.subscriptions, subscriptions);
+  closeModal('addSubscriptionModal');
+  renderSubscriptionSection();
+}
+function editSubscription(id) {
+  const s=subscriptions.find(x=>x.id===id); if(!s) return;
+  document.getElementById('edit_sub_id').value=s.id;
+  document.getElementById('edit_sub_student').value=s.student;
+  document.getElementById('edit_sub_plan').value=s.plan||'';
+  document.getElementById('edit_sub_amount').value=s.amount;
+  document.getElementById('edit_sub_dayOfMonth').value=s.dayOfMonth||22;
+  document.getElementById('edit_sub_startMonth').value=s.startMonth||'';
+  document.getElementById('edit_sub_endMonth').value=s.endMonth||'';
+  document.getElementById('edit_sub_note').value=s.note||'';
+  openModal('editSubscriptionModal');
+}
+function updateSubscription() {
+  const id=document.getElementById('edit_sub_id').value;
+  const idx=subscriptions.findIndex(x=>x.id===id); if(idx<0) return;
+  subscriptions[idx]={...subscriptions[idx],
+    student:    document.getElementById('edit_sub_student').value.trim(),
+    plan:       document.getElementById('edit_sub_plan').value.trim(),
+    amount:     parseInt(document.getElementById('edit_sub_amount').value)||0,
+    dayOfMonth: parseInt(document.getElementById('edit_sub_dayOfMonth').value)||22,
+    startMonth: document.getElementById('edit_sub_startMonth').value||'',
+    endMonth:   document.getElementById('edit_sub_endMonth').value||'',
+    note:       document.getElementById('edit_sub_note').value.trim(),
+  };
+  save(KEYS.subscriptions, subscriptions);
+  closeModal('editSubscriptionModal');
+  renderSubscriptionSection();
+}
+function deleteSubscription(id) {
+  if(!confirm('確定刪除此訂閱？')) return;
+  subscriptions=subscriptions.filter(x=>x.id!==id);
+  save(KEYS.subscriptions, subscriptions);
+  closeModal('editSubscriptionModal');
+  renderSubscriptionSection();
+}
+function toggleSubConfirm(id, month) {
+  const idx=subscriptions.findIndex(x=>x.id===id); if(idx<0) return;
+  const conf=subscriptions[idx].confirmedMonths||[];
+  if(conf.includes(month)) subscriptions[idx].confirmedMonths=conf.filter(m=>m!==month);
+  else subscriptions[idx].confirmedMonths=[...conf, month];
+  save(KEYS.subscriptions, subscriptions);
+  renderSubscriptionSection();
+}
+
+// 自動從有效月卡方案抓取學員
+function autoImportSubscriptions() {
+  const today=todayStr();
+  // 找月卡關鍵字
+  const monthlyKeywords=['月卡','月費','月扣','定期','訂閱'];
+  const validPlans=purchases.filter(p=>{
+    if(!p.endDate||p.endDate<today) return false; // 需有效
+    return monthlyKeywords.some(k=>p.plan.includes(k));
+  });
+  let added=0, skipped=0;
+  validPlans.forEach(p=>{
+    const dup=subscriptions.find(s=>s.student===p.student&&(s.plan===p.plan||(s.startMonth&&p.startDate&&s.startMonth<=p.startDate.slice(0,7))));
+    if(dup){skipped++;return;}
+    // 從購買記錄推算每月金額（月卡首刷有設定費，後續較低，取 sessions 推算）
+    // 如果備註有 "每期扣款" 字樣則取更低，否則預設 2699
+    const monthly=p.monthlyAmount||2699; // 若 purchase 有 monthlyAmount 欄位
+    subscriptions.push({
+      id:uid(),
+      student:p.student,
+      plan:p.plan,
+      amount:monthly,
+      dayOfMonth:22,
+      startMonth:p.startDate?p.startDate.slice(0,7):(p.date?p.date.slice(0,7):''),
+      endMonth:p.endDate?p.endDate.slice(0,7):'',
+      note:'自動匯入',
+      confirmedMonths:[],
+    });
+    added++;
+  });
+  save(KEYS.subscriptions, subscriptions);
+  showToast(`✅ 自動匯入 ${added} 筆，略過重複 ${skipped} 筆`, 'success');
+  renderSubscriptionSection();
+}
+
+let _subMonth='';
+function renderSubscriptionSection() {
+  // 月份選單
+  const now=new Date();
+  const months=[];
+  for(let i=-1;i<=4;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  months.sort().reverse();
+  const sel=document.getElementById('subMonthSelect');
+  if(sel){
+    if(!_subMonth||!months.includes(_subMonth)) _subMonth=months[1]||months[0]; // 預設本月
+    sel.innerHTML=months.map(m=>`<option value="${m}"${m===_subMonth?'selected':''}>${m}</option>`).join('');
+    _subMonth=sel.value;
+  }
+  const month=_subMonth;
+  const activeSubs=subscriptions.filter(s=>isSubActiveInMonth(s,month));
+  const total=activeSubs.reduce((t,s)=>t+s.amount,0);
+  const confirmed=activeSubs.filter(s=>(s.confirmedMonths||[]).includes(month));
+  const pending=activeSubs.filter(s=>!(s.confirmedMonths||[]).includes(month));
+
+  const statsEl=document.getElementById('subStats');
+  if(statsEl) statsEl.innerHTML=`
+    <div style="background:var(--surface2);border-radius:8px;padding:14px;text-align:center">
+      <div style="font-size:22px;font-weight:900;color:var(--green);font-family:DM Mono,monospace">${fmtMoney(total)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">${month} 月扣總計</div>
+    </div>
+    <div style="background:rgba(74,128,96,0.08);border-radius:8px;padding:14px;text-align:center;border:1px solid rgba(74,128,96,0.2)">
+      <div style="font-size:22px;font-weight:900;color:var(--green);font-family:DM Mono,monospace">${confirmed.length}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">已確認收款（${fmtMoney(confirmed.reduce((t,s)=>t+s.amount,0))}）</div>
+    </div>
+    <div style="background:${pending.length>0?'rgba(160,120,53,0.08)':'var(--surface2)'};border-radius:8px;padding:14px;text-align:center;border:1px solid ${pending.length>0?'rgba(160,120,53,0.25)':'var(--border)'}">
+      <div style="font-size:22px;font-weight:900;color:${pending.length>0?'var(--yellow)':'var(--text3)'};font-family:DM Mono,monospace">${pending.length}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">待確認（${fmtMoney(pending.reduce((t,s)=>t+s.amount,0))}）</div>
+    </div>`;
+
+  const tbody=document.getElementById('subTbody');
+  if(!tbody) return;
+  if(!activeSubs.length){
+    tbody.innerHTML=`<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--text3)">本月無有效訂閱，點「自動抓取月卡學員」建立</td></tr>`;
+    return;
+  }
+  const tdS='padding:11px 14px;border-bottom:1px solid var(--border)';
+  tbody.innerHTML=activeSubs.map(s=>{
+    const isConf=(s.confirmedMonths||[]).includes(month);
+    return `<tr style="${isConf?'opacity:0.6':''}">
+      <td style="${tdS};font-weight:600">${s.student}</td>
+      <td style="${tdS};font-size:12px;color:var(--text2)">${s.plan||'—'}</td>
+      <td style="${tdS};text-align:center;font-family:DM Mono,monospace;font-weight:700;color:var(--green)">${fmtMoney(s.amount)}</td>
+      <td style="${tdS};text-align:center;color:var(--text3)">${s.dayOfMonth||'—'} 號</td>
+      <td style="${tdS};text-align:center">
+        <button onclick="toggleSubConfirm('${s.id}','${month}')"
+          class="btn btn-sm"
+          style="background:${isConf?'rgba(74,128,96,0.15)':'rgba(184,84,80,0.08)'};color:${isConf?'var(--green)':'var(--yellow)'};border:1px solid ${isConf?'rgba(74,128,96,0.3)':'rgba(160,120,53,0.3)'}">
+          ${isConf?'✅ 已收款':'⏳ 待確認'}
+        </button>
+      </td>
+      <td style="${tdS};font-size:12px;color:var(--text3)">${s.startMonth||'—'}${s.endMonth?' ~ '+s.endMonth:' ~ 持續中'}</td>
+      <td style="${tdS}"><button class="btn btn-secondary btn-sm" onclick="editSubscription('${s.id}')">編輯</button></td>
+    </tr>`;
+  }).join('');
 }
 
 function init() {
