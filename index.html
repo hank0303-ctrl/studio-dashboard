@@ -630,7 +630,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
             <option value="">選擇要匯入的方案...</option>
           </select>
           <button class="btn btn-secondary btn-sm" onclick="importSubscriptionsByPlan()">📥 批量匯入有效學員</button>
-          <select id="subMonthSelect" onchange="renderSubscriptionSection()" style="min-width:120px"></select>
+          <select id="subMonthSelect" onchange="onSubMonthChange()" style="min-width:120px"></select>
         </div>
       </div>
       <!-- 本月統計 -->
@@ -5578,8 +5578,13 @@ function importSubscriptionsByPlan() {
 }
 
 let _subMonth='';
+function onSubMonthChange() {
+  const sel=document.getElementById('subMonthSelect');
+  if(sel&&sel.value) _subMonth=sel.value;
+  renderSubData();
+}
 function renderSubscriptionSection() {
-  // 填充「匯入方案」選單（有效方案去重）
+  // 填充「匯入方案」選單
   const today2=todayStr();
   const validPlans=[...new Set(
     purchases.filter(p=>p.endDate&&p.endDate>=today2).map(p=>p.plan).filter(Boolean)
@@ -5591,7 +5596,7 @@ function renderSubscriptionSection() {
       validPlans.map(pl=>`<option value="${pl}"${pl===cur?'selected':''}>${pl}</option>`).join('');
   }
 
-  // 月份選單
+  // 月份選單（只建一次）
   const now=new Date();
   const months=[];
   for(let i=-1;i<=4;i++){
@@ -5601,11 +5606,14 @@ function renderSubscriptionSection() {
   months.sort().reverse();
   const sel=document.getElementById('subMonthSelect');
   if(sel){
-    if(!_subMonth||!months.includes(_subMonth)) _subMonth=months[1]||months[0]; // 預設本月
+    if(!_subMonth||!months.includes(_subMonth)) _subMonth=months[1]||months[0];
     sel.innerHTML=months.map(m=>`<option value="${m}"${m===_subMonth?'selected':''}>${m}</option>`).join('');
-    _subMonth=sel.value;
   }
+  renderSubData();
+}
+function renderSubData() {
   const month=_subMonth;
+  if(!month) return;
   const activeSubs=subscriptions.filter(s=>isSubActiveInMonth(s,month));
   const total=activeSubs.reduce((t,s)=>t+s.amount,0);
   const confirmed=activeSubs.filter(s=>(s.confirmedMonths||[]).includes(month));
