@@ -2278,7 +2278,9 @@ function renderDashContent() {
   const today=todayStr();
   const now=new Date();
   const thisMonth=_dashMonth||(now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
-  const d0=new Date(now.getFullYear(),now.getMonth()-1,1);
+  // prevMonth 依選定月份的上一個月計算（跟著選單走）
+  const [selY, selM] = thisMonth.split('-').map(Number);
+  const d0=new Date(selY, selM-2, 1);
   const prevMonth=`${d0.getFullYear()}-${String(d0.getMonth()+1).padStart(2,'0')}`;
 
   const dateEl=document.getElementById('todayDateLabel');
@@ -2428,8 +2430,10 @@ function renderDashContent() {
     return s+Math.round(h*st.hourly)+(e.adjustments||[]).reduce((sum,a)=>sum+a.amount,0);
   },0);
   const prevPurRev2 = purchases.filter(p=>p.date&&p.date.slice(0,7)===prevMonth).reduce((s,p)=>s+p.amount,0);
-  const prevSportNet= prevPurRev2 - prevTP - prevSP2;
-  const perClassRev = prevActiveC2.length>0?Math.round(prevPurRev2/prevActiveC2.length):0;
+  const prevSubTotal2 = getSubTotalForMonth(prevMonth);
+  const prevSportNet= prevPurRev2 + prevSubTotal2 - prevTP - prevSP2;
+  const prevTotalRev = prevPurRev2 + prevSubTotal2;
+  const perClassRev = prevActiveC2.length>0?Math.round(prevTotalRev/prevActiveC2.length):0;
   const perClassCost= prevActiveC2.length>0?Math.round((prevTP+prevSP2)/prevActiveC2.length):0;
 
   // 月扣訂閱
@@ -2441,7 +2445,7 @@ function renderDashContent() {
   document.getElementById('dashSportContent').innerHTML =
     '<div style="font-size:10px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:8px">▲ '+prevMonth+' 完整結算</div>'+
     row2('上月方案收入', fmtMoney(prevPurRev2), 'var(--green)')+
-    (prevSubTotal>0 ? row2('上月月扣訂閱（'+subscriptions.filter(s=>isSubActiveInMonth(s,prevMonth)).length+'人）', fmtMoney(prevSubTotal), 'var(--green)') : '')+
+    (prevSubTotal2>0 ? row2('上月月扣訂閱（'+subscriptions.filter(s=>isSubActiveInMonth(s,prevMonth)).length+'人）', fmtMoney(prevSubTotal2), 'var(--green)') : '')+
     row2('上月老師課費', '-'+fmtMoney(prevTP), 'var(--red)')+
     row2('上月 PT 薪資', '-'+fmtMoney(prevSP2), 'var(--red)')+
     '<div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);font-weight:700;font-size:14px">'+
