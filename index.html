@@ -456,7 +456,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
       <div style="color:var(--text3);font-size:13px;margin-top:2px" id="todayDateLabel"></div>
     </div>
     <div class="flex gap-8 flex-wrap" style="align-items:center">
-      <select id="dashMonthSelect" onchange="renderToday()" style="min-width:130px"></select>
+      <select id="dashMonthSelect" onchange="onDashMonthChange()" style="min-width:130px"></select>
       <div style="display:flex;gap:4px;background:var(--surface2);border-radius:6px;padding:3px">
         <button id="dashView_cash"   onclick="setDashView('cash')"   class="btn btn-secondary btn-sm" style="border-radius:4px">現金流</button>
         <button id="dashView_ops"    onclick="setDashView('ops')"    class="btn btn-secondary btn-sm" style="border-radius:4px">營運歸屬</button>
@@ -2155,17 +2155,17 @@ function setDashView(v) {
   _dashView = v;
   ['cash','ops','prev'].forEach(id=>{
     const btn=document.getElementById('dashView_'+id);
-    if(btn) btn.style.background = id===v?'var(--accent)':'transparent';
-    if(btn) btn.style.color = id===v?'#fff':'var(--text2)';
+    if(btn){ btn.style.background=id===v?'var(--accent)':'transparent'; btn.style.color=id===v?'#fff':'var(--text2)'; }
   });
-  renderToday();
+  renderDashContent();
 }
-
+function onDashMonthChange() {
+  const sel=document.getElementById('dashMonthSelect');
+  if(sel&&sel.value) _dashMonth=sel.value;
+  renderDashContent();
+}
 function renderToday() {
-  const today     = todayStr();
-  const now       = new Date();
-
-  // 月份選單：本月 + 過去 5 個月
+  const now=new Date();
   const months=[];
   for(let i=0;i<6;i++){
     const d=new Date(now.getFullYear(),now.getMonth()-i,1);
@@ -2173,28 +2173,30 @@ function renderToday() {
   }
   const sel=document.getElementById('dashMonthSelect');
   if(sel){
-    const prev=sel.value;
     sel.innerHTML=months.map(m=>`<option value="${m}">${m}</option>`).join('');
     if(!_dashMonth||!months.includes(_dashMonth)) _dashMonth=months[0];
     sel.value=_dashMonth;
-    _dashMonth=sel.value;
   }
-
-  const thisMonth = _dashMonth;
+  ['cash','ops','prev'].forEach(id=>{
+    const btn=document.getElementById('dashView_'+id);
+    if(btn){ btn.style.background=id===_dashView?'var(--accent)':'transparent'; btn.style.color=id===_dashView?'#fff':'var(--text2)'; }
+  });
+  renderDashContent();
+}
+function renderDashContent() {
+  const today=todayStr();
+  const now=new Date();
+  const thisMonth=_dashMonth||(now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
   const d0=new Date(now.getFullYear(),now.getMonth()-1,1);
   const prevMonth=`${d0.getFullYear()}-${String(d0.getMonth()+1).padStart(2,'0')}`;
 
-  // 日期標籤
   const dateEl=document.getElementById('todayDateLabel');
   if(dateEl){
     const days=['日','一','二','三','四','五','六'];
     dateEl.textContent=`${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日（星期${days[now.getDay()]}）`;
   }
 
-  // 初始化視角按鈕樣式
-  setDashView(_dashView);
-
-  // ── 銀行資料 ──
+    // ── 銀行資料 ──
   const mBank     = bankTx.filter(t=>t.date.slice(0,7)===thisMonth);
   const bankIn    = mBank.filter(t=>!t.isOut&&t.cat!=='略過').reduce((s,t)=>s+t.amount,0);
   const bankOut   = mBank.filter(t=>t.isOut&&t.cat!=='略過').reduce((s,t)=>s+t.amount,0);
