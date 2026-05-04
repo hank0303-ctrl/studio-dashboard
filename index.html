@@ -697,7 +697,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     </div>
   </div>
   <div class="flex flex-wrap gap-8 mb-16" style="align-items:center">
-    <select id="bankMonthSelect" onchange="renderBankPage()" style="min-width:150px"></select>
+    <select id="bankMonthSelect" onchange="onBankMonthChange()" style="min-width:150px"></select>
     <div style="font-size:12px;color:var(--text3)" id="bankFileInfo"></div>
   </div>
   <div class="grid-4 mb-16" id="bankStats"></div>
@@ -4504,6 +4504,12 @@ function importBankExcel(input) {
 }
 
 let _bankMonth = '';
+function onBankMonthChange() {
+  const sel = document.getElementById('bankMonthSelect');
+  if (!sel || !sel.value) return;
+  _bankMonth = sel.value;
+  renderBankData();
+}
 function renderBankPage() {
   const months = [...new Set(bankTx.map(t=>t.date.slice(0,7)))].sort().reverse();
   const sel = document.getElementById('bankMonthSelect'); if (!sel) return;
@@ -4515,8 +4521,9 @@ function renderBankPage() {
   }
   if (!_bankMonth || !months.includes(_bankMonth)) _bankMonth = months[0];
   sel.innerHTML = months.map(m=>`<option value="${m}"${m===_bankMonth?'selected':''}>${m}</option>`).join('');
-  _bankMonth = sel.value;
-
+  renderBankData();
+}
+function renderBankData() {
   const mTx = bankTx.filter(t=>t.date.slice(0,7)===_bankMonth && t.cat!=='略過');
   const totalIn  = mTx.filter(t=>!t.isOut).reduce((s,t)=>s+t.amount,0);
   const totalOut = mTx.filter(t=>t.isOut).reduce((s,t)=>s+t.amount,0);
@@ -4543,8 +4550,8 @@ function renderBankPage() {
 
   const catSel = document.getElementById('bankCatFilter');
   const allCats = [...new Set(bankTx.filter(t=>t.date.slice(0,7)===_bankMonth).map(t=>t.cat))].sort();
-  const prevCat = catSel.value;
-  catSel.innerHTML = `<option value="">所有分類</option>`+allCats.map(c=>`<option value="${c}"${c===prevCat?'selected':''}>${c}</option>`).join('');
+  const prevCat = catSel ? catSel.value : '';
+  if (catSel) catSel.innerHTML = `<option value="">所有分類</option>`+allCats.map(c=>`<option value="${c}"${c===prevCat?'selected':''}>${c}</option>`).join('');
   renderBankTxTable();
 }
 
