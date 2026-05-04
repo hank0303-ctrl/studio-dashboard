@@ -4387,24 +4387,34 @@ function renderKidsPage() {
       const costShare=perKidCost;
       const kidProfit=revenue-costShare;
       const hasBill=!!bill;
+      const isPaid=bill?.isPaid||false;
       let base=0,extra=0;
       if(bill){
         base=bill.mainFee||0;
         if(k.feeType==='perClass'||k.feeType==='perDay') base=(bill.mainFee||0)*(bill.count||0);
         extra=(bill.extraItems||[]).reduce((s,e)=>s+e.amount,0);
       }
-      return `<div class="card" style="position:relative">
-        <div class="flex items-center justify-between mb-16" style="flex-wrap:wrap;gap:8px">
+      return `<div class="card" style="position:relative;border-top:3px solid ${!hasBill?'var(--border)':isPaid?'var(--green)':'var(--yellow)'}">
+        <div class="flex items-center justify-between mb-12" style="flex-wrap:wrap;gap:8px">
           <div>
             <div style="font-size:18px;font-weight:900">${k.name}</div>
             <div style="font-size:12px;color:var(--text2);margin-top:2px">${k.grade||''} ${k.course?'· '+k.course:''} ${k.teacher?'· '+k.teacher:''}</div>
           </div>
-          <div class="flex gap-8">
-            <button class="btn btn-secondary btn-sm" onclick="editKid('${k.id}')">⚙️ 設定</button>
-            <button class="btn ${hasBill?'btn-secondary':'btn-primary'} btn-sm" onclick="openBillModal('${k.id}')">${hasBill?'✏️ 編輯費用':'📝 填寫費用'}</button>
+          <div class="flex gap-8" style="align-items:center">
+            ${hasBill?`
+            <label onclick="toggleKidPaid('${k.id}','${month}')" style="display:flex;align-items:center;gap:6px;cursor:pointer;
+              background:${isPaid?'rgba(74,128,96,0.1)':'rgba(160,120,53,0.08)'};
+              border:1px solid ${isPaid?'rgba(74,128,96,0.3)':'rgba(160,120,53,0.3)'};
+              border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;
+              color:${isPaid?'var(--green)':'var(--yellow)'}">
+              <span style="font-size:14px">${isPaid?'✅':'○'}</span>
+              ${isPaid?'已收款':'待收款'}
+            </label>`:''}
+            <button class="btn btn-secondary btn-sm" onclick="editKid('${k.id}')">⚙️</button>
+            <button class="btn ${hasBill?'btn-secondary':'btn-primary'} btn-sm" onclick="openBillModal('${k.id}')">${hasBill?'✏️ 編輯':'📝 填寫費用'}</button>
           </div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
           <span class="badge badge-purple">${feeTypeLabel[k.feeType]||'月費'} · 基本 ${fmtMoney(k.baseFee)}</span>
           ${k.note?`<span class="badge badge-gold">${k.note}</span>`:''}
         </div>
@@ -4428,6 +4438,16 @@ function renderKidsPage() {
         `:`<div style="background:var(--surface2);border-radius:10px;padding:14px;text-align:center;color:var(--text3);font-size:13px">尚未填寫 ${mNum}月費用，點「填寫費用」開始</div>`}
       </div>`;
     }).join('')+`</div>`;
+}
+
+function toggleKidPaid(kidId, month) {
+  const key=kidId+'_'+month;
+  const bill=kidBills[key]; if(!bill) return;
+  bill.isPaid = !bill.isPaid;
+  if(bill.isPaid && !bill.paidDate) bill.paidDate = todayStr();
+  if(!bill.isPaid) bill.paidDate='';
+  save(KEYS.kidBills, kidBills);
+  renderKidsPage();
 }
 
 function copyKidBill(kidId, month) {
