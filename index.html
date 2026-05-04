@@ -2448,13 +2448,15 @@ function renderToday() {
     alertEl.innerHTML='<div style="color:var(--green);font-size:13px">✅ 本月無待處理事項</div>';
   } else {
     alertEl.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+
-      sections.map(s=>`<div style="background:var(--surface2);border-radius:8px;padding:12px;border-left:3px solid ${s.color}">
-        <div style="font-size:11px;font-weight:700;color:${s.color};margin-bottom:8px">${s.title}</div>
-        ${s.items.length===0
-          ?'<div style="font-size:12px;color:var(--text3)">✅ 無待處理</div>'
-          :s.items.map(i=>'<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--yellow)">• </span>'+i+'</div>').join('')+
-           '<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="showPage(\\'''+s.page+'\\'')">'+s.btn+'</button>'}
-      </div>`).join('')+'</div>';
+      sections.map(s=>{
+        const inner = s.items.length===0
+          ? '<div style="font-size:12px;color:var(--text3)">✅ 無待處理</div>'
+          : s.items.map(i=>'<div style="font-size:12px;margin-bottom:4px"><span style="color:var(--yellow)">• </span>'+i+'</div>').join('')+
+            '<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="showPage(\''+s.page+'\')">'+s.btn+'</button>';
+        return '<div style="background:var(--surface2);border-radius:8px;padding:12px;border-left:3px solid '+s.color+'">'+
+          '<div style="font-size:11px;font-weight:700;color:'+s.color+';margin-bottom:8px">'+s.title+'</div>'+
+          inner+'</div>';
+      }).join('')+'</div>';
   }
 
   // ── ⑤ 老師課費列表 ──
