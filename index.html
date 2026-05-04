@@ -623,10 +623,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div>
           <div class="card-title">📋 月扣訂閱管理</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:2px">系統自動從有效月卡方案抓取，也可手動新增</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">選擇有效方案批量匯入，或手動新增單筆</div>
         </div>
-        <div class="flex gap-8">
-          <button class="btn btn-secondary btn-sm" onclick="autoImportSubscriptions()">🔄 自動抓取月卡學員</button>
+        <div class="flex gap-8 flex-wrap" style="align-items:center">
+          <select id="subImportPlanSelect" style="min-width:240px">
+            <option value="">選擇要匯入的方案...</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="importSubscriptionsByPlan()">📥 批量匯入有效學員</button>
           <select id="subMonthSelect" onchange="renderSubscriptionSection()" style="min-width:120px"></select>
         </div>
       </div>
@@ -5510,42 +5513,64 @@ function toggleSubConfirm(id, month) {
   renderSubscriptionSection();
 }
 
-// 自動從有效月卡方案抓取學員
-function autoImportSubscriptions() {
+// 依選擇的方案批量匯入有效學員
+function importSubscriptionsByPlan() {
+  const planName=document.getElementById('subImportPlanSelect')?.value;
+  if(!planName) return alert('請先選擇要匯入的方案');
   const today=todayStr();
-  // 找月卡關鍵字
-  const monthlyKeywords=['月卡','月費','月扣','定期','訂閱'];
-  const validPlans=purchases.filter(p=>{
-    if(!p.endDate||p.endDate<today) return false; // 需有效
-    return monthlyKeywords.some(k=>p.plan.includes(k));
-  });
+  // 找該方案的所有有效購買記錄
+  const validPurchases=purchases.filter(p=>
+    p.plan===planName && p.endDate && p.endDate>=today
+  );
+  if(!validPurchases.length){ showToast('該方案目前無有效學員','warn'); return; }
+
+  // 詢問每月金額（因為無限卡等方案金額不固定，讓用戶輸入）
+  const defaultAmt = validPurchases[0]?.monthlyAmount || 2699;
+  const amtInput=prompt(`批量匯入「${planName}」\n\n請輸入每月扣款金額（$）：\n\n（若各學員金額不同，匯入後可個別編輯）`, defaultAmt);
+  if(!amtInput) return;
+  const amt=parseInt(amtInput)||0;
+  if(!amt){ alert('請輸入有效金額'); return; }
+
+  const dayInput=prompt('扣款日（每月幾號）：', '22');
+  const day=parseInt(dayInput)||22;
+
   let added=0, skipped=0;
-  validPlans.forEach(p=>{
-    const dup=subscriptions.find(s=>s.student===p.student&&(s.plan===p.plan||(s.startMonth&&p.startDate&&s.startMonth<=p.startDate.slice(0,7))));
-    if(dup){skipped++;return;}
-    // 從購買記錄推算每月金額（月卡首刷有設定費，後續較低，取 sessions 推算）
-    // 如果備註有 "每期扣款" 字樣則取更低，否則預設 2699
-    const monthly=p.monthlyAmount||2699; // 若 purchase 有 monthlyAmount 欄位
+  validPurchases.forEach(p=>{
+    // 檢查是否已有相同學員+相同方案的訂閱
+    const dup=subscriptions.find(s=>s.student===p.student&&s.plan===p.plan);
+    if(dup){ skipped++; return; }
     subscriptions.push({
       id:uid(),
       student:p.student,
       plan:p.plan,
-      amount:monthly,
-      dayOfMonth:22,
+      amount:amt,
+      dayOfMonth:day,
       startMonth:p.startDate?p.startDate.slice(0,7):(p.date?p.date.slice(0,7):''),
       endMonth:p.endDate?p.endDate.slice(0,7):'',
-      note:'自動匯入',
+      note:'批量匯入',
       confirmedMonths:[],
     });
     added++;
   });
   save(KEYS.subscriptions, subscriptions);
-  showToast(`✅ 自動匯入 ${added} 筆，略過重複 ${skipped} 筆`, 'success');
+  showToast(`✅ 匯入 ${added} 位學員，略過重複 ${skipped} 筆`, 'success');
   renderSubscriptionSection();
 }
 
 let _subMonth='';
 function renderSubscriptionSection() {
+  // 填充「匯入方案」選單（有效方案去重）
+  const today2=todayStr();
+  const validPlans=[...new Set(
+    purchases.filter(p=>p.endDate&&p.endDate>=today2).map(p=>p.plan).filter(Boolean)
+  )].sort();
+  const importSel=document.getElementById('subImportPlanSelect');
+  if(importSel){
+    const cur=importSel.value;
+    importSel.innerHTML='<option value="">選擇要匯入的方案...</option>'+
+      validPlans.map(pl=>`<option value="${pl}"${pl===cur?'selected':''}>${pl}</option>`).join('');
+  }
+
   // 月份選單
   const now=new Date();
   const months=[];
