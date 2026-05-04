@@ -450,44 +450,48 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
      PAGE 1: 今日總覽
 ════════════════════════════════════════════ -->
 <div class="page active" id="page-today">
-  <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
+  <div class="flex items-center justify-between flex-wrap gap-8 mb-20">
     <div>
-      <div style="font-size:24px;font-weight:900;margin-bottom:4px">今日總覽</div>
-      <div style="color:var(--text3);font-size:13px" id="todayDateLabel"></div>
+      <div style="font-size:22px;font-weight:700;letter-spacing:-0.3px">財務總覽</div>
+      <div style="color:var(--text3);font-size:13px;margin-top:2px" id="todayDateLabel"></div>
     </div>
     <div class="flex gap-8 flex-wrap">
-      <button class="btn btn-primary" onclick="openModal('addClassModal')">＋ 新增課程</button>
-      <button class="btn btn-secondary" onclick="openModal('addPurchaseModal')">＋ 購買方案</button>
+      <button class="btn btn-secondary btn-sm" onclick="openModal('addClassModal')">＋ 新增課程</button>
+      <button class="btn btn-secondary btn-sm" onclick="openModal('addPurchaseModal')">＋ 購買方案</button>
     </div>
   </div>
 
-  <!-- 轉速表區塊 -->
-  <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:28px" id="gaugeRow">
-    <div class="card" style="flex:1;min-width:280px;max-width:460px;display:flex;flex-direction:column;align-items:center;padding:28px 20px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:16px">💸 本月累積課費</div>
-      <canvas id="gauge-pay" width="260" height="150" style="max-width:100%"></canvas>
-      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:900;color:var(--accent);margin-top:8px" id="gauge-pay-val">$0</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px" id="gauge-pay-sub"></div>
+  <!-- ① 本月總收支 大卡 -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px" id="dashTopCards"></div>
+
+  <!-- ② 部門損益 左右兩欄 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px" id="dashDeptRow">
+    <div class="card" id="dashSportDept">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:6px">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block"></span>
+        運動團課部門
+      </div>
+      <div id="dashSportContent"></div>
     </div>
-    <div class="card" style="flex:1;min-width:280px;max-width:460px;display:flex;flex-direction:column;align-items:center;padding:28px 20px">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:16px">💰 本月購買總課收</div>
-      <canvas id="gauge-revenue" width="260" height="150" style="max-width:100%"></canvas>
-      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:900;color:var(--green);margin-top:8px" id="gauge-revenue-val">$0</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px" id="gauge-revenue-sub"></div>
+    <div class="card" id="dashKidsDept">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent2);margin-bottom:12px;display:flex;align-items:center;gap:6px">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--accent2);display:inline-block"></span>
+        兒童部門
+      </div>
+      <div id="dashKidsContent"></div>
     </div>
   </div>
 
-  <!-- 本週課表（簡化版）-->
-  <div class="section-title" style="margin-top:8px">
-    本週課表
-    <span style="font-size:12px;color:var(--text3);font-weight:400;margin-left:8px" id="weekRangeLabel"></span>
+  <!-- ③ 重點提醒 -->
+  <div class="card mb-16" id="dashAlerts">
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:12px">⚠️ 本月重點提醒</div>
+    <div id="dashAlertList"></div>
   </div>
-  <div id="weekTableSimple" style="overflow-x:auto"></div>
 
-  <!-- 老師累計課費 + 本月購買明細 -->
-  <div class="grid-2 mt-16">
+  <!-- ④ 本週課表 + 本月老師課費 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div class="card">
-      <div class="card-title">👩‍🏫 老師本月累計課費</div>
+      <div class="card-title">👩‍🏫 本月老師課費累計</div>
       <div id="todayTeacherPayList"></div>
     </div>
     <div class="card">
@@ -495,6 +499,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
       <div id="todayPurchaseList"></div>
     </div>
   </div>
+
+  <!-- 隱藏的週課表 DOM（供資料使用）-->
+  <div id="weekTableSimple" style="display:none"></div>
+  <div id="weekRangeLabel" style="display:none"></div>
 </div>
 
 <!-- ═══════════════════════════════════════════
@@ -2105,108 +2113,247 @@ let _currentStudentTab = 'all';
 function renderToday() {
   const today = todayStr();
   const thisMonth = today.slice(0,7);
-  const todayClasses = classes.filter(c => c.date === today);
-  const todayPurchases = purchases.filter(p => p.date === today);
 
   // 日期標籤
   const dateEl = document.getElementById('todayDateLabel');
   if (dateEl) {
-    const d = new Date(); const days = ['日','一','二','三','四','五','六'];
+    const d = new Date(); const days=['日','一','二','三','四','五','六'];
     dateEl.textContent = `${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日（星期${days[d.getDay()]}）`;
   }
 
-  // ── 轉速表資料計算 ──
-  const monthActiveClasses = classes.filter(c => c.date.slice(0,7)===thisMonth && c.status!=='停課');
-  const doneClasses = monthActiveClasses.filter(c => c.date <= today);
+  // ── 上月資料（用於對比）──
+  const d0 = new Date(); d0.setDate(1); d0.setMonth(d0.getMonth()-1);
+  const prevMonth = `${d0.getFullYear()}-${String(d0.getMonth()+1).padStart(2,'0')}`;
 
-  // 本月累積課費（已上課）
-  let paidTotal = 0;
-  teachers.forEach(t => {
-    const tc = doneClasses.filter(c=>c.teacher===t.name);
-    const shouldDeduct = t.deductFee !== false;
-    const raw = tc.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
-    paidTotal += shouldDeduct && raw > 0 ? raw - 15 : raw;
+  // ── 課程資料 ──
+  const mClasses     = classes.filter(c=>c.date.slice(0,7)===thisMonth);
+  const activeC      = mClasses.filter(c=>c.status!=='停課');
+  const doneC        = activeC.filter(c=>c.date<=today);
+  const prevClasses  = classes.filter(c=>c.date.slice(0,7)===prevMonth&&c.status!=='停課');
+
+  // ── 老師課費 ──
+  let teacherPayTotal=0, prevTeacherPay=0;
+  teachers.forEach(t=>{
+    const tc=doneC.filter(c=>c.teacher===t.name);
+    const raw=tc.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
+    teacherPayTotal += t.deductFee!==false&&raw>0 ? raw-15 : raw;
+    const ptc=prevClasses.filter(c=>c.teacher===t.name);
+    const praw=ptc.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
+    prevTeacherPay += t.deductFee!==false&&praw>0 ? praw-15 : praw;
   });
 
-  // 本月預計總課費（含未上課）
-  let projectedTotal = 0;
-  teachers.forEach(t => {
-    const tc = monthActiveClasses.filter(c=>c.teacher===t.name);
-    const shouldDeduct = t.deductFee !== false;
-    const raw = tc.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
-    projectedTotal += shouldDeduct && raw > 0 ? raw - 15 : raw;
+  // ── PT 薪資 ──
+  const staffPayTotal = staffList.reduce((s,st)=>{
+    const e=staffData[st.id+'_'+thisMonth]||{shifts:[],adjustments:[]};
+    const h=(e.shifts||[]).reduce((sum,sh)=>sum+sh.hours,0);
+    return s+Math.round(h*st.hourly)+(e.adjustments||[]).reduce((sum,a)=>sum+a.amount,0);
+  },0);
+
+  // ── 方案收入 ──
+  const monthPur   = purchases.filter(p=>p.date&&p.date.slice(0,7)===thisMonth);
+  const prevPur    = purchases.filter(p=>p.date&&p.date.slice(0,7)===prevMonth);
+  const purRevenue = monthPur.reduce((s,p)=>s+p.amount,0);
+  const prevPurRev = prevPur.reduce((s,p)=>s+p.amount,0);
+
+  // ── 銀行收支 ──
+  const mBank    = bankTx.filter(t=>t.date.slice(0,7)===thisMonth&&t.cat!=='略過');
+  const bankIn   = mBank.filter(t=>!t.isOut).reduce((s,t)=>s+t.amount,0);
+  const bankOut  = mBank.filter(t=>t.isOut).reduce((s,t)=>s+t.amount,0);
+  const bankNet  = bankIn - bankOut;
+
+  // ── 兒童部門 ──
+  const kidRevenue  = kids.reduce((s,k)=>s+getKidRevenue(k,thisMonth),0);
+  const kidCostAmt  = getKidCostTotal(thisMonth);
+  const kidProfit   = kidRevenue - kidCostAmt;
+
+  // ── 人事成本 ──
+  const personnelCost = teacherPayTotal + staffPayTotal;
+
+  // helper: diff badge
+  const diffBadge = (cur,prev,reverse=false)=>{
+    if(!prev) return '';
+    const d=cur-prev, up=d>=0;
+    const color=reverse?(up?'var(--red)':'var(--green)'):(up?'var(--green)':'var(--red)');
+    return `<span style="font-size:11px;color:${color};margin-left:6px">${up?'▲':'▼'}${fmtMoney(Math.abs(d))}</span>`;
+  };
+
+  // ① 頂部大卡片
+  document.getElementById('dashTopCards').innerHTML = `
+    <div class="card" style="border-left:3px solid var(--green)">
+      <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">本月方案收入</div>
+      <div style="font-size:24px;font-weight:900;color:var(--green);font-family:'DM Mono',monospace">${fmtMoney(purRevenue)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">${monthPur.length} 筆${diffBadge(purRevenue,prevPurRev)}</div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--red)">
+      <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">本月老師課費</div>
+      <div style="font-size:24px;font-weight:900;color:var(--red);font-family:'DM Mono',monospace">-${fmtMoney(teacherPayTotal)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">${diffBadge(teacherPayTotal,prevTeacherPay,true)}</div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--red)">
+      <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">本月 PT 薪資</div>
+      <div style="font-size:24px;font-weight:900;color:var(--red);font-family:'DM Mono',monospace">-${fmtMoney(staffPayTotal)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">人事合計 ${fmtMoney(personnelCost)}</div>
+    </div>
+    ${bankIn>0?`
+    <div class="card" style="border-left:3px solid var(--accent)">
+      <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">銀行收入</div>
+      <div style="font-size:24px;font-weight:900;color:var(--accent);font-family:'DM Mono',monospace">${fmtMoney(bankIn)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">支出 ${fmtMoney(bankOut)}　盈餘 <span style="color:${bankNet>=0?'var(--green)':'var(--red)'}">${fmtMoney(bankNet)}</span></div>
+    </div>`:`
+    <div class="card" style="background:var(--surface2);border:1px dashed var(--border)">
+      <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:6px">銀行帳務</div>
+      <div style="font-size:13px;color:var(--text3)">尚未匯入本月明細</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">前往銀行帳務頁上傳</div>
+    </div>`}
+  `;
+
+  // ② 部門損益
+  // 運動團課
+  const sportBooked  = activeC.reduce((s,c)=>s+c.booked,0);
+  const sportMax     = activeC.reduce((s,c)=>s+c.max,0);
+  const sportRate    = sportMax>0?Math.round(sportBooked/sportMax*100):0;
+  const sportAttended= doneC.reduce((s,c)=>s+c.attended,0);
+  const sportNet     = purRevenue - teacherPayTotal - staffPayTotal;
+
+  document.getElementById('dashSportContent').innerHTML = `
+    ${row2('本月方案收入', fmtMoney(purRevenue), 'var(--green)')}
+    ${row2('老師課費', '-'+fmtMoney(teacherPayTotal), 'var(--red)')}
+    ${row2('PT 薪資', '-'+fmtMoney(staffPayTotal), 'var(--red)')}
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);margin-top:4px;font-weight:700">
+      <span>初估淨利</span>
+      <span style="font-family:'DM Mono',monospace;color:${sportNet>=0?'var(--green)':'var(--red)'}">${sportNet<0?'-':''}${fmtMoney(Math.abs(sportNet))}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;text-align:center">
+      <div style="background:var(--surface2);border-radius:6px;padding:8px">
+        <div style="font-size:16px;font-weight:700">${activeC.length}</div>
+        <div style="font-size:10px;color:var(--text3)">開課堂數</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:6px;padding:8px">
+        <div style="font-size:16px;font-weight:700">${sportAttended}</div>
+        <div style="font-size:10px;color:var(--text3)">到課人次</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:6px;padding:8px">
+        <div style="font-size:16px;font-weight:700;color:${sportRate<50?'var(--yellow)':'var(--text)'}">${sportRate}%</div>
+        <div style="font-size:10px;color:var(--text3)">預約率</div>
+      </div>
+    </div>`;
+
+  // 兒童部門
+  document.getElementById('dashKidsContent').innerHTML = `
+    ${row2('本月收費', fmtMoney(kidRevenue), 'var(--green)')}
+    ${row2('本月支出', '-'+fmtMoney(kidCostAmt), 'var(--red)')}
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);margin-top:4px;font-weight:700">
+      <span>部門淨利</span>
+      <span style="font-family:'DM Mono',monospace;color:${kidProfit>=0?'var(--green)':'var(--red)'}">${kidProfit<0?'-':''}${fmtMoney(Math.abs(kidProfit))}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;text-align:center">
+      <div style="background:var(--surface2);border-radius:6px;padding:8px">
+        <div style="font-size:16px;font-weight:700">${kids.length}</div>
+        <div style="font-size:10px;color:var(--text3)">學童人數</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:6px;padding:8px">
+        <div style="font-size:16px;font-weight:700">${kids.filter(k=>kidBills[k.id+'_'+thisMonth]).length}</div>
+        <div style="font-size:10px;color:var(--text3)">已收費人數</div>
+      </div>
+    </div>
+    ${kidCostAmt===0?`<div style="font-size:11px;color:var(--yellow);margin-top:8px">⚠️ 尚未填寫本月支出</div>`:''}`;
+
+  // ③ 重點提醒
+  const alerts = [];
+  // 即將到期方案
+  const expireSoon = purchases.filter(p=>{
+    if(!p.endDate||p.endDate<today) return false;
+    return Math.ceil((new Date(p.endDate)-new Date())/86400000)<=14;
   });
+  if(expireSoon.length) alerts.push({level:'warn', msg:`${expireSoon.length} 位學員方案將在 14 天內到期`, action:`onclick="showPage('student')"`, btn:'前往查看'});
 
-  // 本月購買總收入
-  const monthPur = purchases.filter(p=>p.date&&p.date.slice(0,7)===thisMonth);
-  const revenueTotal = monthPur.reduce((s,p)=>s+p.amount,0);
-  // 預估目標（簡單用本月已收 × 1.2 或最低 50000）
-  const revenueTarget = Math.max(revenueTotal * 1.5, 50000);
+  // 未分類銀行交易
+  const uncat = bankTx.filter(t=>t.date.slice(0,7)===thisMonth&&(t.cat==='其他收入'||t.cat==='其他支出'));
+  if(uncat.length>0) alerts.push({level:'warn', msg:`本月有 ${uncat.length} 筆銀行交易分類為「其他」，建議確認`, action:`onclick="showPage('bank')"`, btn:'前往分類'});
 
-  document.getElementById('gauge-pay-val').textContent = '$' + paidTotal.toLocaleString();
-  document.getElementById('gauge-pay-sub').textContent = `本月預計 $${projectedTotal.toLocaleString()}`;
-  document.getElementById('gauge-revenue-val').textContent = '$' + revenueTotal.toLocaleString();
-  document.getElementById('gauge-revenue-sub').textContent = `${monthPur.length} 筆成交`;
+  // 兒童未收費
+  const kidsUnbilled = kids.filter(k=>!kidBills[k.id+'_'+thisMonth]);
+  if(kidsUnbilled.length) alerts.push({level:'warn', msg:`${kidsUnbilled.length} 位學童尚未填寫本月費用`, action:`onclick="showPage('kids')"`, btn:'前往填寫'});
 
-  // 繪製轉速表
-  drawGauge('gauge-pay', paidTotal, projectedTotal || 80000, '#c8a96e', '#7c6fcd');
-  drawGauge('gauge-revenue', revenueTotal, revenueTarget, '#4ade80', '#22c55e');
+  // PT 薪資未結算
+  const staffUnsettle = staffList.filter(st=>!(staffData[st.id+'_'+thisMonth]?.shifts||[]).length);
+  if(staffUnsettle.length) alerts.push({level:'info', msg:`${staffUnsettle.length} 位 PT 員工本月尚無打卡記錄`, action:`onclick="showPage('staff')"`, btn:'前往填寫'});
 
-  // ── 老師本月累計課費列表 ──
-  const teacherPayEl = document.getElementById('todayTeacherPayList');
-  if (!teachers.length) {
-    teacherPayEl.innerHTML = `<div class="empty-state" style="padding:20px">尚無老師資料</div>`;
+  // 兒童支出未填
+  if(kids.length>0 && kidCostAmt===0) alerts.push({level:'warn', msg:'兒童部門本月支出尚未填寫', action:`onclick="showPage('kids')"`, btn:'前往填寫'});
+
+  // 銀行未匯入
+  if(bankIn===0) alerts.push({level:'info', msg:'本月銀行明細尚未匯入', action:`onclick="showPage('bank')"`, btn:'前往匯入'});
+
+  const alertEl = document.getElementById('dashAlertList');
+  if(!alerts.length){
+    alertEl.innerHTML=`<div style="color:var(--green);font-size:13px;display:flex;align-items:center;gap:8px">✅ 本月無待處理事項</div>`;
   } else {
-    const teacherPayData = teachers.map(t => {
-      const tDone = doneClasses.filter(c => c.teacher===t.name);
-      const tAll  = monthActiveClasses.filter(c => c.teacher===t.name);
-      const paid  = tDone.reduce((s,c) => s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)), 0);
-      const total = tAll.reduce((s,c)  => s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)), 0);
-      return { name: t.name, doneCount: tDone.length, totalCount: tAll.length, paid, total };
-    }).filter(t => t.totalCount > 0).sort((a,b) => b.paid - a.paid);
-
-    if (!teacherPayData.length) {
-      teacherPayEl.innerHTML = `<div class="empty-state" style="padding:20px">本月無課程記錄</div>`;
-    } else {
-      const grandTotal = teacherPayData.reduce((s,t)=>s+t.paid,0);
-      teacherPayEl.innerHTML = teacherPayData.map(t => `
-        <div class="rank-item">
-          <div class="rank-info">
-            <div class="rank-name">${t.name}</div>
-            <div class="rank-meta">${t.doneCount}/${t.totalCount} 堂已上課</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-family:'DM Mono',monospace;font-weight:700;color:var(--accent);font-size:15px">${fmtMoney(t.paid)}</div>
-            ${t.total!==t.paid?`<div style="font-size:11px;color:var(--text3)">預計 ${fmtMoney(t.total)}</div>`:''}
-          </div>
-        </div>
-      `).join('') + `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;border-top:1px solid var(--border);margin-top:8px">
-          <div style="font-size:12px;font-weight:700;color:var(--text2)">${thisMonth} 已累計課費</div>
-          <div style="font-family:'DM Mono',monospace;font-weight:900;font-size:18px;color:var(--accent)">${fmtMoney(grandTotal)}</div>
-        </div>`;
-    }
+    alertEl.innerHTML=alerts.map(a=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:6px;margin-bottom:6px;background:${a.level==='warn'?'rgba(160,120,53,0.08)':'rgba(107,127,161,0.06)'};border-left:3px solid ${a.level==='warn'?'var(--yellow)':'var(--accent2)'}">
+        <div style="font-size:13px;color:var(--text)">${a.level==='warn'?'⚠️':'ℹ️'} ${a.msg}</div>
+        <button class="btn btn-secondary btn-sm" ${a.action} style="white-space:nowrap;margin-left:12px">${a.btn}</button>
+      </div>`).join('');
   }
 
-  // ── 本月購買明細 ──
-  const purEl = document.getElementById('todayPurchaseList');
-  const monthPurSorted = monthPur.sort((a,b) => b.date.localeCompare(a.date));
-  if (!monthPurSorted.length) {
-    purEl.innerHTML = `<div class="empty-state" style="padding:20px">本月無購買記錄</div>`;
+  // ④ 老師課費列表
+  const teacherPayEl = document.getElementById('todayTeacherPayList');
+  const teacherPayData = teachers.map(t=>{
+    const tDone=doneC.filter(c=>c.teacher===t.name);
+    const tAll=activeC.filter(c=>c.teacher===t.name);
+    const paid=tDone.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
+    const total=tAll.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
+    return {name:t.name,doneCount:tDone.length,totalCount:tAll.length,paid,total};
+  }).filter(t=>t.totalCount>0).sort((a,b)=>b.paid-a.paid);
+
+  if(!teacherPayData.length){
+    teacherPayEl.innerHTML=`<div class="empty-state" style="padding:20px">本月無課程記錄</div>`;
   } else {
-    purEl.innerHTML = monthPurSorted.map(p => `
+    const grandTotal=teacherPayData.reduce((s,t)=>s+t.paid,0);
+    teacherPayEl.innerHTML=teacherPayData.map(t=>`
+      <div class="rank-item">
+        <div class="rank-info">
+          <div class="rank-name">${t.name}</div>
+          <div class="rank-meta">${t.doneCount}/${t.totalCount} 堂</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:'DM Mono',monospace;font-weight:700;color:var(--red);font-size:14px">${fmtMoney(t.paid)}</div>
+          ${t.total!==t.paid?`<div style="font-size:11px;color:var(--text3)">預計 ${fmtMoney(t.total)}</div>`:''}
+        </div>
+      </div>`).join('')+`
+      <div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:1px solid var(--border);margin-top:6px;font-size:13px;font-weight:700">
+        <span>合計</span><span style="font-family:'DM Mono',monospace;color:var(--red)">${fmtMoney(grandTotal)}</span>
+      </div>`;
+  }
+
+  // ④ 本月購買明細
+  const purEl = document.getElementById('todayPurchaseList');
+  const monthPurSorted = [...monthPur].sort((a,b)=>b.date.localeCompare(a.date));
+  if(!monthPurSorted.length){
+    purEl.innerHTML=`<div class="empty-state" style="padding:20px">本月無購買記錄</div>`;
+  } else {
+    purEl.innerHTML=monthPurSorted.map(p=>`
       <div class="rank-item">
         <div class="rank-info">
           <div class="rank-name">${p.student} <span style="font-size:10px;color:var(--text3)">${fmtDate(p.date)}</span></div>
           <div class="rank-meta">${p.plan}</div>
         </div>
         <div class="rank-val" style="color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</div>
-      </div>
-    `).join('') + `<div style="text-align:right;margin-top:10px;font-weight:700;color:var(--accent);border-top:1px solid var(--border);padding-top:10px">本月合計 ${fmtMoney(revenueTotal)}</div>`;
+      </div>`).join('')+`
+      <div style="text-align:right;margin-top:8px;font-weight:700;font-size:13px;border-top:1px solid var(--border);padding-top:8px">
+        合計 <span style="font-family:'DM Mono',monospace;color:var(--green)">${fmtMoney(purRevenue)}</span>
+      </div>`;
   }
 
-  // 本週課表
   renderWeekSimple();
+}
+
+// helper: 兩欄 row
+function row2(label, val, color='var(--text)') {
+  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+    <span style="color:var(--text2)">${label}</span>
+    <span style="font-family:'DM Mono',monospace;font-weight:700;color:${color}">${val}</span>
+  </div>`;
 }
 
 // ═══════════════════════════════
