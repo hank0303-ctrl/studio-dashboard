@@ -2238,7 +2238,6 @@ function renderClassPage() {
   const totalMax    = activeC.reduce((s,c)=>s+c.max,0);
   const avgRate    = totalMax>0 ? Math.round(totalBooked/totalMax*100) : 0;
   const stopRate   = totalC>0   ? Math.round(stopC.length/totalC*100)  : 0;
-  const prevStopRate = prevClasses.length>0 ? Math.round(prevStop.length/prevClasses.length*100) : 0;
 
   // 上月統計
   const [y,m] = classPageMonth.split('-').map(Number);
@@ -2247,6 +2246,7 @@ function renderClassPage() {
   const prevClasses = classes.filter(c=>c.date.slice(0,7)===prevMonth);
   const prevActive  = prevClasses.filter(c=>c.status!=='停課');
   const prevStop    = prevClasses.filter(c=>c.status==='停課');
+  const prevStopRate = prevClasses.length>0 ? Math.round(prevStop.length/prevClasses.length*100) : 0;
   const prevBooked  = prevActive.reduce((s,c)=>s+c.booked,0);
   const prevMax     = prevActive.reduce((s,c)=>s+c.max,0);
   const prevRate    = prevMax>0?Math.round(prevBooked/prevMax*100):0;
