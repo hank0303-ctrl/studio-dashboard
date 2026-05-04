@@ -458,52 +458,137 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <div class="flex gap-8 flex-wrap" style="align-items:center">
       <select id="dashMonthSelect" onchange="onDashMonthChange()" style="min-width:130px"></select>
       <div style="display:flex;gap:4px;background:var(--surface2);border-radius:6px;padding:3px">
-        <button id="dashView_cash"   onclick="setDashView('cash')"   class="btn btn-secondary btn-sm" style="border-radius:4px">現金流</button>
-        <button id="dashView_ops"    onclick="setDashView('ops')"    class="btn btn-secondary btn-sm" style="border-radius:4px">營運歸屬</button>
-        <button id="dashView_prev"   onclick="setDashView('prev')"   class="btn btn-secondary btn-sm" style="border-radius:4px">上月結算</button>
+        <button id="dashView_cash" onclick="setDashView('cash')" class="btn btn-secondary btn-sm" style="border-radius:4px">現金流</button>
+        <button id="dashView_ops"  onclick="setDashView('ops')"  class="btn btn-secondary btn-sm" style="border-radius:4px">營運歸屬</button>
+        <button id="dashView_prev" onclick="setDashView('prev')" class="btn btn-secondary btn-sm" style="border-radius:4px">上月結算</button>
       </div>
       <button class="btn btn-secondary btn-sm" onclick="openModal('addClassModal')">＋ 課程</button>
       <button class="btn btn-secondary btn-sm" onclick="openModal('addPurchaseModal')">＋ 購買</button>
     </div>
   </div>
 
-  <!-- ① 四卡片 -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px" id="dashTopCards"></div>
+  <!-- ══ 第一層：本月現金流 ══ -->
+  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">第一層 · 本月現金流</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px" id="dashTopCards"></div>
+  <div id="dashCashRow"></div>
 
-  <!-- 現金結餘 小列 -->
-  <div id="dashCashRow" style="margin-bottom:16px"></div>
-
-  <!-- ② 部門損益 -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px" id="dashDeptRow">
-    <div class="card" id="dashSportDept">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:6px">
-        <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block"></span>
-        運動團課部門
-      </div>
-      <div id="dashSportContent"></div>
-    </div>
+  <!-- ══ 第二層：部門狀態 ══ -->
+  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">第二層 · 部門狀態</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px" id="dashDeptRow">
     <div class="card" id="dashKidsDept">
       <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent2);margin-bottom:12px;display:flex;align-items:center;gap:6px">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--accent2);display:inline-block"></span>
-        兒童部門
+        兒童部門 · 本月收款狀態
       </div>
       <div id="dashKidsContent"></div>
     </div>
+    <div class="card" id="dashSportDept">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:6px">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block"></span>
+        運動團課部門 · 上月完整結算
+      </div>
+      <div id="dashSportContent"></div>
+    </div>
   </div>
 
-  <!-- ③ 會計待辦 -->
-  <div class="card mb-16" id="dashAlerts">
-    <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:12px">📋 本月會計待辦</div>
+  <!-- ══ 第三層：會計待辦提醒 ══ -->
+  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">第三層 · 會計待辦提醒</div>
+  <div class="card mb-24" id="dashAlerts">
     <div id="dashAlertList"></div>
   </div>
 
-  <!-- ④ 老師課費 + 購買明細 -->
+  <!-- ══ 第四層：本月應付款 / 明細追蹤 ══ -->
+  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">第四層 · 本月應付款</div>
+  <div class="card mb-16">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div>
+        <div style="font-size:14px;font-weight:700">固定費用 / 應付款管理</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">確認本月哪些費用需要繳，不與一般支出混用</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="openModal('addFixedExpModal')">＋ 新增費用項目</button>
+    </div>
+    <div id="fixedExpStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px"></div>
+    <div id="fixedExpList"></div>
+  </div>
+
+  <!-- 老師課費 + 購買明細 -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div class="card"><div class="card-title">👩‍🏫 本月老師課費累計</div><div id="todayTeacherPayList"></div></div>
     <div class="card"><div class="card-title">💰 本月購買明細</div><div id="todayPurchaseList"></div></div>
   </div>
   <div id="weekTableSimple" style="display:none"></div>
   <div id="weekRangeLabel" style="display:none"></div>
+</div>
+
+<!-- 新增固定費用 Modal -->
+<div class="modal-overlay" id="addFixedExpModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">新增應付款項目</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2"><label>費用名稱</label><input type="text" id="fexp_name" placeholder="如：房租、水電費、勞健保"></div>
+      <div class="form-group" style="flex:1"><label>金額 ($)</label><input type="number" id="fexp_amount" value="0" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>週期</label>
+        <select id="fexp_cycle">
+          <option value="monthly">每月</option>
+          <option value="bimonthly">雙月</option>
+          <option value="quarterly">每季</option>
+          <option value="yearly">每年</option>
+          <option value="once">單次</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>所屬部門</label>
+        <select id="fexp_dept">
+          <option value="all">全教室</option>
+          <option value="sport">運動團課</option>
+          <option value="kids">兒童部門</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1"><label>到期日（每月幾號）</label><input type="number" id="fexp_dueDay" value="1" min="1" max="31"></div>
+    </div>
+    <div class="form-group"><label>備註</label><input type="text" id="fexp_note" placeholder="選填"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addFixedExpModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveFixedExp()">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯固定費用 Modal -->
+<div class="modal-overlay" id="editFixedExpModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">編輯應付款項目</div>
+    <input type="hidden" id="edit_fexp_id">
+    <div class="form-row">
+      <div class="form-group" style="flex:2"><label>費用名稱</label><input type="text" id="edit_fexp_name"></div>
+      <div class="form-group" style="flex:1"><label>金額 ($)</label><input type="number" id="edit_fexp_amount" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>週期</label>
+        <select id="edit_fexp_cycle">
+          <option value="monthly">每月</option><option value="bimonthly">雙月</option>
+          <option value="quarterly">每季</option><option value="yearly">每年</option><option value="once">單次</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>所屬部門</label>
+        <select id="edit_fexp_dept">
+          <option value="all">全教室</option><option value="sport">運動團課</option><option value="kids">兒童部門</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1"><label>到期日</label><input type="number" id="edit_fexp_dueDay" min="1" max="31"></div>
+    </div>
+    <div class="form-group"><label>備註</label><input type="text" id="edit_fexp_note"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" onclick="deleteFixedExp(document.getElementById('edit_fexp_id').value)">刪除</button>
+      <button class="btn btn-secondary" onclick="closeModal('editFixedExpModal')">取消</button>
+      <button class="btn btn-primary" onclick="updateFixedExp()">儲存</button>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════
@@ -1668,7 +1753,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 // ═══════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════
-const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', subscriptions:'studio_subscriptions' };
+const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', subscriptions:'studio_subscriptions', fixedExp:'studio_fixed_expenses' };
 
 function load(key) {
   try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
@@ -2608,6 +2693,7 @@ function renderDashContent() {
   }
 
   renderWeekSimple();
+  renderFixedExpenses();
 }
 
 function row2(label, val, color='var(--text)') {
@@ -5663,6 +5749,164 @@ function renderSubData() {
       <td style="${tdS}"><button class="btn btn-secondary btn-sm" onclick="editSubscription('${s.id}')">編輯</button></td>
     </tr>`;
   }).join('');
+}
+
+// ═══════════════════════════════
+//  固定費用 / 應付款
+// ═══════════════════════════════
+let fixedExp = load(KEYS.fixedExp);
+// 結構：{ id, name, amount, cycle, dept, dueDay, note, paidMonths:{} }
+// paidMonths: { "2026-05": { status:'paid'|'skip', paidDate:'', note:'' } }
+
+const CYCLE_LABEL = { monthly:'每月', bimonthly:'雙月', quarterly:'每季', yearly:'每年', once:'單次' };
+const DEPT_LABEL  = { all:'全教室', sport:'運動團課', kids:'兒童部門' };
+
+// 判斷某費用在指定月份是否應繳
+function isFixedExpDueInMonth(exp, month) {
+  if (exp.cycle === 'monthly')   return true;
+  if (exp.cycle === 'once')      return !!(exp.paidMonths && Object.keys(exp.paidMonths).length === 0);
+  const [y,m] = month.split('-').map(Number);
+  if (exp.cycle === 'bimonthly') return m % 2 === 1; // 奇數月
+  if (exp.cycle === 'quarterly') return m % 3 === 1; // 1/4/7/10月
+  if (exp.cycle === 'yearly')    return m === 1;
+  return false;
+}
+
+function saveFixedExp() {
+  const e = {
+    id:     uid(),
+    name:   document.getElementById('fexp_name').value.trim(),
+    amount: parseInt(document.getElementById('fexp_amount').value)||0,
+    cycle:  document.getElementById('fexp_cycle').value,
+    dept:   document.getElementById('fexp_dept').value,
+    dueDay: parseInt(document.getElementById('fexp_dueDay').value)||1,
+    note:   document.getElementById('fexp_note').value.trim(),
+    paidMonths: {},
+  };
+  if(!e.name) return alert('請填寫費用名稱');
+  fixedExp.push(e);
+  save(KEYS.fixedExp, fixedExp);
+  closeModal('addFixedExpModal');
+  renderFixedExpenses();
+}
+function editFixedExpModal(id) {
+  const e=fixedExp.find(x=>x.id===id); if(!e) return;
+  document.getElementById('edit_fexp_id').value=e.id;
+  document.getElementById('edit_fexp_name').value=e.name;
+  document.getElementById('edit_fexp_amount').value=e.amount;
+  document.getElementById('edit_fexp_cycle').value=e.cycle||'monthly';
+  document.getElementById('edit_fexp_dept').value=e.dept||'all';
+  document.getElementById('edit_fexp_dueDay').value=e.dueDay||1;
+  document.getElementById('edit_fexp_note').value=e.note||'';
+  openModal('editFixedExpModal');
+}
+function updateFixedExp() {
+  const id=document.getElementById('edit_fexp_id').value;
+  const idx=fixedExp.findIndex(x=>x.id===id); if(idx<0) return;
+  fixedExp[idx]={...fixedExp[idx],
+    name:   document.getElementById('edit_fexp_name').value.trim(),
+    amount: parseInt(document.getElementById('edit_fexp_amount').value)||0,
+    cycle:  document.getElementById('edit_fexp_cycle').value,
+    dept:   document.getElementById('edit_fexp_dept').value,
+    dueDay: parseInt(document.getElementById('edit_fexp_dueDay').value)||1,
+    note:   document.getElementById('edit_fexp_note').value.trim(),
+  };
+  save(KEYS.fixedExp, fixedExp);
+  closeModal('editFixedExpModal');
+  renderFixedExpenses();
+}
+function deleteFixedExp(id) {
+  if(!confirm('確定刪除此費用項目？')) return;
+  fixedExp=fixedExp.filter(x=>x.id!==id);
+  save(KEYS.fixedExp, fixedExp);
+  closeModal('editFixedExpModal');
+  renderFixedExpenses();
+}
+function toggleFixedExpStatus(id, month, status) {
+  const idx=fixedExp.findIndex(x=>x.id===id); if(idx<0) return;
+  if(!fixedExp[idx].paidMonths) fixedExp[idx].paidMonths={};
+  const cur=fixedExp[idx].paidMonths[month];
+  if(cur&&cur.status===status) {
+    // 再點同樣狀態 → 取消
+    delete fixedExp[idx].paidMonths[month];
+  } else {
+    fixedExp[idx].paidMonths[month]={ status, paidDate: status==='paid'?todayStr():'' };
+  }
+  save(KEYS.fixedExp, fixedExp);
+  renderFixedExpenses();
+}
+
+function renderFixedExpenses() {
+  const month = _dashMonth || todayStr().slice(0,7);
+  const dueList = fixedExp.filter(e=>isFixedExpDueInMonth(e,month));
+  const paid   = dueList.filter(e=>e.paidMonths?.[month]?.status==='paid');
+  const skipped= dueList.filter(e=>e.paidMonths?.[month]?.status==='skip');
+  const pending= dueList.filter(e=>!e.paidMonths?.[month]);
+  const totalDue  = dueList.reduce((s,e)=>s+e.amount,0);
+  const totalPaid = paid.reduce((s,e)=>s+e.amount,0);
+
+  const statsEl=document.getElementById('fixedExpStats');
+  if(statsEl) statsEl.innerHTML=`
+    <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:20px;font-weight:700;color:var(--text)">${dueList.length}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px">本月應付 ${fmtMoney(totalDue)}</div>
+    </div>
+    <div style="background:rgba(74,128,96,0.08);border-radius:8px;padding:12px;text-align:center;border:1px solid rgba(74,128,96,0.2)">
+      <div style="font-size:20px;font-weight:700;color:var(--green)">${paid.length}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px">已繳 ${fmtMoney(totalPaid)}</div>
+    </div>
+    <div style="background:${pending.length>0?'rgba(184,84,80,0.06)':'var(--surface2)'};border-radius:8px;padding:12px;text-align:center;border:1px solid ${pending.length>0?'rgba(184,84,80,0.2)':'var(--border)'}">
+      <div style="font-size:20px;font-weight:700;color:${pending.length>0?'var(--red)':'var(--text3)'}">${pending.length}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px">未繳 ${fmtMoney(pending.reduce((s,e)=>s+e.amount,0))}</div>
+    </div>`;
+
+  const listEl=document.getElementById('fixedExpList');
+  if(!listEl) return;
+  if(!dueList.length&&fixedExp.length===0){
+    listEl.innerHTML=`<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px">尚無費用項目，點「＋ 新增費用項目」建立</div>`;
+    return;
+  }
+  if(!dueList.length){
+    listEl.innerHTML=`<div style="text-align:center;color:var(--text3);padding:12px;font-size:12px">本月無應付款項</div>`;
+    return;
+  }
+
+  const statusBtn=(e,st,label,color)=>`<button onclick="toggleFixedExpStatus('${e.id}','${month}','${st}')"
+    class="btn btn-sm" style="font-size:11px;background:${e.paidMonths?.[month]?.status===st?color+'22':'transparent'};color:${e.paidMonths?.[month]?.status===st?color:'var(--text3)'};border:1px solid ${e.paidMonths?.[month]?.status===st?color:'var(--border)'};padding:3px 10px">${label}</button>`;
+
+  const tdS='padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle';
+  listEl.innerHTML=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
+    <thead><tr style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:1px">
+      <th style="padding:8px 14px;text-align:left;border-bottom:1px solid var(--border)">費用名稱</th>
+      <th style="padding:8px 14px;text-align:right;border-bottom:1px solid var(--border)">金額</th>
+      <th style="padding:8px 14px;border-bottom:1px solid var(--border)">到期日</th>
+      <th style="padding:8px 14px;border-bottom:1px solid var(--border)">週期</th>
+      <th style="padding:8px 14px;border-bottom:1px solid var(--border)">部門</th>
+      <th style="padding:8px 14px;border-bottom:1px solid var(--border)">狀態</th>
+      <th style="padding:8px 14px;border-bottom:1px solid var(--border)">備註</th>
+      <th style="padding:8px 14px;border-bottom:1px solid var(--border)"></th>
+    </tr></thead>
+    <tbody>${dueList.map(e=>{
+      const paidInfo=e.paidMonths?.[month];
+      const rowBg=paidInfo?.status==='paid'?'rgba(74,128,96,0.04)':paidInfo?.status==='skip'?'rgba(0,0,0,0.02)':'';
+      return `<tr style="background:${rowBg}">
+        <td style="${tdS};font-weight:600;color:${paidInfo?.status==='paid'?'var(--text3)':'var(--text)'};${paidInfo?.status==='skip'?'text-decoration:line-through':''}">${e.name}</td>
+        <td style="${tdS};text-align:right;font-family:DM Mono,monospace;font-weight:700;color:${paidInfo?'var(--text3)':'var(--red)'}">${fmtMoney(e.amount)}</td>
+        <td style="${tdS};color:var(--text3)">${month}-${String(e.dueDay).padStart(2,'0')}</td>
+        <td style="${tdS}"><span style="font-size:11px;background:var(--surface2);padding:2px 8px;border-radius:10px">${CYCLE_LABEL[e.cycle]||'每月'}</span></td>
+        <td style="${tdS};color:var(--text3);font-size:12px">${DEPT_LABEL[e.dept]||'全教室'}</td>
+        <td style="${tdS}">
+          <div style="display:flex;gap:6px">
+            ${statusBtn(e,'paid','✅ 已繳','var(--green)')}
+            ${statusBtn(e,'skip','— 不需繳','var(--text3)')}
+          </div>
+          ${paidInfo?.paidDate?`<div style="font-size:10px;color:var(--text3);margin-top:3px">${paidInfo.paidDate}</div>`:''}
+        </td>
+        <td style="${tdS};font-size:12px;color:var(--text3)">${e.note||''}</td>
+        <td style="${tdS}"><button class="btn btn-secondary btn-sm" onclick="editFixedExpModal('${e.id}')">編輯</button></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
 }
 
 function init() {
