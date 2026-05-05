@@ -3072,8 +3072,7 @@ function renderTeacherPage() {
         <td style="padding:4px 10px;border-bottom:1px solid var(--border);text-align:center">
           <input type="number" value="${c.attended}" min="0" max="${c.max}"
             style="width:52px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:3px 4px;font-family:DM Mono,monospace"
-            onblur="updateClassAttended('${c.id}',this.value)"
-            onkeydown="if(event.key==='Enter'){this.blur()}"
+            oninput="updateClassAttended('${c.id}',this.value)"
             ${isCancelled?'disabled':''}
           >
         </td>
@@ -3083,8 +3082,7 @@ function renderTeacherPage() {
           ${isCancelled ? `<span style="color:var(--text3);font-size:12px">－</span>` :
           `<input type="number" value="${pay}" min="0"
             style="width:80px;text-align:right;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:13px;font-weight:700;padding:3px 6px;font-family:DM Mono,monospace"
-            onblur="updateClassCustomPay('${c.id}',this.value)"
-            onkeydown="if(event.key==='Enter'){this.blur()}"
+            oninput="updateClassCustomPay('${c.id}',this.value)"
           >`}
         </td>
         <td style="padding:4px 8px;border-bottom:1px solid var(--border)">
@@ -4831,7 +4829,7 @@ function updateClassCustomPay(classId, val) {
   if (idx<0) return;
   classes[idx].customPay = parseInt(val)||0;
   save(KEYS.classes, classes);
-  renderTeacherPage();
+  // 不重新渲染，避免打字中途被打斷
 }
 
 function updateClassNote(classId, val) {
