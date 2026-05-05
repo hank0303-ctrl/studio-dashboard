@@ -818,50 +818,89 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 ════════════════════════════════════════════ -->
 <div class="page" id="page-monthly">
   <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
-    <div style="font-size:24px;font-weight:900">月結報表</div>
-    <div class="flex gap-8">
-      <select id="monthlyMonthSelect" onchange="renderMonthly()" style="min-width:140px"></select>
-      <button class="btn btn-secondary" onclick="exportMonthly()">📄 匯出老師明細</button>
+    <div>
+      <div style="font-size:22px;font-weight:700;letter-spacing:-0.3px">月結報表</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px">結帳 · 對帳 · 損益確認</div>
+    </div>
+    <div class="flex gap-8 flex-wrap">
+      <select id="monthlyMonthSelect" onchange="onMonthlyMonthChange()" style="min-width:140px"></select>
+      <button class="btn btn-secondary btn-sm" onclick="exportMonthly()">📄 匯出老師明細</button>
     </div>
   </div>
 
-  <!-- 月份總覽 -->
-  <div class="grid-4 mb-16" id="monthlyStats"></div>
+  <!-- ── A. 月結完成檢查清單 ── -->
+  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">A · 月結完成檢查清單</div>
+  <div class="card mb-20" id="monthlyChecklist"></div>
 
-  <!-- ★ 月結摘要（移到最上面）-->
-  <div class="section-title">月結摘要</div>
-  <div class="card mb-16" id="monthlySummary"></div>
+  <!-- ── B. 現金對帳 ── -->
+  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">B · 現金對帳</div>
+  <div class="card mb-20" id="monthlyCashReconcile"></div>
 
-  <!-- 銀行帳務摘要 -->
+  <!-- ── C. 收入（雙視角）── -->
+  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">C · 收入分析</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:12px">💵 現金流視角（收款月份）</div>
+      <div id="monthlyCashIncome"></div>
+    </div>
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:12px">📊 營運歸屬視角（服務月份）</div>
+      <div id="monthlyOpsIncome"></div>
+    </div>
+  </div>
+
+  <!-- ── D. 部門損益 ── -->
+  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">D · 部門損益</div>
+  <div class="card mb-20" id="monthlyDeptPL"></div>
+
+  <!-- ── E. 應收 / 預收 ── -->
+  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">E · 應收帳款 / 預收款</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:12px">⚠️ 未收款（應收帳款）</div>
+      <div id="monthlyReceivable"></div>
+    </div>
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:12px">📥 預收款（尚未履約）</div>
+      <div id="monthlyDeferred"></div>
+    </div>
+  </div>
+
+  <!-- ── F. 摘要 + 可展開的明細 ── -->
+  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">F · 明細（可展開）</div>
+  <div class="card mb-16">
+    <details style="margin-bottom:8px">
+      <summary style="cursor:pointer;font-weight:700;font-size:14px;padding:10px 0;border-bottom:1px solid var(--border);list-style:none;display:flex;justify-content:space-between;align-items:center">
+        <span>👩‍🏫 老師課費明細</span><span style="font-size:11px;color:var(--text3)">點擊展開 ▾</span>
+      </summary>
+      <div style="margin-top:12px;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">老師</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">開課</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">滿班</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">到課</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">預約率</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">手續費</th><th style="padding:8px;text-align:right;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">課費小計</th></tr></thead>
+          <tbody id="monthlyTeacherTbody"></tbody>
+        </table>
+      </div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;font-weight:700;font-size:14px;padding:10px 0;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        <span>💰 學員購買明細</span><span style="font-size:11px;color:var(--text3)">點擊展開 ▾</span>
+      </summary>
+      <div style="margin-top:12px;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">日期</th><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">學員</th><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">方案</th><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">部門</th><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">付款</th><th style="padding:8px;text-align:right;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">金額</th></tr></thead>
+          <tbody id="monthlyPurchaseTbody"></tbody>
+        </table>
+        <div style="text-align:right;margin-top:10px;font-size:13px;font-weight:700;color:var(--green)" id="monthlyPurchaseTotal"></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- 銀行摘要（保留）-->
   <div class="section-title" id="monthlyBankTitle" style="display:none">🏦 本月銀行帳務摘要</div>
   <div class="card mb-16" id="monthlyBankSummary" style="display:none"></div>
 
-  <!-- 老師費用明細 -->
-  <div class="section-title">老師課費明細</div>
-  <div class="card mb-16">
-    <div class="tbl-wrap">
-      <table>
-        <thead>
-          <tr><th>老師</th><th>開課數</th><th>滿班數</th><th>總學生人次</th><th>預約率</th><th>課費/堂</th><th>滿班加給</th><th>轉帳手續費</th><th>課費小計</th></tr>
-        </thead>
-        <tbody id="monthlyTeacherTbody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- 學員購買統計 -->
-  <div class="section-title">學員購買統計</div>
-  <div class="card mb-16">
-    <div class="tbl-wrap">
-      <table>
-        <thead>
-          <tr><th>日期</th><th>學員</th><th>方案</th><th>金額</th></tr>
-        </thead>
-        <tbody id="monthlyPurchaseTbody"></tbody>
-      </table>
-    </div>
-    <div style="text-align:right;margin-top:12px;font-size:15px;font-weight:700;color:var(--green)" id="monthlyPurchaseTotal"></div>
-  </div>
+  <!-- 隱藏的舊有元素（保留供舊函數相容）-->
+  <div id="monthlySummary" style="display:none"></div>
+  <div id="monthlyStats" style="display:none"></div>
 </div>
 
 <!-- ═══════════════════════════════════════════
@@ -3209,152 +3248,244 @@ function renderStudentTable() {
 // ═══════════════════════════════
 //  RENDER MONTHLY
 // ═══════════════════════════════
-function renderMonthlyPage() {
-  const months = [...new Set([...classes.map(c=>c.date.slice(0,7)),...purchases.map(p=>p.date.slice(0,7))])].sort().reverse();
-  const cur = todayStr().slice(0,7);
-  if (!months.includes(cur)) months.unshift(cur);
-
-  const sel = document.getElementById('monthlyMonthSelect');
-  const curVal = sel.value || cur;
-  sel.innerHTML = months.map(m=>`<option value="${m}">${m}</option>`).join('');
-  sel.value = curVal;
-
-  renderMonthly();
+let _monthlyMonth = '';
+function onMonthlyMonthChange() {
+  const sel=document.getElementById('monthlyMonthSelect');
+  if(sel&&sel.value) _monthlyMonth=sel.value;
+  renderMonthlyData();
 }
+function renderMonthlyPage() {
+  const months=[...new Set([...classes.map(c=>c.date.slice(0,7)),...purchases.map(p=>p.date.slice(0,7))])].sort().reverse();
+  const cur=todayStr().slice(0,7);
+  if(!months.includes(cur)) months.unshift(cur);
+  const sel=document.getElementById('monthlyMonthSelect');
+  if(!_monthlyMonth||!months.includes(_monthlyMonth)) _monthlyMonth=months[0];
+  sel.innerHTML=months.map(m=>`<option value="${m}">${m}</option>`).join('');
+  sel.value=_monthlyMonth;
+  renderMonthlyData();
+}
+// 向後相容
+function renderMonthly() { renderMonthlyData(); }
 
-function renderMonthly() {
-  const month = document.getElementById('monthlyMonthSelect').value;
-  if (!month) return;
+function renderMonthlyData() {
+  const month=_monthlyMonth||document.getElementById('monthlyMonthSelect')?.value||todayStr().slice(0,7);
+  if(!month) return;
 
-  const mClasses = classes.filter(c=>c.date.slice(0,7)===month && c.status!=='停課');
-  const mPurchases = purchases.filter(p=>p.date.slice(0,7)===month);
+  // ── 基礎資料計算 ──
+  const mClasses   = classes.filter(c=>c.date.slice(0,7)===month&&c.status!=='停課');
+  const mPurchases = purchases.filter(p=>p.date&&p.date.slice(0,7)===month);
+  const opsPurchases = purchases.filter(p=>(p.serviceMonth||p.date?.slice(0,7))===month);
+  const mBank      = bankTx.filter(t=>t.date.slice(0,7)===month&&t.cat!=='略過');
+  const bankIn     = mBank.filter(t=>!t.isOut).reduce((s,t)=>s+t.amount,0);
+  const bankOut    = mBank.filter(t=>t.isOut).reduce((s,t)=>s+t.amount,0);
+  const TRANSFER_FEE=15;
 
-  // stats
-  const totalClasses = mClasses.length;
-  const totalStudents = mClasses.reduce((s,c)=>s+(c.attended||0),0);
-  const totalBooked = mClasses.reduce((s,c)=>s+(c.booked||0),0);
-  const totalMax = mClasses.reduce((s,c)=>s+c.max,0);
-  const avgRate = totalMax>0?Math.round(totalBooked/totalMax*100):0;
-  const totalRevenue = mPurchases.reduce((s,p)=>s+p.amount,0);
-
-  document.getElementById('monthlyStats').innerHTML = `
-    <div class="stat-card gold"><div class="stat-num">${totalClasses}</div><div class="stat-label">本月開課數</div></div>
-    <div class="stat-card green"><div class="stat-num">${totalStudents}</div><div class="stat-label">到課總人次</div></div>
-    <div class="stat-card purple"><div class="stat-num">${avgRate}%</div><div class="stat-label">平均預約率</div></div>
-    <div class="stat-card gold"><div class="stat-num">${fmtMoney(totalRevenue)}</div><div class="stat-label">方案總營收</div></div>
-  `;
-
-  // teacher table
-  const TRANSFER_FEE = 15;
-  const teacherRows = teachers.map(t => {
-    const tClasses = mClasses.filter(c=>c.teacher===t.name);
-    if (!tClasses.length) return null;
-    const totalC = tClasses.length;
-    const fullC = tClasses.filter(c=>c.status==='滿班').length;
-    const totalS = tClasses.reduce((s,c)=>s+(c.attended||0),0);
-    const tBooked = tClasses.reduce((s,c)=>s+(c.booked||0),0);
-    const tMax = tClasses.reduce((s,c)=>s+c.max,0);
-    const rate = tMax>0?Math.round(tBooked/tMax*100):0;
-    const basePay = tClasses.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
-    const fullPay = fullC * (t.fullBonus||0);
-    const shouldDeduct = t.deductFee !== false;
-    const deductAmt = shouldDeduct ? TRANSFER_FEE : 0;
-    const netPay = basePay - deductAmt;
-    return `<tr>
-      <td style="font-weight:700">${t.name}</td>
-      <td>${totalC}</td>
-      <td>${fullC}</td>
-      <td>${totalS}</td>
-      <td style="font-family:DM Mono,monospace">${rate}%</td>
-      <td style="font-family:DM Mono,monospace">${fmtMoney(t.tiers&&t.tiers.length?t.tiers[0].pay:t.pay)}</td>
-      <td style="font-family:DM Mono,monospace;color:var(--yellow)">${fmtMoney(fullPay)}</td>
-      <td style="font-family:DM Mono,monospace;color:${shouldDeduct?'var(--red)':'var(--text3)'}">${shouldDeduct?'-$'+TRANSFER_FEE:'—'}</td>
-      <td style="font-family:DM Mono,monospace;font-weight:800;color:var(--accent)">${fmtMoney(netPay)}</td>
+  // 老師課費
+  let teacherPayTotal=0;
+  const teacherRows=teachers.map(t=>{
+    const tc=mClasses.filter(c=>c.teacher===t.name); if(!tc.length) return null;
+    const fullC=tc.filter(c=>c.status==='滿班').length;
+    const totalS=tc.reduce((s,c)=>s+(c.attended||0),0);
+    const tBooked=tc.reduce((s,c)=>s+(c.booked||0),0);
+    const tMax=tc.reduce((s,c)=>s+c.max,0);
+    const rate=tMax>0?Math.round(tBooked/tMax*100):0;
+    const base=tc.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
+    const shouldDeduct=t.deductFee!==false;
+    const net=shouldDeduct?base-TRANSFER_FEE:base;
+    teacherPayTotal+=net;
+    return `<tr style="font-size:13px">
+      <td style="padding:8px;font-weight:600">${t.name}</td>
+      <td style="padding:8px;text-align:center">${tc.length}</td>
+      <td style="padding:8px;text-align:center">${fullC}</td>
+      <td style="padding:8px;text-align:center">${totalS}</td>
+      <td style="padding:8px;text-align:center;font-family:DM Mono,monospace">${rate}%</td>
+      <td style="padding:8px;text-align:center;color:${shouldDeduct?'var(--red)':'var(--text3)'}">${shouldDeduct?'-$'+TRANSFER_FEE:'—'}</td>
+      <td style="padding:8px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:var(--accent)">${fmtMoney(net)}</td>
     </tr>`;
   }).filter(Boolean);
 
   document.getElementById('monthlyTeacherTbody').innerHTML = teacherRows.length
-    ? teacherRows.join('')
-    : `<tr><td colspan="9" class="empty-state">本月無課程記錄</td></tr>`;
+    ? teacherRows.join('') : '<tr><td colspan="7" class="empty-state">本月無課程記錄</td></tr>';
 
-  // purchase table
-  const purRows = mPurchases.sort((a,b)=>a.date.localeCompare(b.date));
-  document.getElementById('monthlyPurchaseTbody').innerHTML = purRows.length
-    ? purRows.map(p=>`<tr>
-        <td style="font-family:DM Mono,monospace;font-size:12px">${fmtDate(p.date)}</td>
-        <td style="font-weight:600">${p.student}</td>
-        <td>${p.plan}</td>
-        <td style="font-family:DM Mono,monospace;color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</td>
-      </tr>`).join('')
-    : `<tr><td colspan="4" class="empty-state">本月無購買記錄</td></tr>`;
-  document.getElementById('monthlyPurchaseTotal').textContent = `本月方案總收入：${fmtMoney(totalRevenue)}`;
+  // PT 薪資
+  let staffTotal=0;
+  staffList.forEach(st=>{
+    const e=staffData[st.id+'_'+month]||{};
+    const h=(e.shifts||[]).reduce((sum,sh)=>sum+sh.hours,0);
+    staffTotal+=Math.round(h*st.hourly)+(e.adjustments||[]).reduce((sum,a)=>sum+a.amount,0);
+  });
 
-  // summary
-  const totalTeacherPay = teachers.reduce((s,t)=>{
-    const tClasses = mClasses.filter(c=>c.teacher===t.name);
-    return s + tClasses.reduce((ss,c)=>ss+calcTeacherPay(t,c),0);
-  },0);
+  // 月扣訂閱
+  const subTotal=getSubTotalForMonth(month);
 
-  // PT 薪資總計
-  const staffTotal = staffList.reduce((s, st) => {
-    const entry = staffData[st.id+'_'+month] || {shifts:[],adjustments:[]};
-    const h = (entry.shifts||[]).reduce((sum,sh)=>sum+sh.hours,0);
-    const base = Math.round(h * st.hourly);
-    const adj = (entry.adjustments||[]).reduce((sum,a)=>sum+a.amount,0);
-    return s + base + adj;
-  }, 0);
-  const hasStaffData = staffList.some(st => (staffData[st.id+'_'+month]?.shifts||[]).length > 0);
-  const personnelCost = totalTeacherPay + staffTotal;
+  // 兒童收費
+  const kidRev=kids.reduce((s,k)=>s+getKidRevenue(k,month),0);
+  const kidCost=getKidCostTotal(month);
 
-  document.getElementById('monthlySummary').innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px;margin-bottom:${hasStaffData?'20px':'0'}">
+  // 方案收入
+  const purRev=mPurchases.reduce((s,p)=>s+p.amount,0);
+  const opsRev=opsPurchases.reduce((s,p)=>s+p.amount,0);
+
+  // 購買明細表
+  document.getElementById('monthlyPurchaseTbody').innerHTML=mPurchases.length
+    ? [...mPurchases].sort((a,b)=>a.date.localeCompare(b.date)).map(p=>{
+        const dL={sport:'團課',kids:'兒童',shared:'共用',none:'—'};
+        const mL={transfer:'匯',cash:'現',card:'刷',voucher:'幣',other:''};
+        return `<tr style="font-size:12px">
+          <td style="padding:7px 8px;font-family:DM Mono,monospace">${fmtDate(p.date)}</td>
+          <td style="padding:7px 8px;font-weight:600">${p.student}</td>
+          <td style="padding:7px 8px">${p.plan}</td>
+          <td style="padding:7px 8px;color:var(--text3)">${dL[p.dept]||'—'}</td>
+          <td style="padding:7px 8px;color:var(--text3)">${mL[p.payMethod]||''}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:${p.amount>0?'var(--green)':'var(--text3)'}">${fmtMoney(p.amount)}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="6" class="empty-state">本月無購買記錄</td></tr>';
+  document.getElementById('monthlyPurchaseTotal').textContent=`小計：${fmtMoney(purRev)}`;
+
+  // ── A. 月結完成檢查清單 ──
+  const checks=[
+    { ok:bankIn>0,       label:'銀行明細已匯入',           fix:'銀行帳務' },
+    { ok:mBank.filter(t=>!t.isOut&&t.cat==='其他收入').length===0, label:'所有收入已分類', fix:'銀行帳務' },
+    { ok:mBank.filter(t=>t.isOut&&t.cat==='其他支出').length===0,  label:'所有支出已分類', fix:'銀行帳務' },
+    { ok:staffTotal>0||staffList.length===0, label:'PT 薪資已結算', fix:'PT薪資' },
+    { ok:teacherPayTotal>0||teachers.length===0, label:'老師課費已計算', fix:'老師管理' },
+    { ok:kids.every(k=>kidBills[k.id+'_'+month]), label:'兒童費用全部填寫', fix:'兒童收費' },
+    { ok:fixedExp.filter(e=>isFixedExpDueInMonth(e,month)&&!e.paidMonths?.[month]).length===0, label:'本月固定費用已確認', fix:'首頁' },
+  ];
+  const doneCount=checks.filter(c=>c.ok).length;
+  const canClose=doneCount===checks.length;
+  document.getElementById('monthlyChecklist').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <div>
-        <div class="card-title">💰 方案總營收</div>
-        <div style="font-size:26px;font-weight:900;font-family:DM Mono,monospace;color:var(--green)">${fmtMoney(totalRevenue)}</div>
+        <span style="font-size:14px;font-weight:700">${canClose?'✅ 本月可以月結':'⏳ 尚未完成月結準備'}</span>
+        <span style="font-size:12px;color:var(--text3);margin-left:8px">${doneCount}/${checks.length} 項已完成</span>
       </div>
-      <div>
-        <div class="card-title">👩‍🏫 老師課費</div>
-        <div style="font-size:26px;font-weight:900;font-family:DM Mono,monospace;color:var(--red)">-${fmtMoney(totalTeacherPay)}</div>
-      </div>
-      ${hasStaffData ? `<div>
-        <div class="card-title">👔 PT 薪資</div>
-        <div style="font-size:26px;font-weight:900;font-family:DM Mono,monospace;color:var(--red)">-${fmtMoney(staffTotal)}</div>
-      </div>` : ''}
-      <div style="background:rgba(184,84,80,0.06);border-radius:8px;padding:12px 14px;border:1px solid rgba(184,84,80,0.15)">
-        <div class="card-title">🏢 人事成本合計</div>
-        <div style="font-size:26px;font-weight:900;font-family:DM Mono,monospace;color:var(--red)">-${fmtMoney(personnelCost)}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">老師課費${hasStaffData?' + PT 薪資':''}</div>
-      </div>
-      <div>
-        <div class="card-title">📊 開課堂數</div>
-        <div style="font-size:26px;font-weight:900;font-family:DM Mono,monospace;color:var(--accent)">${totalClasses}</div>
-      </div>
-      <div>
-        <div class="card-title">📈 平均預約率</div>
-        <div style="font-size:26px;font-weight:900;font-family:DM Mono,monospace;color:var(--accent2)">${avgRate}%</div>
-      </div>
+      <div style="display:flex;gap:4px">${checks.map(c=>`<div style="width:20px;height:6px;border-radius:3px;background:${c.ok?'var(--green)':'var(--border)'}" title="${c.label}"></div>`).join('')}</div>
     </div>
-    ${hasStaffData ? `
-    <div style="border-top:1px solid var(--border);padding-top:16px">
-      <div class="card-title" style="margin-bottom:10px">👔 PT 薪資明細</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
-        ${staffList.map(st=>{
-          const entry=staffData[st.id+'_'+month]||{shifts:[],adjustments:[]};
-          const h=(entry.shifts||[]).reduce((sum,sh)=>sum+sh.hours,0);
-          if(!h) return '';
-          const base=Math.round(h*st.hourly);
-          const adj=(entry.adjustments||[]).reduce((sum,a)=>sum+a.amount,0);
-          const net=base+adj;
-          return `<div style="background:var(--surface2);border-radius:8px;padding:10px 14px">
-            <div style="font-weight:700;font-size:14px">${st.name}</div>
-            <div style="font-size:12px;color:var(--text3);margin:2px 0">${h}h × $${st.hourly}${adj!==0?`　${adj>0?'+':''}$${Math.abs(adj).toLocaleString()}`:''}</div>
-            <div style="font-family:DM Mono,monospace;font-weight:700;color:var(--accent);font-size:16px">${fmtMoney(net)}</div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>` : ''}
-  `;
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
+      ${checks.map(c=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;background:${c.ok?'rgba(74,128,96,0.06)':'rgba(160,120,53,0.06)'};border:1px solid ${c.ok?'rgba(74,128,96,0.2)':'rgba(160,120,53,0.2)'}">
+          <span style="font-size:14px">${c.ok?'✅':'⏳'}</span>
+          <span style="font-size:12px;color:${c.ok?'var(--text2)':'var(--text)'}">${c.label}</span>
+          ${!c.ok?`<button class="btn btn-secondary btn-sm" style="margin-left:auto;font-size:10px;padding:2px 8px" onclick="showPage('${c.fix==='銀行帳務'?'bank':c.fix==='PT薪資'?'staff':c.fix==='老師管理'?'teacher':c.fix==='兒童收費'?'kids':'today'}')">${c.fix}</button>`:''}
+        </div>`).join('')}
+    </div>`;
+
+  // ── B. 現金對帳 ──
+  const unclassIn=mBank.filter(t=>!t.isOut&&t.cat==='其他收入').reduce((s,t)=>s+t.amount,0);
+  document.getElementById('monthlyCashReconcile').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px">
+      ${rw2('本月銀行收入', fmtMoney(bankIn), 'var(--green)')}
+      ${rw2('本月銀行支出', '-'+fmtMoney(bankOut), 'var(--red)')}
+      ${rw2('本月現金結餘', fmtMoney(bankIn-bankOut), bankIn-bankOut>=0?'var(--accent)':'var(--red)')}
+      ${rw2('未分類收入', fmtMoney(unclassIn), unclassIn>0?'var(--yellow)':'var(--text3)')}
+    </div>
+    ${unclassIn>0?`<div style="margin-top:12px;padding:8px 12px;background:rgba(160,120,53,0.08);border-radius:6px;font-size:12px;color:var(--yellow)">⚠️ 有 ${mBank.filter(t=>!t.isOut&&t.cat==='其他收入').length} 筆收入分類為「其他收入」，建議前往銀行帳務確認</div>`:''}`;
+
+  // ── C. 收入分析（雙視角）──
+  const cashIncomeRows=[
+    {label:'方案購買收入', val:purRev, tip:`${mPurchases.length} 筆`},
+    {label:'月扣訂閱', val:subTotal, tip:`${subscriptions.filter(s=>isSubActiveInMonth(s,month)).length} 人`},
+    {label:'兒童部門收費', val:kidRev, tip:''},
+    {label:'銀行其他收入', val:mBank.filter(t=>!t.isOut&&t.cat!=='略過'&&t.cat!=='其他收入').reduce((s,t)=>s+t.amount,0), tip:'已分類'},
+  ].filter(r=>r.val>0);
+  const cashTotal=purRev+subTotal+kidRev;
+
+  const opsIncomeRows=[
+    {label:'方案收入（歸屬月）', val:opsRev, tip:`${opsPurchases.length} 筆`},
+    {label:'月扣訂閱', val:subTotal, tip:''},
+    {label:'兒童部門收費', val:kidRev, tip:''},
+  ].filter(r=>r.val>0);
+  const opsTotal=opsRev+subTotal+kidRev;
+
+  const incomeRow=(r)=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+    <span style="color:var(--text2)">${r.label}${r.tip?` <span style="font-size:10px;color:var(--text3)">${r.tip}</span>`:''}</span>
+    <span style="font-family:DM Mono,monospace;font-weight:700;color:var(--green)">${fmtMoney(r.val)}</span>
+  </div>`;
+  const totalRow=(v)=>`<div style="display:flex;justify-content:space-between;padding:10px 0 0;font-weight:700;font-size:14px"><span>合計</span><span style="font-family:DM Mono,monospace;color:var(--green)">${fmtMoney(v)}</span></div>`;
+
+  document.getElementById('monthlyCashIncome').innerHTML=cashIncomeRows.map(incomeRow).join('')+totalRow(cashTotal);
+  document.getElementById('monthlyOpsIncome').innerHTML=opsIncomeRows.map(incomeRow).join('')+totalRow(opsTotal);
+
+  // ── D. 部門損益 ──
+  const sportRev=purRev+subTotal;
+  const sportCost=teacherPayTotal+staffTotal;
+  const sportNet=sportRev-sportCost;
+  const kidNet=kidRev-kidCost;
+  const sharedCost=fixedExp.filter(e=>e.dept==='all'&&isFixedExpDueInMonth(e,month)).reduce((s,e)=>s+e.amount,0);
+  const thS='padding:8px 14px;font-size:13px;border-bottom:1px solid var(--border)';
+  document.getElementById('monthlyDeptPL').innerHTML=`
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:1px">
+        <th style="${thS}">部門</th><th style="${thS};text-align:right">收入</th><th style="${thS};text-align:right">成本</th>
+        <th style="${thS};text-align:right">淨利</th><th style="${thS};text-align:right">利潤率</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="${thS};font-weight:700">運動團課</td>
+          <td style="${thS};text-align:right;font-family:DM Mono,monospace;color:var(--green)">${fmtMoney(sportRev)}</td>
+          <td style="${thS};text-align:right;font-family:DM Mono,monospace;color:var(--red)">-${fmtMoney(sportCost)}</td>
+          <td style="${thS};text-align:right;font-family:DM Mono,monospace;font-weight:700;color:${sportNet>=0?'var(--green)':'var(--red)'}">${sportNet<0?'-':''}${fmtMoney(Math.abs(sportNet))}</td>
+          <td style="${thS};text-align:right;color:var(--text3)">${sportRev>0?Math.round(sportNet/sportRev*100)+'%':'—'}</td></tr>
+        <tr><td style="${thS};font-weight:700">兒童部門</td>
+          <td style="${thS};text-align:right;font-family:DM Mono,monospace;color:var(--green)">${fmtMoney(kidRev)}</td>
+          <td style="${thS};text-align:right;font-family:DM Mono,monospace;color:var(--red)">-${fmtMoney(kidCost)}</td>
+          <td style="${thS};text-align:right;font-family:DM Mono,monospace;font-weight:700;color:${kidNet>=0?'var(--green)':'var(--red)'}">${kidNet<0?'-':''}${fmtMoney(Math.abs(kidNet))}</td>
+          <td style="${thS};text-align:right;color:var(--text3)">${kidRev>0?Math.round(kidNet/kidRev*100)+'%':'—'}</td></tr>
+        ${sharedCost>0?`<tr><td style="${thS};color:var(--text3)">共用成本（房租水電等）</td>
+          <td style="${thS};text-align:right">—</td>
+          <td style="${thS};text-align:right;font-family:DM Mono,monospace;color:var(--red)">-${fmtMoney(sharedCost)}</td>
+          <td style="${thS};text-align:right;color:var(--text3)">—</td><td style="${thS}"></td></tr>`:''}
+        <tr style="background:var(--surface2)"><td style="${thS};font-weight:900">合計</td>
+          <td style="${thS};text-align:right;font-family:DM Mono,monospace;font-weight:900;color:var(--green)">${fmtMoney(sportRev+kidRev)}</td>
+          <td style="${thS};text-align:right;font-family:DM Mono,monospace;font-weight:900;color:var(--red)">-${fmtMoney(sportCost+kidCost+sharedCost)}</td>
+          <td style="${thS};text-align:right;font-family:DM Mono,monospace;font-weight:900;color:${sportNet+kidNet-sharedCost>=0?'var(--green)':'var(--red)'}">${(sportNet+kidNet-sharedCost)<0?'-':''}${fmtMoney(Math.abs(sportNet+kidNet-sharedCost))}</td>
+          <td style="${thS};text-align:right;font-weight:700;color:var(--text3)">${(sportRev+kidRev)>0?Math.round((sportNet+kidNet-sharedCost)/(sportRev+kidRev)*100)+'%':'—'}</td></tr>
+      </tbody>
+    </table>`;
+
+  // ── E. 應收 / 預收 ──
+  const today=todayStr();
+  // 應收：兒童已填費用但未收款
+  const receivables=kids.filter(k=>{
+    const b=kidBills[k.id+'_'+month];
+    return b && !b.isPaid;
+  });
+  const recTotal=receivables.reduce((s,k)=>s+getKidRevenue(k,month),0);
+
+  document.getElementById('monthlyReceivable').innerHTML=receivables.length
+    ? receivables.map(k=>{
+        const rev=getKidRevenue(k,month);
+        return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+          <span style="font-weight:600">${k.name} <span style="font-size:11px;color:var(--text3)">${k.grade||''}</span></span>
+          <span style="font-family:DM Mono,monospace;font-weight:700;color:var(--red)">${fmtMoney(rev)}</span>
+        </div>`;
+      }).join('')+`<div style="display:flex;justify-content:space-between;padding:10px 0 0;font-weight:700"><span>合計</span><span style="font-family:DM Mono,monospace;color:var(--red)">${fmtMoney(recTotal)}</span></div>`
+    : '<div style="color:var(--text3);font-size:12px;padding:8px 0">✅ 無應收帳款</div>';
+
+  // 預收：購買日期是本月但服務月份是未來月份
+  const deferred=purchases.filter(p=>{
+    const buyM=p.date?.slice(0,7);
+    const servM=p.serviceMonth;
+    return buyM===month && servM && servM>month;
+  });
+  const defTotal=deferred.reduce((s,p)=>s+p.amount,0);
+  document.getElementById('monthlyDeferred').innerHTML=deferred.length
+    ? deferred.map(p=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <span>${p.student} <span style="font-size:11px;color:var(--accent2)">${p.serviceMonth}</span></span>
+        <span style="font-family:DM Mono,monospace;font-weight:700;color:var(--accent2)">${fmtMoney(p.amount)}</span>
+      </div>`).join('')+`<div style="display:flex;justify-content:space-between;padding:10px 0 0;font-weight:700"><span>合計</span><span style="font-family:DM Mono,monospace;color:var(--accent2)">${fmtMoney(defTotal)}</span></div>`
+    : '<div style="color:var(--text3);font-size:12px;padding:8px 0">本月無預收款</div>';
+
   renderBankMonthlySummary(month);
+}
+
+// helper: 對帳卡格
+function rw2(label, val, color) {
+  return `<div style="background:var(--surface2);border-radius:8px;padding:12px 14px">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${label}</div>
+    <div style="font-size:20px;font-weight:900;font-family:DM Mono,monospace;color:${color}">${val}</div>
+  </div>`;
 }
 
 // ═══════════════════════════════
