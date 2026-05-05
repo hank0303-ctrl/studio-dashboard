@@ -673,11 +673,86 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 <div class="page" id="page-teacher">
   <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
     <div style="font-size:24px;font-weight:900">老師管理</div>
-    <button class="btn btn-primary" onclick="openModal('addTeacherModal')">＋ 新增老師</button>
+    <div class="flex gap-8 flex-wrap">
+      <div style="display:flex;gap:4px;background:var(--surface2);border-radius:6px;padding:3px">
+        <button id="teacherView_cards" onclick="setTeacherView('cards')" class="btn btn-secondary btn-sm active" style="border-radius:4px">課費明細</button>
+        <button id="teacherView_salary" onclick="setTeacherView('salary')" class="btn btn-secondary btn-sm" style="border-radius:4px">📋 薪資總表</button>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('addTeacherModal')">＋ 新增老師</button>
+    </div>
   </div>
 
   <div class="tab-row" id="teacherMonthTabs"></div>
+
+  <!-- 課費明細（原有）-->
   <div id="teacherCardsContainer"></div>
+
+  <!-- 薪資總表 -->
+  <div id="teacherSalaryContainer" style="display:none">
+    <div class="card mb-16" id="teacherSalaryWarnings" style="display:none"></div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:14px;font-weight:700">老師薪資總表 <span id="teacherSalaryMonthLabel" style="color:var(--text3);font-size:12px;font-weight:400"></span></div>
+        <div style="font-size:12px;color:var(--text3)">點老師姓名查看明細</div>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse" id="teacherSalaryTable">
+          <thead>
+            <tr style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:1px;text-transform:uppercase">
+              <th style="padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)">老師</th>
+              <th style="padding:10px 14px;text-align:center;border-bottom:1px solid var(--border)">堂數</th>
+              <th style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)">課費</th>
+              <th style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)">滿班加給</th>
+              <th style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)">手續費</th>
+              <th style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)">應付薪資</th>
+              <th style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)">已發金額</th>
+              <th style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)">差額</th>
+              <th style="padding:10px 14px;text-align:center;border-bottom:1px solid var(--border)">狀態</th>
+            </tr>
+          </thead>
+          <tbody id="teacherSalaryTbody"></tbody>
+          <tfoot id="teacherSalaryTfoot"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 發薪記錄 Modal -->
+<div class="modal-overlay" id="paySalaryModal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title" id="paySalaryTitle">發薪記錄</div>
+    <input type="hidden" id="ps_teacher_name">
+    <input type="hidden" id="ps_month">
+    <div style="background:var(--surface2);border-radius:8px;padding:12px;margin-bottom:14px" id="ps_summary"></div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1"><label>發薪日期</label><input type="date" id="ps_date"></div>
+      <div class="form-group" style="flex:1">
+        <label>付款方式</label>
+        <select id="ps_method">
+          <option value="transfer">匯款</option><option value="cash">現金</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>實際發薪金額 ($)</label><input type="number" id="ps_amount" min="0"></div>
+    <div class="form-group"><label>備註</label><input type="text" id="ps_note" placeholder="選填"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('paySalaryModal')">取消</button>
+      <button class="btn btn-primary" onclick="recordSalaryPayment()">確認發薪</button>
+    </div>
+  </div>
+</div>
+
+<!-- 老師薪資明細 Modal -->
+<div class="modal-overlay" id="teacherSalaryDetailModal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-title" id="tsDetailTitle">薪資明細</div>
+    <div id="tsDetailContent" style="max-height:60vh;overflow-y:auto"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('teacherSalaryDetailModal')">關閉</button>
+      <button class="btn btn-primary" onclick="openPaySalaryFromDetail()">💳 記錄發薪</button>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════
@@ -1792,7 +1867,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 // ═══════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════
-const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', subscriptions:'studio_subscriptions', fixedExp:'studio_fixed_expenses' };
+const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', subscriptions:'studio_subscriptions', fixedExp:'studio_fixed_expenses', salaryRec:'studio_salary_records' };
 
 function load(key) {
   try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
@@ -2997,7 +3072,8 @@ function renderTeacherPage() {
         <td style="padding:4px 10px;border-bottom:1px solid var(--border);text-align:center">
           <input type="number" value="${c.attended}" min="0" max="${c.max}"
             style="width:52px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:3px 4px;font-family:DM Mono,monospace"
-            onchange="updateClassAttended('${c.id}',this.value)"
+            onblur="updateClassAttended('${c.id}',this.value)"
+            onkeydown="if(event.key==='Enter'){this.blur()}"
             ${isCancelled?'disabled':''}
           >
         </td>
@@ -3007,7 +3083,8 @@ function renderTeacherPage() {
           ${isCancelled ? `<span style="color:var(--text3);font-size:12px">－</span>` :
           `<input type="number" value="${pay}" min="0"
             style="width:80px;text-align:right;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:13px;font-weight:700;padding:3px 6px;font-family:DM Mono,monospace"
-            onchange="updateClassCustomPay('${c.id}',this.value)"
+            onblur="updateClassCustomPay('${c.id}',this.value)"
+            onkeydown="if(event.key==='Enter'){this.blur()}"
           >`}
         </td>
         <td style="padding:4px 8px;border-bottom:1px solid var(--border)">
@@ -3097,6 +3174,7 @@ function renderTeacherPage() {
       </div>` : `<div style="color:var(--text3);font-size:13px;padding:10px 0">本月無課程記錄</div>`}
     </div>`;
   }).join('');
+  if(_teacherView==='salary') renderTeacherSalary();
 }
 
 // 複製老師明細給老師核對
@@ -6038,6 +6116,198 @@ function renderFixedExpenses() {
       </tr>`;
     }).join('')}</tbody>
   </table></div>`;
+}
+
+// ═══════════════════════════════
+//  老師薪資總表
+// ═══════════════════════════════
+let salaryRecords = load(KEYS.salaryRec);
+// 結構：{ id, teacherName, month, amount, method, date, note }
+
+let _teacherView = 'cards';
+let _tsDetailTeacher = '';
+
+function setTeacherView(v) {
+  _teacherView = v;
+  ['cards','salary'].forEach(id => {
+    const btn = document.getElementById('teacherView_'+id);
+    if(btn){ btn.style.background=id===v?'var(--accent)':'transparent'; btn.style.color=id===v?'#fff':'var(--text2)'; }
+  });
+  document.getElementById('teacherCardsContainer').style.display = v==='cards' ? '' : 'none';
+  document.getElementById('teacherSalaryContainer').style.display = v==='salary' ? '' : 'none';
+  if(v==='salary') renderTeacherSalary();
+}
+
+function calcTeacherMonthSalary(t, month) {
+  const mClasses = classes.filter(c=>c.date.slice(0,7)===month&&c.status!=='停課'&&c.teacher===t.name);
+  let basePay=0, fullBonus=0;
+  mClasses.forEach(c=>{
+    const p = c.customPay!==undefined ? c.customPay : calcTeacherPay(t,c);
+    basePay += p;
+    if(c.status==='滿班') fullBonus += (t.fullBonus||0);
+  });
+  const deduct = (t.deductFee!==false) && basePay>0 ? 15 : 0;
+  const net = basePay + fullBonus - deduct;
+  return { mClasses, basePay, fullBonus, deduct, net };
+}
+
+function renderTeacherSalary() {
+  const month = teacherPageMonth;
+  const monthLabel = document.getElementById('teacherSalaryMonthLabel');
+  if(monthLabel) monthLabel.textContent = `— ${month}`;
+
+  // 薪資異常提醒
+  const warnings = [];
+  teachers.forEach(t=>{
+    if(!t.tiers||!t.tiers.length) warnings.push(`⚠️ ${t.name} 未設定課費單價`);
+  });
+  const mAllClasses = classes.filter(c=>c.date.slice(0,7)===month&&c.status!=='停課');
+  const unknownTeacher = mAllClasses.filter(c=>!teachers.find(t=>t.name===c.teacher));
+  if(unknownTeacher.length) warnings.push(`⚠️ ${[...new Set(unknownTeacher.map(c=>c.teacher))].join('、')} 有課程但不在老師名單中`);
+
+  const warnEl = document.getElementById('teacherSalaryWarnings');
+  if(warnEl){
+    if(warnings.length){
+      warnEl.style.display='';
+      warnEl.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--yellow);margin-bottom:8px">⚠️ 薪資異常提醒</div>`+
+        warnings.map(w=>`<div style="font-size:12px;color:var(--text2);margin-bottom:4px">${w}</div>`).join('');
+    } else { warnEl.style.display='none'; }
+  }
+
+  const tdS='padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px';
+  let totalNet=0, totalPaid=0;
+  const rows = teachers.map(t=>{
+    const {mClasses,basePay,fullBonus,deduct,net} = calcTeacherMonthSalary(t, month);
+    if(!mClasses.length) return null;
+    totalNet += net;
+    const paid = salaryRecords.filter(r=>r.teacherName===t.name&&r.month===month).reduce((s,r)=>s+r.amount,0);
+    totalPaid += paid;
+    const diff = net - paid;
+    const isPaid = paid >= net && net > 0;
+    return `<tr style="cursor:pointer" onclick="showTeacherSalaryDetail('${t.name}','${month}')">
+      <td style="${tdS};font-weight:700;color:var(--accent)">${t.name}</td>
+      <td style="${tdS};text-align:center">${mClasses.length}</td>
+      <td style="${tdS};text-align:right;font-family:DM Mono,monospace">${fmtMoney(basePay)}</td>
+      <td style="${tdS};text-align:right;font-family:DM Mono,monospace;color:var(--yellow)">${fullBonus>0?'+'+fmtMoney(fullBonus):'—'}</td>
+      <td style="${tdS};text-align:right;font-family:DM Mono,monospace;color:var(--red)">${deduct>0?'-$'+deduct:'—'}</td>
+      <td style="${tdS};text-align:right;font-family:DM Mono,monospace;font-weight:700;color:var(--accent)">${fmtMoney(net)}</td>
+      <td style="${tdS};text-align:right;font-family:DM Mono,monospace;color:${paid>0?'var(--green)':'var(--text3)'}">${paid>0?fmtMoney(paid):'—'}</td>
+      <td style="${tdS};text-align:right;font-family:DM Mono,monospace;color:${diff>0?'var(--red)':diff<0?'var(--yellow)':'var(--text3)'}">${diff!==0?(diff>0?'-':'+')+'$'+Math.abs(diff).toLocaleString():'✅'}</td>
+      <td style="${tdS};text-align:center">
+        ${isPaid
+          ? `<span style="background:rgba(74,128,96,0.1);color:var(--green);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">✅ 已發</span>`
+          : `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openPaySalary('${t.name}','${month}',${net})">💳 發薪</button>`}
+      </td>
+    </tr>`;
+  }).filter(Boolean);
+
+  const tbody = document.getElementById('teacherSalaryTbody');
+  if(tbody) tbody.innerHTML = rows.length ? rows.join('')
+    : `<tr><td colspan="9" class="empty-state">本月無課程記錄</td></tr>`;
+
+  const tfoot = document.getElementById('teacherSalaryTfoot');
+  if(tfoot) tfoot.innerHTML = rows.length ? `<tr style="background:var(--surface2)">
+    <td style="${tdS};font-weight:900" colspan="5">合計</td>
+    <td style="${tdS};text-align:right;font-family:DM Mono,monospace;font-weight:900;color:var(--accent)">${fmtMoney(totalNet)}</td>
+    <td style="${tdS};text-align:right;font-family:DM Mono,monospace;color:var(--green)">${fmtMoney(totalPaid)}</td>
+    <td style="${tdS};text-align:right;font-family:DM Mono,monospace;color:${totalNet-totalPaid>0?'var(--red)':'var(--text3)'}">${totalNet-totalPaid>0?'-$'+(totalNet-totalPaid).toLocaleString():'✅'}</td>
+    <td style="${tdS}"></td>
+  </tr>` : '';
+}
+
+function showTeacherSalaryDetail(teacherName, month) {
+  _tsDetailTeacher = teacherName;
+  const t = teachers.find(x=>x.name===teacherName); if(!t) return;
+  const {mClasses,basePay,fullBonus,deduct,net} = calcTeacherMonthSalary(t, month);
+  const paid = salaryRecords.filter(r=>r.teacherName===teacherName&&r.month===month).reduce((s,r)=>s+r.amount,0);
+  const payHistory = salaryRecords.filter(r=>r.teacherName===teacherName&&r.month===month);
+
+  document.getElementById('tsDetailTitle').textContent = `${teacherName} — ${month} 薪資明細`;
+  const tdS='padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px';
+  document.getElementById('tsDetailContent').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+      <thead><tr style="font-size:11px;color:var(--text3);font-weight:700">
+        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)">日期</th>
+        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)">課程</th>
+        <th style="padding:8px 12px;text-align:center;border-bottom:1px solid var(--border)">人數</th>
+        <th style="padding:8px 12px;text-align:right;border-bottom:1px solid var(--border)">課費</th>
+        <th style="padding:8px 12px;text-align:right;border-bottom:1px solid var(--border)">加給</th>
+        <th style="padding:8px 12px;text-align:right;border-bottom:1px solid var(--border)">小計</th>
+      </tr></thead>
+      <tbody>${mClasses.map(c=>{
+        const pay = c.customPay!==undefined?c.customPay:calcTeacherPay(t,c);
+        const bonus = c.status==='滿班'?(t.fullBonus||0):0;
+        return `<tr>
+          <td style="${tdS};font-family:DM Mono,monospace;font-size:12px">${fmtDate(c.date)}</td>
+          <td style="${tdS}">${c.name}</td>
+          <td style="${tdS};text-align:center">${c.attended||c.booked}</td>
+          <td style="${tdS};text-align:right;font-family:DM Mono,monospace">${fmtMoney(pay)}</td>
+          <td style="${tdS};text-align:right;font-family:DM Mono,monospace;color:var(--yellow)">${bonus>0?'+'+fmtMoney(bonus):'—'}</td>
+          <td style="${tdS};text-align:right;font-family:DM Mono,monospace;font-weight:700">${fmtMoney(pay+bonus)}</td>
+        </tr>`;
+      }).join('')}</tbody>
+      <tfoot>
+        <tr style="background:var(--surface2)">
+          <td style="${tdS}" colspan="3">課費小計</td>
+          <td style="${tdS};text-align:right;font-family:DM Mono,monospace">${fmtMoney(basePay)}</td>
+          <td style="${tdS};text-align:right;font-family:DM Mono,monospace;color:var(--yellow)">${fullBonus>0?'+'+fmtMoney(fullBonus):'—'}</td>
+          <td style="${tdS};text-align:right;font-family:DM Mono,monospace">${fmtMoney(basePay+fullBonus)}</td>
+        </tr>
+        ${deduct>0?`<tr style="background:var(--surface2)"><td style="${tdS}" colspan="5">扣除轉帳手續費</td><td style="${tdS};text-align:right;font-family:DM Mono,monospace;color:var(--red)">-$${deduct}</td></tr>`:''}
+        <tr style="background:var(--surface2)">
+          <td style="${tdS};font-weight:900" colspan="5">應付薪資</td>
+          <td style="${tdS};text-align:right;font-family:DM Mono,monospace;font-weight:900;color:var(--accent)">${fmtMoney(net)}</td>
+        </tr>
+      </tfoot>
+    </table>
+    ${payHistory.length?`
+    <div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:8px">發薪記錄</div>
+    ${payHistory.map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <span>${r.date} · ${r.method==='cash'?'現金':'匯款'}${r.note?' · '+r.note:''}</span>
+      <span style="font-family:DM Mono,monospace;color:var(--green);font-weight:700">${fmtMoney(r.amount)}</span>
+    </div>`).join('')}
+    <div style="display:flex;justify-content:space-between;padding:8px 0 0;font-size:13px;font-weight:700">
+      <span>已發合計</span><span style="font-family:DM Mono,monospace;color:var(--green)">${fmtMoney(paid)}</span>
+    </div>`:'<div style="color:var(--text3);font-size:12px;padding:8px 0">尚未發薪</div>'}`;
+  openModal('teacherSalaryDetailModal');
+}
+
+function openPaySalaryFromDetail() {
+  closeModal('teacherSalaryDetailModal');
+  const t = teachers.find(x=>x.name===_tsDetailTeacher); if(!t) return;
+  const {net} = calcTeacherMonthSalary(t, teacherPageMonth);
+  openPaySalary(_tsDetailTeacher, teacherPageMonth, net);
+}
+
+function openPaySalary(teacherName, month, netPay) {
+  document.getElementById('ps_teacher_name').value = teacherName;
+  document.getElementById('ps_month').value = month;
+  document.getElementById('paySalaryTitle').textContent = `發薪記錄 — ${teacherName} ${month}`;
+  document.getElementById('ps_date').value = todayStr();
+  document.getElementById('ps_amount').value = netPay;
+  document.getElementById('ps_method').value = 'transfer';
+  document.getElementById('ps_note').value = '';
+  const paid = salaryRecords.filter(r=>r.teacherName===teacherName&&r.month===month).reduce((s,r)=>s+r.amount,0);
+  document.getElementById('ps_summary').innerHTML = `<div style="font-size:12px;color:var(--text2)">應付 <strong style="color:var(--accent)">${fmtMoney(netPay)}</strong>　已發 <strong style="color:var(--green)">${fmtMoney(paid)}</strong>　差額 <strong style="color:${netPay-paid>0?'var(--red)':'var(--text3)'}">${fmtMoney(netPay-paid)}</strong></div>`;
+  openModal('paySalaryModal');
+}
+
+function recordSalaryPayment() {
+  const rec = {
+    id: uid(),
+    teacherName: document.getElementById('ps_teacher_name').value,
+    month:       document.getElementById('ps_month').value,
+    amount:      parseInt(document.getElementById('ps_amount').value)||0,
+    method:      document.getElementById('ps_method').value,
+    date:        document.getElementById('ps_date').value,
+    note:        document.getElementById('ps_note').value.trim(),
+  };
+  if(!rec.amount||!rec.teacherName) return alert('請填寫發薪金額');
+  salaryRecords.push(rec);
+  save(KEYS.salaryRec, salaryRecords);
+  showToast(`✅ 已記錄 ${rec.teacherName} ${fmtMoney(rec.amount)} 發薪`, 'success');
+  closeModal('paySalaryModal');
+  renderTeacherSalary();
 }
 
 function init() {
