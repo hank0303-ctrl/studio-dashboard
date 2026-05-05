@@ -98,7 +98,6 @@ body {
   .nav-logo { display: none; }
   .nav-spacer { display: none; }
   .nav-date { display: none; }
-  #syncBtn { display: none; }
   .nav-btn {
     flex: 1; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
@@ -433,7 +432,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   <button class="nav-btn" onclick="showPage('staff')">👔 PT薪資</button>
   <button class="nav-btn" onclick="showPage('monthly')">📅 月結報表</button>
   <div class="nav-spacer"></div>
-  <button class="btn btn-secondary btn-sm" onclick="syncFromSheet()" id="syncBtn" style="font-size:12px;padding:5px 12px">🔄 同步試算表</button>
   <div class="nav-date" id="navDate" style="margin-left:8px"></div>
 </nav>
 <!-- 手機版頂部工具列 -->
@@ -441,7 +439,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   <div style="font-size:16px;font-weight:900;color:var(--accent)">⚡ 武樂</div>
   <div style="display:flex;gap:8px;align-items:center">
     <div id="mobileDate" style="font-size:11px;color:var(--text3)"></div>
-    <button class="btn btn-secondary btn-sm" onclick="syncFromSheet()" style="font-size:11px;padding:4px 10px">🔄 同步</button>
   </div>
 </div>
 <div id="syncToast" style="display:none;position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.5)"></div>
@@ -3597,173 +3594,6 @@ function exportMonthly() {
 }
 
 // ═══════════════════════════════
-//  GOOGLE SHEETS 同步
-// ═══════════════════════════════
-const SHEET_ID = '1-DtjW2azPOspnc5XLbzGunN4sqMbkyDaErrXrEMUllQ';
-const SHEET_NAME = '購買記錄';
-
-function showToast(msg, type='success') {
-  const el = document.getElementById('syncToast');
-  el.textContent = msg;
-  el.style.display = 'block';
-  el.style.background = type==='success' ? 'rgba(74,222,128,0.15)' : type==='error' ? 'rgba(248,113,113,0.15)' : 'rgba(124,111,205,0.15)';
-  el.style.border = `1px solid ${type==='success'?'rgba(74,222,128,0.3)':type==='error'?'rgba(248,113,113,0.3)':'rgba(124,111,205,0.3)'}`;
-  el.style.color = type==='success' ? 'var(--green)' : type==='error' ? 'var(--red)' : 'var(--accent2)';
-  clearTimeout(el._timer);
-  el._timer = setTimeout(()=>{ el.style.display='none'; }, 3500);
-}
-
-async function syncFromSheet() {
-  const btn = document.getElementById('syncBtn');
-  btn.textContent = '⏳ 同步中...';
-  btn.disabled = true;
-
-  try {
-    // 同步購買記錄
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('無法連線');
-    const text = await res.text();
-
-    // Google 回傳的格式是 google.visualization.Query.setResponse({...})
-    const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
-    const rows = json.table.rows;
-    if (!rows || rows.length === 0) {
-      showToast('試算表目前無資料', 'info');
-      return;
-    }
-
-    let added = 0;
-    let skipped = 0;
-
-    rows.forEach(row => {
-      const cols = row.c;
-      if (!cols || !cols[0]) return;
-
-      // 欄位順序：購買日期, 會員姓名, 方案名稱, 金額, 啟用日期, 到期日期, 方案時長, 堂數, 寫入時間
-      const rawDate      = cols[0]?.v;
-      const student      = cols[1]?.v?.toString().trim() || '';
-      const plan         = cols[2]?.v?.toString().trim() || '';
-      const amount       = parseInt(cols[3]?.v) || 0;
-      const rawStartDate = cols[4]?.v;
-      const rawEndDate   = cols[5]?.v;
-      const sessions     = parseInt(cols[7]?.v) || 0;
-
-      if (!student || !plan) return;
-
-      // 轉換日期格式：Date(yyyy,mm,dd) 或 yyyy/MM/dd → yyyy-MM-dd
-      function parseSheetDate(raw) {
-        if (!raw) return '';
-        if (typeof raw === 'string' && raw.startsWith('Date(')) {
-          const parts = raw.replace('Date(','').replace(')','').split(',');
-          return `${parts[0]}-${String(parseInt(parts[1])+1).padStart(2,'0')}-${String(parts[2]).padStart(2,'0')}`;
-        }
-        if (typeof raw === 'string') return raw.replace(/\//g, '-');
-        return '';
-      }
-
-      const dateStr      = parseSheetDate(rawDate);
-      const startDateStr = parseSheetDate(rawStartDate) || dateStr;
-      const endDateStr   = parseSheetDate(rawEndDate);
-
-      if (!dateStr) return;
-
-      // 檢查是否已存在（同日期+學員+方案）
-      const exists = purchases.some(p => p.date === dateStr && p.student === student && p.plan === plan && p.amount === amount);
-      if (exists) { skipped++; return; }
-
-      purchases.push({
-        id: uid(),
-        date: dateStr,
-        student,
-        plan,
-        amount,
-        startDate: startDateStr,
-        endDate: endDateStr,
-        sessions,
-        note: '📥 試算表匯入',
-      });
-      added++;
-    });
-
-    save(KEYS.purchases, purchases);
-
-    // 同步預約統計（更新課程預約人數）
-    await syncBookingStats();
-
-    if (added > 0) {
-      showToast(`✅ 同步完成！新增 ${added} 筆，跳過 ${skipped} 筆重複`, 'success');
-    } else {
-      showToast(`已是最新狀態（跳過 ${skipped} 筆重複）`, 'info');
-    }
-
-    refreshCurrentPage();
-
-  } catch(e) {
-    console.error('同步錯誤:', e);
-    showToast('❌ ' + (e.message || '同步失敗'), 'error');
-  } finally {
-    btn.textContent = '🔄 同步試算表';
-    btn.disabled = false;
-  }
-}
-
-// 從試算表同步預約統計到課程資料
-async function syncBookingStats() {
-  try {
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent('課程預約統計')}`;
-    const res = await fetch(url);
-    if (!res.ok) return;
-    const text = await res.text();
-    const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
-    if (!match) return;
-    const json = JSON.parse(match[1]);
-    const rows = json.table?.rows;
-    if (!rows || rows.length === 0) return;
-
-    let updated = 0;
-    rows.forEach(row => {
-      const cols = row.c;
-      if (!cols || !cols[0]) return;
-
-      function parseSheetDate(raw) {
-        if (!raw) return '';
-        if (typeof raw === 'string' && raw.startsWith('Date(')) {
-          const parts = raw.replace('Date(','').replace(')','').split(',');
-          return `${parts[0]}-${String(parseInt(parts[1])+1).padStart(2,'0')}-${String(parts[2]).padStart(2,'0')}`;
-        }
-        return typeof raw === 'string' ? raw.replace(/\//g,'-') : '';
-      }
-
-      const courseDate = parseSheetDate(cols[0]?.v);
-      const courseTime = cols[1]?.v?.toString().trim() || '';
-      const className  = cols[2]?.v?.toString().trim() || '';
-      const netBooked  = parseInt(cols[5]?.v) || 0; // 淨預約人數
-
-      if (!courseDate || !className) return;
-
-      // 找對應的課程，更新預約人數
-      const idx = classes.findIndex(c =>
-        c.date === courseDate &&
-        c.timeStart === courseTime &&
-        c.name === className
-      );
-      if (idx >= 0 && classes[idx].booked !== netBooked) {
-        classes[idx].booked = Math.max(0, netBooked);
-        updated++;
-      }
-    });
-
-    if (updated > 0) {
-      save(KEYS.classes, classes);
-      console.log(`預約人數更新：${updated} 堂課`);
-    }
-  } catch(e) {
-    console.warn('預約統計同步失敗:', e);
-  }
-}
-
-// ═══════════════════════════════
 //  匯入 BookFast Excel 報表（支援兩種格式）
 // ═══════════════════════════════
 function importClassExcel(input) {
@@ -6319,7 +6149,6 @@ function init() {
   document.getElementById('todayDateLabel').textContent =
     `${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日（星期${days[now.getDay()]}）`;
   renderToday();
-  setTimeout(syncFromSheet, 1200);
 }
 
 init();
