@@ -433,12 +433,16 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   <button class="nav-btn" onclick="showPage('monthly')">📅 月結報表</button>
   <div class="nav-spacer"></div>
   <div class="nav-date" id="navDate" style="margin-left:8px"></div>
+  <button class="btn btn-secondary btn-sm" onclick="cloudPull()" title="從雲端讀取最新資料">同步</button>
+  <button class="btn btn-secondary btn-sm" onclick="configureCloudSync()" title="設定 Google 試算表同步">設定</button>
 </nav>
 <!-- 手機版頂部工具列 -->
 <div class="mobile-top-bar" style="display:none">
   <div style="font-size:16px;font-weight:900;color:var(--accent)">⚡ 武樂</div>
   <div style="display:flex;gap:8px;align-items:center">
     <div id="mobileDate" style="font-size:11px;color:var(--text3)"></div>
+    <button class="btn btn-secondary btn-sm" onclick="cloudPull()">同步</button>
+    <button class="btn btn-secondary btn-sm" onclick="configureCloudSync()">設定</button>
   </div>
 </div>
 <div id="syncToast" style="display:none;position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.5)"></div>
@@ -1865,6 +1869,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 //  DATA LAYER
 // ═══════════════════════════════
 const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', subscriptions:'studio_subscriptions', fixedExp:'studio_fixed_expenses', salaryRec:'studio_salary_records' };
+const EXTRA_DATA_KEYS = ['studio_staff_data'];
+const SYNC_CONFIG_KEY = 'studio_cloud_sync_config';
+const SYNC_META_KEY = 'studio_cloud_sync_meta';
+const SYNC_APP_ID = 'studio-dashboard';
+
+let isApplyingRemoteData = false;
+let syncTimer = null;
+
+function allDataKeys() {
+  return [...Object.values(KEYS), ...EXTRA_DATA_KEYS];
+}
 
 function load(key) {
   try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
@@ -1877,6 +1892,173 @@ function loadObj(key) {
 }
 function save(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
+  if (!isApplyingRemoteData && allDataKeys().includes(key)) {
+    markLocalChanged();
+    scheduleCloudPush();
+  }
+}
+
+function loadSyncConfig() {
+  try {
+    return JSON.parse(localStorage.getItem(SYNC_CONFIG_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveSyncConfig(config) {
+  localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(config));
+}
+
+function getDeviceName() {
+  const config = loadSyncConfig();
+  if (config.deviceName) return config.deviceName;
+  const name = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? '手機' : '電腦';
+  return `${name}-${Math.random().toString(36).slice(2,6)}`;
+}
+
+function markLocalChanged() {
+  const config = loadSyncConfig();
+  const deviceName = config.deviceName || getDeviceName();
+  if (!config.deviceName) saveSyncConfig({ ...config, deviceName });
+  localStorage.setItem(SYNC_META_KEY, JSON.stringify({
+    updatedAt: new Date().toISOString(),
+    deviceName,
+  }));
+}
+
+function collectLocalData() {
+  const data = {};
+  allDataKeys().forEach(key => {
+    const raw = localStorage.getItem(key);
+    if (raw !== null) data[key] = JSON.parse(raw);
+  });
+  return data;
+}
+
+function reloadLocalData() {
+  teachers = load(KEYS.teachers);
+  classes = load(KEYS.classes);
+  purchases = load(KEYS.purchases);
+  kids = load(KEYS.kids);
+  kidBills = loadObj(KEYS.kidBills);
+  kidCosts = loadObj(KEYS.kidCosts);
+  bankTx = load(KEYS.bankTx);
+  staffList = load(KEYS.staff);
+  staffData = loadObj('studio_staff_data');
+  subscriptions = load(KEYS.subscriptions);
+  fixedExp = load(KEYS.fixedExp);
+  salaryRecords = load(KEYS.salaryRec);
+}
+
+function buildSyncUrl(action) {
+  const config = loadSyncConfig();
+  if (!config.url) return '';
+  const url = new URL(config.url);
+  url.searchParams.set('action', action);
+  url.searchParams.set('app', SYNC_APP_ID);
+  if (config.token) url.searchParams.set('token', config.token);
+  return url.toString();
+}
+
+function scheduleCloudPush() {
+  const config = loadSyncConfig();
+  if (!config.url || config.autoPush === false) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => cloudPush(true), 1200);
+}
+
+function showToast(message, type='success') {
+  const el = document.getElementById('syncToast');
+  if (!el) return;
+  el.textContent = message;
+  el.style.display = 'block';
+  el.style.color = type === 'error' ? 'var(--red)' : 'var(--green)';
+  el.style.background = type === 'error' ? '#fff0ef' : '#eef8f1';
+  el.style.border = type === 'error' ? '1px solid #f1c4c1' : '1px solid #bde4c8';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.style.display = 'none'; }, 2800);
+}
+
+async function cloudPush(silent=false) {
+  const config = loadSyncConfig();
+  if (!config.url) {
+    if (!silent) configureCloudSync();
+    return;
+  }
+  const meta = JSON.parse(localStorage.getItem(SYNC_META_KEY) || '{}');
+  const payload = {
+    action: 'save',
+    app: SYNC_APP_ID,
+    token: config.token || '',
+    meta: { ...meta, pushedAt: new Date().toISOString() },
+    data: collectLocalData(),
+  };
+  try {
+    const res = await fetch(buildSyncUrl('save'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+    });
+    const result = await res.json();
+    if (!result.ok) throw new Error(result.error || '同步失敗');
+    localStorage.setItem(SYNC_META_KEY, JSON.stringify(result.meta || payload.meta));
+    if (!silent) showToast('✅ 已同步到雲端', 'success');
+  } catch (err) {
+    console.error(err);
+    if (!silent) showToast('❌ 雲端同步失敗：' + err.message, 'error');
+  }
+}
+
+async function cloudPull() {
+  const config = loadSyncConfig();
+  if (!config.url) {
+    configureCloudSync();
+    return;
+  }
+  try {
+    showToast('同步中...', 'success');
+    const res = await fetch(buildSyncUrl('load'), { method: 'GET' });
+    const result = await res.json();
+    if (!result.ok) throw new Error(result.error || '讀取失敗');
+    if (!result.data || !Object.keys(result.data).length) {
+      showToast('雲端目前沒有資料，已保留本機資料', 'success');
+      return;
+    }
+    isApplyingRemoteData = true;
+    allDataKeys().forEach(key => {
+      if (Object.prototype.hasOwnProperty.call(result.data, key)) {
+        localStorage.setItem(key, JSON.stringify(result.data[key]));
+      }
+    });
+    localStorage.setItem(SYNC_META_KEY, JSON.stringify(result.meta || {}));
+    reloadLocalData();
+    refreshCurrentPage();
+    showToast('✅ 已讀取雲端最新資料', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('❌ 讀取雲端失敗：' + err.message, 'error');
+  } finally {
+    isApplyingRemoteData = false;
+  }
+}
+
+function configureCloudSync() {
+  const current = loadSyncConfig();
+  const url = prompt('貼上 Google Apps Script 網址：', current.url || '');
+  if (url === null) return;
+  const token = prompt('同步密碼（電腦和手機填同一組）：', current.token || '');
+  if (token === null) return;
+  const deviceName = prompt('這台裝置名稱：', current.deviceName || getDeviceName());
+  if (deviceName === null) return;
+  saveSyncConfig({
+    url: url.trim(),
+    token: token.trim(),
+    deviceName: deviceName.trim() || getDeviceName(),
+    autoPush: true,
+  });
+  showToast('✅ 同步設定已儲存', 'success');
+  if (url.trim()) cloudPull();
 }
 
 let teachers = load(KEYS.teachers);
@@ -4953,6 +5135,7 @@ function refreshCurrentPage() {
   if (id==='monthly') renderMonthlyPage();
   if (id==='kids') renderKidsPage();
   if (id==='bank') renderBankPage();
+  if (id==='staff') renderStaffPage();
 }
 
 // ═══════════════════════════════
@@ -6139,7 +6322,9 @@ function recordSalaryPayment() {
 }
 
 function init() {
+  isApplyingRemoteData = true;
   seedIfEmpty();
+  isApplyingRemoteData = false;
   const now = new Date();
   const days = ['日','一','二','三','四','五','六'];
   const mobileDate = document.getElementById('mobileDate');
@@ -6149,6 +6334,7 @@ function init() {
   document.getElementById('todayDateLabel').textContent =
     `${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日（星期${days[now.getDay()]}）`;
   renderToday();
+  if (loadSyncConfig().url) cloudPull();
 }
 
 init();
