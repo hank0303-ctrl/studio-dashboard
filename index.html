@@ -763,6 +763,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
     <div style="font-size:24px;font-weight:900">學員方案</div>
     <div class="flex gap-8">
+      <button class="btn btn-secondary" onclick="syncGmailPurchases()">📩 同步信箱購買</button>
       <button class="btn btn-secondary" onclick="openModal('addSubscriptionModal')">📋 新增訂閱</button>
       <button class="btn btn-primary" onclick="openModal('addPurchaseModal')">＋ 新增購買</button>
     </div>
@@ -2040,6 +2041,75 @@ async function cloudPull() {
     showToast('❌ 讀取雲端失敗：' + err.message, 'error');
   } finally {
     isApplyingRemoteData = false;
+  }
+}
+
+function purchaseDedupKey(p) {
+  return [
+    p.sourceId || '',
+    p.date || '',
+    (p.student || '').trim(),
+    (p.plan || '').trim(),
+    Number(p.amount || 0),
+  ].join('|').toLowerCase();
+}
+
+async function syncGmailPurchases() {
+  const config = loadSyncConfig();
+  if (!config.url) {
+    configureCloudSync();
+    return;
+  }
+
+  const defaultQuery = 'newer_than:90d {武樂 方案 購買 報名 付款 訂單 月卡 堂數}';
+  const query = prompt('Gmail 搜尋條件：', localStorage.getItem('studio_gmail_purchase_query') || defaultQuery);
+  if (query === null) return;
+  localStorage.setItem('studio_gmail_purchase_query', query.trim() || defaultQuery);
+
+  try {
+    showToast('正在讀取信箱購買紀錄...', 'success');
+    const url = buildSyncUrl('gmailPurchases');
+    const reqUrl = new URL(url);
+    reqUrl.searchParams.set('query', query.trim() || defaultQuery);
+    reqUrl.searchParams.set('max', '80');
+    const res = await fetch(reqUrl.toString(), { method: 'GET' });
+    const result = await res.json();
+    if (!result.ok) throw new Error(result.error || '信箱同步失敗');
+
+    const incoming = (result.purchases || []).filter(p => p.date && p.student && p.plan);
+    const existingKeys = new Set(purchases.map(purchaseDedupKey));
+    let added = 0;
+
+    incoming.forEach(p => {
+      const record = {
+        id: uid(),
+        date: p.date,
+        student: p.student,
+        plan: p.plan,
+        amount: Number(p.amount || 0),
+        dept: p.dept || 'sport',
+        payMethod: p.payMethod || 'transfer',
+        serviceMonth: p.serviceMonth || (p.date ? p.date.slice(0,7) : ''),
+        startDate: p.startDate || p.date,
+        endDate: p.endDate || '',
+        sessions: Number(p.sessions || 0),
+        note: p.note || 'Gmail 匯入',
+        source: 'gmail',
+        sourceId: p.sourceId || '',
+      };
+      const key = purchaseDedupKey(record);
+      if (existingKeys.has(key)) return;
+      purchases.push(record);
+      existingKeys.add(key);
+      added++;
+    });
+
+    if (added > 0) save(KEYS.purchases, purchases);
+    refreshCurrentPage();
+    showToast(`✅ 信箱同步完成：新增 ${added} 筆，略過 ${incoming.length - added} 筆重複`, 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('❌ 信箱同步失敗：' + err.message, 'error');
   }
 }
 
