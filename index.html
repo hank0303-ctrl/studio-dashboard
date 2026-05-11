@@ -2046,11 +2046,12 @@ async function cloudPull() {
 
 function purchaseDedupKey(p) {
   return [
-    p.sourceId || '',
     p.date || '',
     (p.student || '').trim(),
     (p.plan || '').trim(),
     Number(p.amount || 0),
+    p.startDate || '',
+    p.endDate || '',
   ].join('|').toLowerCase();
 }
 
@@ -2061,8 +2062,11 @@ async function syncGmailPurchases() {
     return;
   }
 
-  const defaultQuery = 'newer_than:90d {武樂 方案 購買 報名 付款 訂單 月卡 堂數}';
-  const query = prompt('Gmail 搜尋條件：', localStorage.getItem('studio_gmail_purchase_query') || defaultQuery);
+  const oldDefaultQuery = 'newer_than:90d {武樂 方案 購買 報名 付款 訂單 月卡 堂數}';
+  const defaultQuery = 'newer_than:90d {from:wushujoyful@gmail.com subject:每日營收 subject:武樂營隊新報名 武樂 方案 購買 報名 付款 訂單 月卡 堂數}';
+  const savedQuery = localStorage.getItem('studio_gmail_purchase_query');
+  const initialQuery = (!savedQuery || savedQuery === oldDefaultQuery) ? defaultQuery : savedQuery;
+  const query = prompt('Gmail 搜尋條件：', initialQuery);
   if (query === null) return;
   localStorage.setItem('studio_gmail_purchase_query', query.trim() || defaultQuery);
 

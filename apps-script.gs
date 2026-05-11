@@ -67,19 +67,49 @@ function loadAppData(appId) {
 }
 
 function getGmailPurchases(params) {
-  const query = params.query || 'newer_than:90d {武樂 方案 購買 報名 付款 訂單 月卡 堂數}';
+  const query = params.query || 'newer_than:90d {from:wushujoyful@gmail.com subject:每日營收 subject:武樂營隊新報名 武樂 方案 購買 報名 付款 訂單 月卡 堂數}';
   const max = Math.min(Number(params.max || 80), 150);
   const threads = GmailApp.search(query, 0, max);
   const purchases = [];
+  const messages = [];
 
   threads.forEach(thread => {
-    thread.getMessages().forEach(message => {
-      const parsed = parsePurchaseMail(message);
-      if (parsed) purchases.push(parsed);
-    });
+    thread.getMessages().forEach(message => messages.push(message));
+  });
+
+  const selectedMessages = selectBestDailyRevenueMessages(messages);
+  selectedMessages.forEach(message => {
+    const parsed = parsePurchaseMail(message);
+    if (Array.isArray(parsed)) purchases.push(...parsed);
+    else if (parsed) purchases.push(parsed);
   });
 
   return { ok: true, query, count: purchases.length, purchases };
+}
+
+function selectBestDailyRevenueMessages(messages) {
+  const dailyByDate = {};
+  const others = [];
+
+  messages.forEach(message => {
+    const subject = message.getSubject() || '';
+    const body = message.getPlainBody() || '';
+    const text = subject + '\n' + body;
+    if (!/每日營收|今日購買明細/.test(text)) {
+      others.push(message);
+      return;
+    }
+    const date = normalizeDate(firstMatch(text, [
+      /(\d{4}\/\d{1,2}\/\d{1,2})/,
+      /(\d{4}-\d{1,2}-\d{1,2})/,
+    ])) || formatDate(message.getDate());
+    const score = (/啟用日/.test(text) ? 10 : 0) + (text.match(/\$[\d,]+/g) || []).length;
+    if (!dailyByDate[date] || score > dailyByDate[date].score) {
+      dailyByDate[date] = { message, score };
+    }
+  });
+
+  return [...others, ...Object.values(dailyByDate).map(item => item.message)];
 }
 
 function parsePurchaseMail(message) {
@@ -87,16 +117,20 @@ function parsePurchaseMail(message) {
   const body = message.getPlainBody() || '';
   const text = normalizeMailText(subject + '\n' + body);
 
+  if (/每日營收|今日購買明細/.test(text)) {
+    return parseDailyRevenueMail(message, subject, body);
+  }
+
   const student = firstMatch(text, [
     /(?:學員姓名|學生姓名|孩子姓名|姓名|購買人|報名人|家長姓名)\s*[:：]\s*([^\n\r]+)/i,
     /(?:學員|學生|孩子)\s*[:：]\s*([^\n\r]+)/i,
   ]);
   const plan = firstMatch(text, [
-    /(?:方案名稱|購買方案|課程方案|方案|商品名稱|品項|項目)\s*[:：]\s*([^\n\r]+)/i,
+    /(?:方案名稱|購買方案|課程方案|方案|商品名稱|品項|項目|報名期數)\s*[:：]\s*([^\n\r]+)/i,
     /(?:購買|訂購)\s*[:：]\s*([^\n\r]+)/i,
   ]);
   const amountText = firstMatch(text, [
-    /(?:付款金額|金額|總金額|實收金額|訂單金額|應付金額)\s*[:：]\s*([$＄]?\s*[\d,]+)/i,
+    /(?:付款金額|金額|總金額|總費用|實收金額|訂單金額|應付金額)\s*[:：]\s*([$＄]?\s*[\d,]+)/i,
     /(?:NT\$|TWD|\$|＄)\s*([\d,]+)/i,
   ]);
 
@@ -134,6 +168,56 @@ function parsePurchaseMail(message) {
     note: 'Gmail 匯入：' + subject.slice(0, 60),
     sourceId: message.getId(),
   };
+}
+
+function parseDailyRevenueMail(message, subject, body) {
+  const text = normalizeMailText(body);
+  if (/今日尚無購買紀錄/.test(text)) return [];
+
+  const date = normalizeDate(firstMatch(subject + '\n' + text, [
+    /(\d{4}\/\d{1,2}\/\d{1,2})/,
+    /(\d{4}-\d{1,2}-\d{1,2})/,
+  ])) || formatDate(message.getDate());
+
+  const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+  const rows = [];
+  let inTable = false;
+
+  lines.forEach(line => {
+    if (/今日購買明細/.test(line)) {
+      inTable = true;
+      return;
+    }
+    if (!inTable) return;
+    if (/^(會員\s+方案\s+金額|[*＊]|系統自動發送)/.test(line)) return;
+    if (!/\$[\d,]+/.test(line)) return;
+
+    const match = line.match(/^(\S+)\s+(.+?)\s+\$([\d,]+)(?:\s+(\d{4}-\d{1,2}-\d{1,2})(?:\s+(\d{4}-\d{1,2}-\d{1,2}|-))?)?$/);
+    if (!match) return;
+
+    const student = cleanValue(match[1]);
+    const plan = cleanValue(match[2]);
+    const amount = parseAmount(match[3]);
+    const startDate = normalizeDate(match[4]) || date;
+    const endDate = match[5] === '-' ? '' : normalizeDate(match[5]);
+
+    rows.push({
+      date,
+      student,
+      plan,
+      amount,
+      dept: guessDept(plan + ' ' + subject),
+      payMethod: 'transfer',
+      serviceMonth: startDate ? startDate.slice(0, 7) : date.slice(0, 7),
+      startDate,
+      endDate,
+      sessions: sessionsFromPlan(plan),
+      note: 'Gmail 日報匯入：' + subject.slice(0, 60),
+      sourceId: message.getId() + ':' + rows.length,
+    });
+  });
+
+  return rows;
 }
 
 function normalizeMailText(text) {
@@ -206,6 +290,11 @@ function guessPayMethod(text) {
   if (/運動幣|動滋|voucher/i.test(text)) return 'voucher';
   if (/匯款|轉帳|銀行/i.test(text)) return 'transfer';
   return 'transfer';
+}
+
+function sessionsFromPlan(plan) {
+  const match = String(plan || '').match(/(\d+)\s*堂/);
+  return match ? Number(match[1]) : 0;
 }
 
 function getDataSheet() {
