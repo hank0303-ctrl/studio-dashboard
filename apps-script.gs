@@ -67,13 +67,15 @@ function loadAppData(appId) {
 }
 
 function getGmailPurchases(params) {
-  const defaultQuery = 'newer_than:90d {from:wushujoyful@gmail.com subject:每日營收 subject:武樂營隊新報名 武樂 方案 購買 報名 付款 訂單 月卡 堂數}';
+  const defaultQuery = 'newer_than:90d {購買成功通知 bookfastpos servicealarm.mirle 武樂武術 from:wushujoyful@gmail.com subject:每日營收 subject:武樂營隊新報名 武樂 方案 購買 報名 付款 訂單 月卡 堂數}';
   const dailyRevenueQuery = 'newer_than:90d from:wushujoyful@gmail.com subject:每日營收';
+  const bookFastQuery = 'newer_than:90d {購買成功通知 bookfastpos servicealarm.mirle 武樂武術}';
   const query = params.query || defaultQuery;
   const max = Math.min(Number(params.max || 80), 150);
   const purchases = [];
   const messages = uniqueMessages([
     ...searchGmailMessages(query, max),
+    ...searchGmailMessages(bookFastQuery, max),
     ...searchGmailMessages(dailyRevenueQuery, max),
   ]);
 
@@ -87,7 +89,7 @@ function getGmailPurchases(params) {
   return {
     ok: true,
     query,
-    forcedQuery: dailyRevenueQuery,
+    forcedQuery: [bookFastQuery, dailyRevenueQuery].join(' | '),
     messageCount: messages.length,
     selectedMessageCount: selectedMessages.length,
     count: purchases.length,
@@ -146,6 +148,11 @@ function parsePurchaseMail(message) {
   const body = message.getPlainBody() || '';
   const text = normalizeMailText(subject + '\n' + body);
 
+  if (/購買成功通知|bookfastpos|servicealarm\.mirle|商品明細|購買人資料/.test(text)) {
+    const parsedBookFast = parseBookFastPurchaseMail(message, subject, body);
+    if (parsedBookFast) return parsedBookFast;
+  }
+
   if (/每日營收|今日購買明細/.test(text)) {
     return parseDailyRevenueMail(message, subject, body);
   }
@@ -195,6 +202,41 @@ function parsePurchaseMail(message) {
     endDate,
     sessions,
     note: 'Gmail 匯入：' + subject.slice(0, 60),
+    sourceId: message.getId(),
+  };
+}
+
+function parseBookFastPurchaseMail(message, subject, body) {
+  const text = normalizeMailText(body);
+  const student = fieldValue(text, ['會員姓名', '購買人', '姓名', '會員名稱']);
+  const productName = fieldValue(text, ['商品名稱', '方案名稱', '票券名稱']);
+  const orderTime = fieldValue(text, ['訂購時間', '購買時間', '付款時間']);
+  const periodText = fieldValue(text, ['使用期限', '有效期限']);
+  const payContent = fieldValue(text, ['付款內容', '付款金額', '總金額', '金額']);
+  const payMethodText = fieldValue(text, ['付款方式']);
+  const ticketType = fieldValue(text, ['票券種類', '商品類型']);
+  const productCode = fieldValue(text, ['商品編號', '訂單編號']);
+
+  if (!student || !productName) return null;
+
+  const period = parseDateRange(periodText);
+  const date = normalizeDate(orderTime) || formatDate(message.getDate());
+  const startDate = period.startDate || date;
+  const endDate = period.endDate || '';
+  const amount = parseAmount(payContent);
+
+  return {
+    date,
+    student: cleanValue(student),
+    plan: cleanValue(productName),
+    amount,
+    dept: guessDept(productName + ' ' + ticketType + ' ' + subject),
+    payMethod: guessPayMethod(payMethodText || text),
+    serviceMonth: startDate ? startDate.slice(0, 7) : date.slice(0, 7),
+    startDate,
+    endDate,
+    sessions: sessionsFromPlan(productName + ' ' + ticketType),
+    note: 'BookFast 匯入' + (productCode ? '：' + productCode : ''),
     sourceId: message.getId(),
   };
 }
@@ -274,6 +316,19 @@ function cleanValue(value) {
     .trim();
 }
 
+function fieldValue(text, labels) {
+  const lines = normalizeMailText(text).split('\n').map(line => line.trim()).filter(Boolean);
+  for (let i = 0; i < lines.length; i++) {
+    for (const label of labels) {
+      const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const sameLine = lines[i].match(new RegExp('^' + escaped + '(?:\\s+|\\s*[:：]\\s*)(.+)$'));
+      if (sameLine && sameLine[1]) return cleanValue(sameLine[1]);
+      if (lines[i] === label && lines[i + 1]) return cleanValue(lines[i + 1]);
+    }
+  }
+  return '';
+}
+
 function parseAmount(value) {
   const n = String(value || '').replace(/[^\d]/g, '');
   return n ? Number(n) : 0;
@@ -293,6 +348,15 @@ function normalizeMonth(value) {
   const match = raw.match(/(\d{4})\/(\d{1,2})/);
   if (!match) return '';
   return [match[1], pad2(match[2])].join('-');
+}
+
+function parseDateRange(value) {
+  if (!value) return { startDate: '', endDate: '' };
+  const matches = String(value).match(/\d{4}[\/\-.]\d{1,2}[\/\-.]\d{1,2}/g) || [];
+  return {
+    startDate: normalizeDate(matches[0]),
+    endDate: normalizeDate(matches[1]),
+  };
 }
 
 function formatDate(date) {
