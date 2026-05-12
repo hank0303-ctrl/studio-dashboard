@@ -67,15 +67,15 @@ function loadAppData(appId) {
 }
 
 function getGmailPurchases(params) {
-  const query = params.query || 'newer_than:90d {from:wushujoyful@gmail.com subject:每日營收 subject:武樂營隊新報名 武樂 方案 購買 報名 付款 訂單 月卡 堂數}';
+  const defaultQuery = 'newer_than:90d {from:wushujoyful@gmail.com subject:每日營收 subject:武樂營隊新報名 武樂 方案 購買 報名 付款 訂單 月卡 堂數}';
+  const dailyRevenueQuery = 'newer_than:90d from:wushujoyful@gmail.com subject:每日營收';
+  const query = params.query || defaultQuery;
   const max = Math.min(Number(params.max || 80), 150);
-  const threads = GmailApp.search(query, 0, max);
   const purchases = [];
-  const messages = [];
-
-  threads.forEach(thread => {
-    thread.getMessages().forEach(message => messages.push(message));
-  });
+  const messages = uniqueMessages([
+    ...searchGmailMessages(query, max),
+    ...searchGmailMessages(dailyRevenueQuery, max),
+  ]);
 
   const selectedMessages = selectBestDailyRevenueMessages(messages);
   selectedMessages.forEach(message => {
@@ -84,7 +84,36 @@ function getGmailPurchases(params) {
     else if (parsed) purchases.push(parsed);
   });
 
-  return { ok: true, query, count: purchases.length, purchases };
+  return {
+    ok: true,
+    query,
+    forcedQuery: dailyRevenueQuery,
+    messageCount: messages.length,
+    selectedMessageCount: selectedMessages.length,
+    count: purchases.length,
+    purchases,
+    subjects: selectedMessages.slice(0, 12).map(message => message.getSubject()),
+  };
+}
+
+function searchGmailMessages(query, max) {
+  const messages = [];
+  GmailApp.search(query, 0, max).forEach(thread => {
+    thread.getMessages().forEach(message => messages.push(message));
+  });
+  return messages;
+}
+
+function uniqueMessages(messages) {
+  const seen = {};
+  const unique = [];
+  messages.forEach(message => {
+    const id = message.getId();
+    if (seen[id]) return;
+    seen[id] = true;
+    unique.push(message);
+  });
+  return unique;
 }
 
 function selectBestDailyRevenueMessages(messages) {
