@@ -2113,9 +2113,13 @@ async function syncGmailPurchases() {
 
     if (added > 0) save(KEYS.purchases, purchases);
     refreshCurrentPage();
-    const msg = `✅ 信箱同步完成：找到 ${result.messageCount || 0} 封，解析 ${incoming.length} 筆，新增 ${added} 筆，略過 ${incoming.length - added} 筆重複`;
+    const msg = `✅ 同步完成：信件 ${result.messageCount || 0} 封，試算表 ${result.sheetPurchaseCount || 0} 筆，合計解析 ${incoming.length} 筆，新增 ${added} 筆，略過 ${incoming.length - added} 筆重複`;
     showToast(msg, 'success');
-    alert(msg + (result.subjects?.length ? '\n\n本次讀取：\n' + result.subjects.slice(0, 8).join('\n') : ''));
+    alert(
+      msg +
+      (result.sheetNames?.length ? '\n\n讀到試算表工作表：\n' + result.sheetNames.slice(0, 8).join('\n') : '') +
+      (result.subjects?.length ? '\n\n讀到信件：\n' + result.subjects.slice(0, 8).join('\n') : '')
+    );
   } catch (err) {
     console.error(err);
     showToast('❌ 信箱同步失敗：' + err.message, 'error');

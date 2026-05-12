@@ -1,5 +1,6 @@
 const SHEET_NAME = 'studio_data';
 const DEFAULT_APP_ID = 'studio-dashboard';
+const DEFAULT_SPREADSHEET_ID = '1-DtjW2azPOspnc5XLbzGunN4sqMbkyDaErrXrEMUllQ';
 
 function doGet(e) {
   try {
@@ -85,6 +86,8 @@ function getGmailPurchases(params) {
     if (Array.isArray(parsed)) purchases.push(...parsed);
     else if (parsed) purchases.push(parsed);
   });
+  const sheetPurchases = getSheetPurchases(params);
+  const combined = dedupePurchases([...sheetPurchases.purchases, ...purchases]);
 
   return {
     ok: true,
@@ -92,10 +95,111 @@ function getGmailPurchases(params) {
     forcedQuery: [bookFastQuery, dailyRevenueQuery].join(' | '),
     messageCount: messages.length,
     selectedMessageCount: selectedMessages.length,
-    count: purchases.length,
-    purchases,
+    sheetPurchaseCount: sheetPurchases.purchases.length,
+    sheetNames: sheetPurchases.sheetNames,
+    count: combined.length,
+    purchases: combined,
     subjects: selectedMessages.slice(0, 12).map(message => message.getSubject()),
   };
+}
+
+function getSheetPurchases(params) {
+  const purchases = [];
+  const sheetNames = [];
+  const ss = getSpreadsheet(params);
+  ss.getSheets().forEach(sheet => {
+    if (sheet.getName() === SHEET_NAME) return;
+    const values = sheet.getDataRange().getDisplayValues();
+    if (!values.length) return;
+    const found = parsePurchaseRowsFromValues(values, sheet.getName());
+    if (found.length) {
+      sheetNames.push(sheet.getName());
+      purchases.push(...found);
+    }
+  });
+  return { purchases, sheetNames };
+}
+
+function parsePurchaseRowsFromValues(values, sheetName) {
+  const rows = [];
+  for (let headerRow = 0; headerRow < Math.min(values.length, 12); headerRow++) {
+    const headers = values[headerRow].map(h => cleanValue(h));
+    const col = makeColumnFinder(headers);
+    const studentCol = col(['會員姓名', '學員姓名', '學生姓名', '姓名', '購買人', '會員名稱']);
+    const planCol = col(['商品名稱', '方案名稱', '購買方案', '票券名稱', '課程方案']);
+    if (studentCol < 0 || planCol < 0) continue;
+
+    const dateCol = col(['訂購時間', '購買時間', '付款時間', '購買日期', '訂單日期', '時間戳記', 'Timestamp']);
+    const amountCol = col(['付款內容', '付款金額', '總金額', '金額', '實收金額']);
+    const periodCol = col(['使用期限', '有效期限']);
+    const startCol = col(['啟用日期', '開始日期', '起始日期']);
+    const endCol = col(['到期日期', '結束日期', '截止日期']);
+    const payMethodCol = col(['付款方式']);
+    const typeCol = col(['票券種類', '商品類型', '部門']);
+    const codeCol = col(['商品編號', '訂單編號', '編號']);
+
+    for (let r = headerRow + 1; r < values.length; r++) {
+      const row = values[r];
+      const student = cleanValue(row[studentCol]);
+      const plan = cleanValue(row[planCol]);
+      if (!student || !plan) continue;
+
+      const period = parseDateRange(periodCol >= 0 ? row[periodCol] : '');
+      const date = normalizeDate(dateCol >= 0 ? row[dateCol] : '') || formatDate(new Date());
+      const startDate = (startCol >= 0 ? normalizeDate(row[startCol]) : '') || period.startDate || date;
+      const endDate = (endCol >= 0 ? normalizeDate(row[endCol]) : '') || period.endDate || '';
+      const amountText = amountCol >= 0 ? row[amountCol] : '';
+      const typeText = typeCol >= 0 ? row[typeCol] : '';
+      const code = codeCol >= 0 ? cleanValue(row[codeCol]) : '';
+
+      rows.push({
+        date,
+        student,
+        plan,
+        amount: parseAmount(amountText),
+        dept: guessDept(plan + ' ' + typeText + ' ' + sheetName),
+        payMethod: guessPayMethod(payMethodCol >= 0 ? row[payMethodCol] : ''),
+        serviceMonth: startDate ? startDate.slice(0, 7) : date.slice(0, 7),
+        startDate,
+        endDate,
+        sessions: sessionsFromPlan(plan + ' ' + typeText),
+        note: '試算表匯入：' + sheetName + (code ? ' / ' + code : ''),
+        sourceId: 'sheet:' + sheetName + ':' + (code || r),
+      });
+    }
+    break;
+  }
+  return rows;
+}
+
+function makeColumnFinder(headers) {
+  return function(names) {
+    for (const name of names) {
+      const needle = String(name).toLowerCase();
+      const idx = headers.findIndex(h => String(h).toLowerCase().includes(needle));
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  };
+}
+
+function dedupePurchases(items) {
+  const seen = {};
+  const result = [];
+  items.forEach(item => {
+    const key = [
+      item.date || '',
+      cleanValue(item.student || ''),
+      cleanValue(item.plan || ''),
+      Number(item.amount || 0),
+      item.startDate || '',
+      item.endDate || '',
+    ].join('|').toLowerCase();
+    if (seen[key]) return;
+    seen[key] = true;
+    result.push(item);
+  });
+  return result;
 }
 
 function searchGmailMessages(query, max) {
@@ -391,13 +495,21 @@ function sessionsFromPlan(plan) {
 }
 
 function getDataSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet({});
   let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
     sheet.appendRow(['app', 'data_json', 'meta_json', 'updated_at']);
   }
   return sheet;
+}
+
+function getSpreadsheet(params) {
+  const requestedId = params && (params.spreadsheetId || params.sheetId);
+  const configuredId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  const id = requestedId || configuredId || DEFAULT_SPREADSHEET_ID;
+  if (id) return SpreadsheetApp.openById(id);
+  return SpreadsheetApp.getActiveSpreadsheet();
 }
 
 function assertAllowed(token) {
