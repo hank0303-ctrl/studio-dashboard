@@ -330,6 +330,31 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .alert-success { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.2); color: var(--green); }
 .alert-error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); color: var(--red); }
 
+.quick-notes-btn {
+  position: fixed; right: 18px; bottom: 18px; z-index: 500;
+  border: none; border-radius: 999px; padding: 11px 16px;
+  background: var(--accent); color: #fff; font-weight: 800;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18); cursor: pointer;
+}
+.quick-notes-panel {
+  position: fixed; right: 18px; bottom: 72px; z-index: 501;
+  width: min(380px, calc(100vw - 28px)); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.18); padding: 14px;
+  display: none;
+}
+.quick-notes-panel.open { display: block; }
+.quick-notes-panel textarea {
+  width: 100%; min-height: 240px; resize: vertical;
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; font-family: inherit; line-height: 1.6;
+  background: var(--surface2); color: var(--text);
+}
+@media(max-width:768px){
+  .quick-notes-btn { right: 12px; bottom: 74px; }
+  .quick-notes-panel { right: 10px; bottom: 126px; }
+}
+
 .tab-row { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
 .tab {
   padding: 7px 16px; border-radius: 8px; cursor: pointer;
@@ -446,6 +471,21 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   </div>
 </div>
 <div id="syncToast" style="display:none;position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.5)"></div>
+<button class="quick-notes-btn" onclick="toggleQuickNotes()">記事</button>
+<div class="quick-notes-panel" id="quickNotesPanel">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div>
+      <div style="font-size:15px;font-weight:900;color:var(--accent)">隨手記事</div>
+      <div style="font-size:11px;color:var(--text3)" id="quickNotesSavedAt">尚未儲存</div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="toggleQuickNotes(false)">關閉</button>
+  </div>
+  <textarea id="quickNotesText" placeholder="臨時想到的事情、待辦、家長聯絡、帳務備註都可以先放這裡..." oninput="scheduleSaveQuickNotes()"></textarea>
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
+    <button class="btn btn-secondary btn-sm" onclick="clearQuickNotes()">清空</button>
+    <button class="btn btn-primary btn-sm" onclick="saveQuickNotesNow()">儲存</button>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════
      PAGE 1: 今日總覽
@@ -994,6 +1034,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
         📂 上傳銀行明細 (.xls)
         <input type="file" accept=".xls,.xlsx,.csv" style="display:none" onchange="importBankExcel(this)">
       </label>
+      <button class="btn btn-secondary" onclick="openModal('bankCategoryModal')">＋ 自訂分類</button>
       <button class="btn btn-danger btn-sm" onclick="clearBankData()">🗑️ 清除資料</button>
     </div>
   </div>
@@ -1042,39 +1083,40 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     </div>
     <div class="form-group">
       <label>分類</label>
-      <select id="btx_category">
-        <optgroup label="── 收入 ──">
-          <option value="小孩課程收費">小孩課程收費（現金）</option>
-          <option value="大人課程收費">大人課程收費（現金）</option>
-          <option value="刷卡端收入">刷卡端收入</option>
-          <option value="夏令營收入">夏令營收入</option>
-          <option value="冬令營收入">冬令營收入</option>
-          <option value="其他收入">其他收入</option>
-          <option value="老闆墊款">老闆墊款</option>
-          <option value="動茲券">動茲券</option>
-        </optgroup>
-        <optgroup label="── 支出 ──">
-          <option value="租金支出">租金支出</option>
-          <option value="薪資支出">薪資支出</option>
-          <option value="稅金">稅金（勞健保、二代、房屋）</option>
-          <option value="會計費">會計費</option>
-          <option value="水電費">水電費（水電、網路）</option>
-          <option value="夏冬令營支出">夏冬令營支出</option>
-          <option value="修繕費">修繕費</option>
-          <option value="文具用品">文具用品</option>
-          <option value="器材用品">器材用品</option>
-          <option value="其他支出">其他支出</option>
-          <option value="老闆提款">老闆提款</option>
-          <option value="匯出動茲券">匯出動茲券</option>
-        </optgroup>
-        <optgroup label="── 其他 ──">
-          <option value="略過">略過（不計入統計）</option>
-        </optgroup>
-      </select>
+      <select id="btx_category"></select>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('bankTxEditModal')">取消</button>
       <button class="btn btn-primary" onclick="saveBankTxCategory()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 銀行自訂分類 Modal -->
+<div class="modal-overlay" id="bankCategoryModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">新增自訂分類</div>
+    <div class="form-group">
+      <label>分類名稱</label>
+      <input type="text" id="bank_cat_name" placeholder="例如：教材費、活動收入、外師費">
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>類型</label>
+        <select id="bank_cat_type">
+          <option value="in">收入</option>
+          <option value="out">支出</option>
+          <option value="skip">略過統計</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:2">
+        <label>自動分類關鍵字（選填，用逗號分隔）</label>
+        <input type="text" id="bank_cat_keywords" placeholder="例如：教材,講義,書">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('bankCategoryModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveBankCategory()">新增分類</button>
     </div>
   </div>
 </div>
@@ -1869,7 +1911,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 // ═══════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════
-const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', subscriptions:'studio_subscriptions', fixedExp:'studio_fixed_expenses', salaryRec:'studio_salary_records' };
+const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', subscriptions:'studio_subscriptions', fixedExp:'studio_fixed_expenses', salaryRec:'studio_salary_records', bankCats:'studio_bank_categories', notes:'studio_quick_notes' };
 const EXTRA_DATA_KEYS = ['studio_staff_data'];
 const SYNC_CONFIG_KEY = 'studio_cloud_sync_config';
 const SYNC_META_KEY = 'studio_cloud_sync_meta';
@@ -1945,6 +1987,8 @@ function reloadLocalData() {
   kidBills = loadObj(KEYS.kidBills);
   kidCosts = loadObj(KEYS.kidCosts);
   bankTx = load(KEYS.bankTx);
+  bankCategories = load(KEYS.bankCats);
+  quickNotes = loadObj(KEYS.notes);
   staffList = load(KEYS.staff);
   staffData = loadObj('studio_staff_data');
   subscriptions = load(KEYS.subscriptions);
@@ -2049,6 +2093,9 @@ async function cloudPull() {
     });
     localStorage.setItem(SYNC_META_KEY, JSON.stringify(result.meta || {}));
     reloadLocalData();
+    const notesText = document.getElementById('quickNotesText');
+    if (notesText) notesText.value = quickNotes.text || '';
+    renderQuickNotesSavedAt();
     refreshCurrentPage();
     showToast('✅ 已讀取雲端最新資料', 'success');
   } catch (err) {
@@ -2213,6 +2260,9 @@ function fmtDate(d) {
   return `${y}/${m}/${day}`;
 }
 function fmtMoney(n) { return '$' + Number(n).toLocaleString(); }
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
 
 // ═══════════════════════════════
 //  NAV
@@ -5240,42 +5290,131 @@ function refreshCurrentPage() {
 //  BANK DATA
 // ═══════════════════════════════
 let bankTx = load(KEYS.bankTx);
+let bankCategories = load(KEYS.bankCats);
+let quickNotes = loadObj(KEYS.notes);
+let quickNotesTimer = null;
 
-const BANK_RULES = [
-  { kw:['小孩','哆咚','課後','兒童','親子'], cat:'小孩課程收費', type:'in' },
-  { kw:['大人','成人'], cat:'大人課程收費', type:'in' },
-  { kw:['刷卡','端收','新儀'], cat:'刷卡端收入', type:'in' },
-  { kw:['夏令'], cat:'夏令營收入', type:'in' },
-  { kw:['冬令'], cat:'冬令營收入', type:'in' },
-  { kw:['動茲','動滋'], cat:'動茲券', type:'in' },
-  { kw:['場地租金','訂金','世泓','武樂'], cat:'其他收入', type:'in' },
-  { kw:['店租','租金'], cat:'租金支出', type:'out' },
-  { kw:['塔塔','Summer','小布','Vanessa','莊佳雯','peggy','joy','劉正弦','小瑜','粒粒','寶泥','游日鴻','漱西','小排','糖糖','劭文','JALY','Apple','璦璦','老師','伶伶','盤思伶','彥彥'], cat:'薪資支出', type:'out' },
-  { kw:['勞健保','勞保','健保','稅金','二代','房屋稅'], cat:'稅金', type:'out' },
-  { kw:['會計'], cat:'會計費', type:'out' },
-  { kw:['水電','網路','電費','水費'], cat:'水電費', type:'out' },
-  { kw:['舞蹈課','夏令支出','冬令支出'], cat:'夏冬令營支出', type:'out' },
-  { kw:['修繕','維修'], cat:'修繕費', type:'out' },
-  { kw:['文具'], cat:'文具用品', type:'out' },
-  { kw:['器材','設備'], cat:'器材用品', type:'out' },
-  { kw:['發票'], cat:'其他支出', type:'out' },
+const DEFAULT_BANK_CATEGORIES = [
+  { name:'小孩課程收費', type:'in', label:'小孩課程收費（現金）', kw:['小孩','哆咚','課後','兒童','親子'] },
+  { name:'大人課程收費', type:'in', label:'大人課程收費（現金）', kw:['大人','成人'] },
+  { name:'刷卡端收入', type:'in', kw:['刷卡','端收','新儀'] },
+  { name:'夏令營收入', type:'in', kw:['夏令'] },
+  { name:'冬令營收入', type:'in', kw:['冬令'] },
+  { name:'其他收入', type:'in', kw:['場地租金','訂金','世泓','武樂'] },
+  { name:'老闆墊款', type:'in', kw:[] },
+  { name:'動茲券', type:'in', kw:['動茲','動滋'] },
+  { name:'租金支出', type:'out', kw:['店租','租金'] },
+  { name:'薪資支出', type:'out', kw:['塔塔','Summer','小布','Vanessa','莊佳雯','peggy','joy','劉正弦','小瑜','粒粒','寶泥','游日鴻','漱西','小排','糖糖','劭文','JALY','Apple','璦璦','老師','伶伶','盤思伶','彥彥'] },
+  { name:'稅金', type:'out', label:'稅金（勞健保、二代、房屋）', kw:['勞健保','勞保','健保','稅金','二代','房屋稅'] },
+  { name:'會計費', type:'out', kw:['會計'] },
+  { name:'水電費', type:'out', label:'水電費（水電、網路）', kw:['水電','網路','電費','水費'] },
+  { name:'夏冬令營支出', type:'out', kw:['舞蹈課','夏令支出','冬令支出'] },
+  { name:'修繕費', type:'out', kw:['修繕','維修'] },
+  { name:'文具用品', type:'out', kw:['文具'] },
+  { name:'器材用品', type:'out', kw:['器材','設備'] },
+  { name:'其他支出', type:'out', kw:['發票'] },
+  { name:'老闆提款', type:'out', kw:[] },
+  { name:'匯出動茲券', type:'out', kw:[] },
+  { name:'略過', type:'skip', label:'略過（不計入統計）', kw:[] },
 ];
-const CAT_TYPE = {
-  '小孩課程收費':'in','大人課程收費':'in','刷卡端收入':'in','夏令營收入':'in',
-  '冬令營收入':'in','其他收入':'in','老闆墊款':'in','動茲券':'in',
-  '租金支出':'out','薪資支出':'out','稅金':'out','會計費':'out','水電費':'out',
-  '夏冬令營支出':'out','修繕費':'out','文具用品':'out','器材用品':'out',
-  '其他支出':'out','老闆提款':'out','匯出動茲券':'out','略過':'skip',
-};
+
+function getBankCategories() {
+  const custom = Array.isArray(bankCategories) ? bankCategories : [];
+  const map = {};
+  [...DEFAULT_BANK_CATEGORIES, ...custom].forEach(c => {
+    if (!c || !c.name) return;
+    map[c.name] = { name:c.name, type:c.type||'in', label:c.label||c.name, kw:Array.isArray(c.kw)?c.kw:[] };
+  });
+  return Object.values(map);
+}
+
+function getBankCatType(cat) {
+  return getBankCategories().find(c=>c.name===cat)?.type || 'in';
+}
 
 function autoClassifyTx(note, isOut) {
   const n = (note||'').replace(/\s/g,'');
-  for (const r of BANK_RULES) {
+  for (const r of getBankCategories()) {
     if (isOut && r.type!=='out') continue;
     if (!isOut && r.type!=='in') continue;
-    if (r.kw.some(k=>n.includes(k))) return r.cat;
+    if ((r.kw||[]).some(k=>n.includes(k))) return r.name;
   }
   return isOut ? '其他支出' : '其他收入';
+}
+
+function bankCategoryOptions(selected='') {
+  const groups = [
+    ['── 收入 ──', getBankCategories().filter(c=>c.type==='in')],
+    ['── 支出 ──', getBankCategories().filter(c=>c.type==='out')],
+    ['── 其他 ──', getBankCategories().filter(c=>c.type==='skip')],
+  ];
+  return groups.map(([label, cats]) => cats.length ? `<optgroup label="${label}">` +
+    cats.map(c=>`<option value="${escapeHtml(c.name)}"${c.name===selected?' selected':''}>${escapeHtml(c.label||c.name)}</option>`).join('') +
+    `</optgroup>` : '').join('');
+}
+
+function populateBankCategorySelect(id, selected='') {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = bankCategoryOptions(selected);
+}
+
+function saveBankCategory() {
+  const name = document.getElementById('bank_cat_name').value.trim();
+  const type = document.getElementById('bank_cat_type').value;
+  const kw = document.getElementById('bank_cat_keywords').value.split(',').map(s=>s.trim()).filter(Boolean);
+  if (!name) return alert('請填寫分類名稱');
+  const exists = getBankCategories().some(c=>c.name===name);
+  if (exists) return alert('這個分類已經存在');
+  bankCategories.push({ name, type, kw });
+  save(KEYS.bankCats, bankCategories);
+  document.getElementById('bank_cat_name').value = '';
+  document.getElementById('bank_cat_keywords').value = '';
+  closeModal('bankCategoryModal');
+  showToast('✅ 已新增分類：' + name, 'success');
+  renderBankPage();
+}
+
+function toggleQuickNotes(force) {
+  const panel = document.getElementById('quickNotesPanel');
+  if (!panel) return;
+  const shouldOpen = typeof force === 'boolean' ? force : !panel.classList.contains('open');
+  panel.classList.toggle('open', shouldOpen);
+  if (shouldOpen) {
+    const text = document.getElementById('quickNotesText');
+    if (text) {
+      text.value = quickNotes.text || '';
+      setTimeout(()=>text.focus(), 50);
+    }
+    renderQuickNotesSavedAt();
+  }
+}
+
+function renderQuickNotesSavedAt() {
+  const el = document.getElementById('quickNotesSavedAt');
+  if (!el) return;
+  el.textContent = quickNotes.updatedAt ? '已儲存 ' + quickNotes.updatedAt.replace('T',' ').slice(0,16) : '尚未儲存';
+}
+
+function scheduleSaveQuickNotes() {
+  clearTimeout(quickNotesTimer);
+  quickNotesTimer = setTimeout(()=>saveQuickNotesNow(true), 800);
+}
+
+function saveQuickNotesNow(silent=false) {
+  const text = document.getElementById('quickNotesText')?.value || '';
+  quickNotes = { text, updatedAt: new Date().toISOString() };
+  save(KEYS.notes, quickNotes);
+  renderQuickNotesSavedAt();
+  if (!silent) showToast('✅ 記事已儲存', 'success');
+}
+
+function clearQuickNotes() {
+  if (!confirm('確定清空記事板？')) return;
+  quickNotes = { text:'', updatedAt: new Date().toISOString() };
+  const text = document.getElementById('quickNotesText');
+  if (text) text.value = '';
+  save(KEYS.notes, quickNotes);
+  renderQuickNotesSavedAt();
 }
 
 function parseBankAmt(v) {
@@ -5436,7 +5575,7 @@ function editBankTx(id) {
   const t = bankTx.find(x=>x.id===id); if (!t) return;
   document.getElementById('btx_id').value=t.id;
   document.getElementById('btx_note').value=t.note;
-  document.getElementById('btx_category').value=t.cat;
+  populateBankCategorySelect('btx_category', t.cat);
   openModal('bankTxEditModal');
 }
 function saveBankTxCategory() {
@@ -5444,7 +5583,8 @@ function saveBankTxCategory() {
   const cat=document.getElementById('btx_category').value;
   const idx=bankTx.findIndex(x=>x.id===id); if(idx<0) return;
   bankTx[idx].cat=cat;
-  bankTx[idx].isOut = CAT_TYPE[cat]==='out';
+  const type = getBankCatType(cat);
+  if (type !== 'skip') bankTx[idx].isOut = type==='out';
   save(KEYS.bankTx, bankTx);
   closeModal('bankTxEditModal');
   renderBankPage();
@@ -6431,6 +6571,9 @@ function init() {
     `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`;
   document.getElementById('todayDateLabel').textContent =
     `${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日（星期${days[now.getDay()]}）`;
+  const notesText = document.getElementById('quickNotesText');
+  if (notesText) notesText.value = quickNotes.text || '';
+  renderQuickNotesSavedAt();
   renderToday();
   if (loadSyncConfig().url) cloudPull();
 }
