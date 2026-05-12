@@ -68,35 +68,25 @@ function loadAppData(appId) {
 }
 
 function getGmailPurchases(params) {
-  const defaultQuery = 'newer_than:90d {購買成功通知 bookfastpos servicealarm.mirle 武樂武術 from:wushujoyful@gmail.com subject:每日營收 subject:武樂營隊新報名 武樂 方案 購買 報名 付款 訂單 月卡 堂數}';
-  const dailyRevenueQuery = 'newer_than:90d from:wushujoyful@gmail.com subject:每日營收';
-  const bookFastQuery = 'newer_than:90d {購買成功通知 bookfastpos servicealarm.mirle 武樂武術}';
-  const query = params.query || defaultQuery;
+  const query = params.query || 'newer_than:90d from:wushujoyful@gmail.com subject:每日營收';
   const max = Math.min(Number(params.max || 80), 150);
+  const messages = uniqueMessages(searchGmailMessages(query, max));
   const purchases = [];
-  const messages = uniqueMessages([
-    ...searchGmailMessages(query, max),
-    ...searchGmailMessages(bookFastQuery, max),
-    ...searchGmailMessages(dailyRevenueQuery, max),
-  ]);
 
   const selectedMessages = selectBestDailyRevenueMessages(messages);
   selectedMessages.forEach(message => {
-    const parsed = parsePurchaseMail(message);
-    if (Array.isArray(parsed)) purchases.push(...parsed);
-    else if (parsed) purchases.push(parsed);
+    purchases.push(...parseDailyRevenueMail(message, message.getSubject() || '', message.getPlainBody() || ''));
   });
-  const sheetPurchases = getSheetPurchases(params);
-  const combined = dedupePurchases([...sheetPurchases.purchases, ...purchases]);
+  const combined = dedupePurchases(purchases);
 
   return {
     ok: true,
     query,
-    forcedQuery: [bookFastQuery, dailyRevenueQuery].join(' | '),
+    forcedQuery: query,
     messageCount: messages.length,
     selectedMessageCount: selectedMessages.length,
-    sheetPurchaseCount: sheetPurchases.purchases.length,
-    sheetNames: sheetPurchases.sheetNames,
+    sheetPurchaseCount: 0,
+    sheetNames: [],
     count: combined.length,
     purchases: combined,
     subjects: selectedMessages.slice(0, 12).map(message => message.getSubject()),

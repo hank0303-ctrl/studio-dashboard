@@ -2124,28 +2124,25 @@ async function syncGmailPurchases() {
     return;
   }
 
-  const oldDefaultQueries = [
-    'newer_than:90d {武樂 方案 購買 報名 付款 訂單 月卡 堂數}',
-    'newer_than:90d {from:wushujoyful@gmail.com subject:每日營收 subject:武樂營隊新報名 武樂 方案 購買 報名 付款 訂單 月卡 堂數}',
-  ];
-  const defaultQuery = 'newer_than:90d {購買成功通知 bookfastpos servicealarm.mirle 武樂武術 from:wushujoyful@gmail.com subject:每日營收 subject:武樂營隊新報名 武樂 方案 購買 報名 付款 訂單 月卡 堂數}';
-  const savedQuery = localStorage.getItem('studio_gmail_purchase_query');
-  const initialQuery = (!savedQuery || oldDefaultQueries.includes(savedQuery) || !/購買成功通知|bookfastpos|servicealarm/i.test(savedQuery)) ? defaultQuery : savedQuery;
-  const query = prompt('Gmail 搜尋條件：', initialQuery);
-  if (query === null) return;
-  localStorage.setItem('studio_gmail_purchase_query', query.trim() || defaultQuery);
+  const query = 'newer_than:90d from:wushujoyful@gmail.com subject:每日營收';
 
   try {
     showToast('正在讀取信箱購買紀錄...', 'success');
     const url = buildSyncUrl('gmailPurchases');
     const reqUrl = new URL(url);
-    reqUrl.searchParams.set('query', query.trim() || defaultQuery);
+    reqUrl.searchParams.set('query', query);
     reqUrl.searchParams.set('max', '80');
     const res = await fetch(reqUrl.toString(), { method: 'GET' });
     const result = await parseJsonResponse(res);
     if (!result.ok) throw new Error(result.error || '信箱同步失敗');
 
     const incoming = (result.purchases || []).filter(p => p.date && p.student && p.plan);
+    const beforeCleanup = purchases.length;
+    purchases = purchases.filter(p => {
+      const importedByOldFlow = /BookFast 匯入|試算表匯入/.test(p.note || '') || String(p.sourceId || '').startsWith('sheet:');
+      return !importedByOldFlow;
+    });
+    const removed = beforeCleanup - purchases.length;
     const existingKeys = new Set(purchases.map(purchaseDedupKey));
     let added = 0;
     let updated = 0;
@@ -2181,14 +2178,13 @@ async function syncGmailPurchases() {
       added++;
     });
 
-    if (added > 0 || updated > 0) save(KEYS.purchases, purchases);
+    if (added > 0 || updated > 0 || removed > 0) save(KEYS.purchases, purchases);
     refreshCurrentPage();
-    const msg = `✅ 同步完成：信件 ${result.messageCount || 0} 封，試算表 ${result.sheetPurchaseCount || 0} 筆，合計解析 ${incoming.length} 筆，新增 ${added} 筆，修正 ${updated} 筆，略過 ${incoming.length - added - updated} 筆重複`;
+    const msg = `✅ 同步完成：讀取每日營收 ${result.messageCount || 0} 封，解析 ${incoming.length} 筆，新增 ${added} 筆，修正 ${updated} 筆，清除舊錯誤 ${removed} 筆，略過 ${incoming.length - added - updated} 筆重複`;
     showToast(msg, 'success');
     alert(
       msg +
-      (result.sheetNames?.length ? '\n\n讀到試算表工作表：\n' + result.sheetNames.slice(0, 8).join('\n') : '') +
-      (result.subjects?.length ? '\n\n讀到信件：\n' + result.subjects.slice(0, 8).join('\n') : '')
+      (result.subjects?.length ? '\n\n讀到每日營收信：\n' + result.subjects.slice(0, 8).join('\n') : '')
     );
   } catch (err) {
     console.error(err);
