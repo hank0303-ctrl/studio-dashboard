@@ -2148,6 +2148,7 @@ async function syncGmailPurchases() {
     const incoming = (result.purchases || []).filter(p => p.date && p.student && p.plan);
     const existingKeys = new Set(purchases.map(purchaseDedupKey));
     let added = 0;
+    let updated = 0;
 
     incoming.forEach(p => {
       const record = {
@@ -2166,6 +2167,13 @@ async function syncGmailPurchases() {
         source: 'gmail',
         sourceId: p.sourceId || '',
       };
+      const sourceIdx = record.sourceId ? purchases.findIndex(x=>x.sourceId===record.sourceId) : -1;
+      if (sourceIdx >= 0) {
+        purchases[sourceIdx] = { ...purchases[sourceIdx], ...record, id: purchases[sourceIdx].id };
+        existingKeys.add(purchaseDedupKey(record));
+        updated++;
+        return;
+      }
       const key = purchaseDedupKey(record);
       if (existingKeys.has(key)) return;
       purchases.push(record);
@@ -2173,9 +2181,9 @@ async function syncGmailPurchases() {
       added++;
     });
 
-    if (added > 0) save(KEYS.purchases, purchases);
+    if (added > 0 || updated > 0) save(KEYS.purchases, purchases);
     refreshCurrentPage();
-    const msg = `✅ 同步完成：信件 ${result.messageCount || 0} 封，試算表 ${result.sheetPurchaseCount || 0} 筆，合計解析 ${incoming.length} 筆，新增 ${added} 筆，略過 ${incoming.length - added} 筆重複`;
+    const msg = `✅ 同步完成：信件 ${result.messageCount || 0} 封，試算表 ${result.sheetPurchaseCount || 0} 筆，合計解析 ${incoming.length} 筆，新增 ${added} 筆，修正 ${updated} 筆，略過 ${incoming.length - added - updated} 筆重複`;
     showToast(msg, 'success');
     alert(
       msg +

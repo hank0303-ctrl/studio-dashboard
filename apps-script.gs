@@ -434,7 +434,9 @@ function fieldValue(text, labels) {
 }
 
 function parseAmount(value) {
-  const n = String(value || '').replace(/[^\d]/g, '');
+  const text = String(value || '').replace(/,/g, '');
+  const money = text.match(/(?:NT\$|TWD|\$|＄)?\s*(\d{1,7})(?:\s*元)?/i);
+  const n = money ? money[1] : '';
   return n ? Number(n) : 0;
 }
 
