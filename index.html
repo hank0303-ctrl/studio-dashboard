@@ -1962,6 +1962,21 @@ function buildSyncUrl(action) {
   return url.toString();
 }
 
+async function parseJsonResponse(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    if (/找不到以下指令碼函式：doGet|Script function not found: doGet/i.test(text)) {
+      throw new Error('這個 Apps Script 網址沒有 doGet，請貼上最新版同步程式並重新部署 Web App');
+    }
+    if (/<!doctype html|<html/i.test(text)) {
+      throw new Error('Apps Script 回傳的是錯誤頁，不是同步資料。請確認部署權限與網址是否正確');
+    }
+    throw new Error('Apps Script 回傳格式不是 JSON，請重新部署最新版程式');
+  }
+}
+
 function scheduleCloudPush() {
   const config = loadSyncConfig();
   if (!config.url || config.autoPush === false) return;
@@ -2001,7 +2016,7 @@ async function cloudPush(silent=false) {
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
     });
-    const result = await res.json();
+    const result = await parseJsonResponse(res);
     if (!result.ok) throw new Error(result.error || '同步失敗');
     localStorage.setItem(SYNC_META_KEY, JSON.stringify(result.meta || payload.meta));
     if (!silent) showToast('✅ 已同步到雲端', 'success');
@@ -2020,7 +2035,7 @@ async function cloudPull() {
   try {
     showToast('同步中...', 'success');
     const res = await fetch(buildSyncUrl('load'), { method: 'GET' });
-    const result = await res.json();
+    const result = await parseJsonResponse(res);
     if (!result.ok) throw new Error(result.error || '讀取失敗');
     if (!result.data || !Object.keys(result.data).length) {
       showToast('雲端目前沒有資料，已保留本機資料', 'success');
@@ -2080,7 +2095,7 @@ async function syncGmailPurchases() {
     reqUrl.searchParams.set('query', query.trim() || defaultQuery);
     reqUrl.searchParams.set('max', '80');
     const res = await fetch(reqUrl.toString(), { method: 'GET' });
-    const result = await res.json();
+    const result = await parseJsonResponse(res);
     if (!result.ok) throw new Error(result.error || '信箱同步失敗');
 
     const incoming = (result.purchases || []).filter(p => p.date && p.student && p.plan);
