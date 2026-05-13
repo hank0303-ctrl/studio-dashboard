@@ -1983,6 +1983,7 @@ function reloadLocalData() {
   teachers = load(KEYS.teachers);
   classes = load(KEYS.classes);
   purchases = load(KEYS.purchases);
+  cleanupImportedPurchaseErrors(false);
   kids = load(KEYS.kids);
   kidBills = loadObj(KEYS.kidBills);
   kidCosts = loadObj(KEYS.kidCosts);
@@ -1994,6 +1995,22 @@ function reloadLocalData() {
   subscriptions = load(KEYS.subscriptions);
   fixedExp = load(KEYS.fixedExp);
   salaryRecords = load(KEYS.salaryRec);
+}
+
+function isBadImportedPurchase(p) {
+  const note = String(p?.note || '');
+  const sourceId = String(p?.sourceId || '');
+  const amount = Number(p?.amount || 0);
+  return /BookFast 匯入|試算表匯入/.test(note) || sourceId.startsWith('sheet:') || amount >= 1000000;
+}
+
+function cleanupImportedPurchaseErrors(shouldSave=true) {
+  if (!Array.isArray(purchases)) return 0;
+  const before = purchases.length;
+  purchases = purchases.filter(p => !isBadImportedPurchase(p));
+  const removed = before - purchases.length;
+  if (removed && shouldSave) save(KEYS.purchases, purchases);
+  return removed;
 }
 
 function buildSyncUrl(action) {
@@ -2093,11 +2110,13 @@ async function cloudPull() {
     });
     localStorage.setItem(SYNC_META_KEY, JSON.stringify(result.meta || {}));
     reloadLocalData();
+    const removed = cleanupImportedPurchaseErrors(true);
     const notesText = document.getElementById('quickNotesText');
     if (notesText) notesText.value = quickNotes.text || '';
     renderQuickNotesSavedAt();
     refreshCurrentPage();
-    showToast('✅ 已讀取雲端最新資料', 'success');
+    if (removed) cloudPush(true);
+    showToast(removed ? `✅ 已讀取雲端並清除 ${removed} 筆舊錯誤資料` : '✅ 已讀取雲端最新資料', 'success');
   } catch (err) {
     console.error(err);
     showToast('❌ 讀取雲端失敗：' + err.message, 'error');
@@ -2137,12 +2156,7 @@ async function syncGmailPurchases() {
     if (!result.ok) throw new Error(result.error || '信箱同步失敗');
 
     const incoming = (result.purchases || []).filter(p => p.date && p.student && p.plan);
-    const beforeCleanup = purchases.length;
-    purchases = purchases.filter(p => {
-      const importedByOldFlow = /BookFast 匯入|試算表匯入/.test(p.note || '') || String(p.sourceId || '').startsWith('sheet:');
-      return !importedByOldFlow;
-    });
-    const removed = beforeCleanup - purchases.length;
+    const removed = cleanupImportedPurchaseErrors(false);
     const existingKeys = new Set(purchases.map(purchaseDedupKey));
     let added = 0;
     let updated = 0;
@@ -6567,6 +6581,7 @@ function init() {
   isApplyingRemoteData = true;
   seedIfEmpty();
   isApplyingRemoteData = false;
+  cleanupImportedPurchaseErrors(true);
   const now = new Date();
   const days = ['日','一','二','三','四','五','六'];
   const mobileDate = document.getElementById('mobileDate');
