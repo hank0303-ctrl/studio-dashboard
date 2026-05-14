@@ -452,6 +452,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
   <button class="nav-btn" onclick="showPage('class')">📋 課程管理</button>
   <button class="nav-btn" onclick="showPage('teacher')">👩‍🏫 老師管理</button>
   <button class="nav-btn" onclick="showPage('student')">🎫 學員方案</button>
+  <button class="nav-btn" onclick="showPage('attendance')">✅ 上課扣堂</button>
   <button class="nav-btn" onclick="showPage('kids')">👧 兒童收費</button>
   <button class="nav-btn" onclick="showPage('bank')">🏦 銀行帳務</button>
   <button class="nav-btn" onclick="showPage('staff')">👔 PT薪資</button>
@@ -804,6 +805,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <div style="font-size:24px;font-weight:900">學員方案</div>
     <div class="flex gap-8">
       <button class="btn btn-secondary" onclick="syncGmailPurchases()">📩 同步信箱購買</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('membershipExcelInput').click()">📥 匯入會籍權益</button>
+      <input type="file" id="membershipExcelInput" accept=".xlsx,.xls" onchange="importMembershipExcel(this)" style="display:none">
       <button class="btn btn-secondary" onclick="openModal('addSubscriptionModal')">📋 新增訂閱</button>
       <button class="btn btn-primary" onclick="openModal('addPurchaseModal')">＋ 新增購買</button>
     </div>
@@ -861,7 +864,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
         <div>
           <div class="card-title">🎫 每月剩餘堂數</div>
-          <div style="font-size:12px;color:var(--text3)">依每日營收匯入的有效方案彙整，先建立每月可用堂數基準</div>
+          <div style="font-size:12px;color:var(--text3)">有效方案堂數扣除已確認上課紀錄後的剩餘數</div>
         </div>
         <select id="remainingMonthSelect" onchange="onRemainingMonthChange()" style="min-width:130px"></select>
       </div>
@@ -870,7 +873,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
           <thead>
             <tr style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:1px;text-transform:uppercase">
               <th style="padding:9px 12px;text-align:left;border-bottom:1px solid var(--border)">學員</th>
-              <th style="padding:9px 12px;text-align:center;border-bottom:1px solid var(--border)">當月有效堂數</th>
+              <th style="padding:9px 12px;text-align:center;border-bottom:1px solid var(--border)">剩餘堂數</th>
               <th style="padding:9px 12px;text-align:left;border-bottom:1px solid var(--border)">有效方案</th>
               <th style="padding:9px 12px;text-align:left;border-bottom:1px solid var(--border)">最近到期</th>
             </tr>
@@ -900,6 +903,50 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
           <tbody id="studentTableTbody"></tbody>
         </table>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 5: 上課扣堂
+════════════════════════════════════════════ -->
+<div class="page" id="page-attendance">
+  <div class="flex items-center justify-between flex-wrap gap-8 mb-16">
+    <div>
+      <div style="font-size:24px;font-weight:900">上課扣堂</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">用 BookFast 匯入的預約名單確認到課後，從有效方案扣 1 堂</div>
+    </div>
+    <div class="flex gap-8 flex-wrap" style="align-items:center">
+      <select id="attendanceMonthSelect" onchange="onAttendanceMonthChange()" style="min-width:130px"></select>
+      <input id="attendanceSearch" oninput="renderAttendancePage()" placeholder="搜尋課程/老師/學員" style="min-width:220px">
+    </div>
+  </div>
+
+  <div class="grid-4 mb-16" id="attendanceStats"></div>
+
+  <div class="card mb-16">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <div class="card-title">待確認課程</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">如果某堂課沒有名單，先在該列點「編輯名單」貼上學生姓名，一行一位</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="showPage('student')">查看剩餘堂數</button>
+    </div>
+    <div id="attendanceClassList" style="margin-top:14px"></div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+      <div>
+        <div class="card-title">最近扣堂紀錄</div>
+        <div style="font-size:12px;color:var(--text3)">扣錯時可在上方課程列回復整堂扣堂</div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>扣堂時間</th><th>課程</th><th>學員</th><th>扣用方案</th><th>剩餘</th></tr></thead>
+        <tbody id="attendanceRecordTbody"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -1933,7 +1980,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 // ═══════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════
-const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', subscriptions:'studio_subscriptions', fixedExp:'studio_fixed_expenses', salaryRec:'studio_salary_records', bankCats:'studio_bank_categories', notes:'studio_quick_notes' };
+const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', attendance:'studio_attendance_records', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', subscriptions:'studio_subscriptions', fixedExp:'studio_fixed_expenses', salaryRec:'studio_salary_records', bankCats:'studio_bank_categories', notes:'studio_quick_notes' };
 const EXTRA_DATA_KEYS = ['studio_staff_data'];
 const SYNC_CONFIG_KEY = 'studio_cloud_sync_config';
 const SYNC_META_KEY = 'studio_cloud_sync_meta';
@@ -2006,6 +2053,7 @@ function reloadLocalData() {
   teachers = load(KEYS.teachers);
   classes = load(KEYS.classes);
   purchases = load(KEYS.purchases);
+  attendanceRecords = load(KEYS.attendance);
   cleanupImportedPurchaseErrors(false);
   kids = load(KEYS.kids);
   kidBills = loadObj(KEYS.kidBills);
@@ -2310,6 +2358,7 @@ function configureCloudSync() {
 let teachers = load(KEYS.teachers);
 let classes  = load(KEYS.classes);
 let purchases = load(KEYS.purchases);
+let attendanceRecords = load(KEYS.attendance);
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
 // seed demo data if empty
@@ -2373,13 +2422,14 @@ function showPage(name) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   const btns = document.querySelectorAll('.nav-btn');
-  const idx = ['today','week','class','teacher','student','kids','bank','staff','monthly'].indexOf(name);
+  const idx = ['today','week','class','teacher','student','attendance','kids','bank','staff','monthly'].indexOf(name);
   if (idx >= 0) btns[idx].classList.add('active');
   if (name==='today') renderToday();
   if (name==='week') renderWeekFull();
   if (name==='class') renderClassPage();
   if (name==='teacher') renderTeacherPage();
   if (name==='student') renderStudentPage();
+  if (name==='attendance') renderAttendancePage();
   if (name==='monthly') renderMonthlyPage();
   if (name==='kids') renderKidsPage();
   if (name==='bank') renderBankPage();
@@ -3672,6 +3722,241 @@ function isPurchaseActiveInMonth(p, month) {
   return (!startDate || startDate <= end) && (!endDate || endDate >= start);
 }
 
+function normalizeStudentName(name) {
+  return String(name || '').replace(/\s+/g, '').trim().toLowerCase();
+}
+
+function classRoster(c) {
+  if (Array.isArray(c.roster)) return c.roster.map(x=>String(x||'').trim()).filter(Boolean);
+  if (Array.isArray(c.students)) return c.students.map(x=>String(x||'').trim()).filter(Boolean);
+  return String(c.rosterText || '').split(/[\n,，、]/).map(x=>x.trim()).filter(Boolean);
+}
+
+function classLabel(c) {
+  return `${fmtDate(c.date)} ${c.timeStart || ''}-${c.timeEnd || ''} ${c.name || ''}`;
+}
+
+function totalPurchaseSessions(p) {
+  return Number(p.sessions || 0) || inferSessionsFromPlan(p.plan);
+}
+
+function attendanceDeductionsForPurchase(purchaseId) {
+  return attendanceRecords.filter(r => r.purchaseId === purchaseId)
+    .reduce((sum, r) => sum + (Number(r.deductedSessions || 1) || 1), 0);
+}
+
+function remainingPurchaseSessions(p) {
+  const total = totalPurchaseSessions(p);
+  if (total <= 0) return 0;
+  return Math.max(0, total - attendanceDeductionsForPurchase(p.id));
+}
+
+function totalDeductionsForStudent(student, month='') {
+  const key = normalizeStudentName(student);
+  return attendanceRecords
+    .filter(r => normalizeStudentName(r.student) === key && (!month || String(r.date || '').slice(0,7) === month))
+    .reduce((sum, r) => sum + (Number(r.deductedSessions || 1) || 1), 0);
+}
+
+function findDeductiblePurchase(student, classDate) {
+  const key = normalizeStudentName(student);
+  return purchases
+    .filter(p => normalizeStudentName(p.student) === key)
+    .filter(p => totalPurchaseSessions(p) > 0 && remainingPurchaseSessions(p) > 0)
+    .filter(p => {
+      const start = p.startDate || p.date || '';
+      const end = p.endDate || '';
+      return (!start || start <= classDate) && (!end || end >= classDate);
+    })
+    .sort((a,b) => {
+      const endA = a.endDate || '9999-12-31';
+      const endB = b.endDate || '9999-12-31';
+      return endA.localeCompare(endB) || (a.date || '').localeCompare(b.date || '');
+    })[0] || null;
+}
+
+function classAttendanceRecords(classId) {
+  return attendanceRecords.filter(r => r.classId === classId);
+}
+
+function isStudentDeductedForClass(classId, student) {
+  const key = normalizeStudentName(student);
+  return attendanceRecords.some(r => r.classId === classId && normalizeStudentName(r.student) === key);
+}
+
+function availableAttendanceMonths() {
+  const months = new Set([todayStr().slice(0,7)]);
+  classes.forEach(c => { if (c.date) months.add(c.date.slice(0,7)); });
+  attendanceRecords.forEach(r => { if (r.date) months.add(r.date.slice(0,7)); });
+  return [...months].sort().reverse();
+}
+
+let _attendanceMonth = '';
+
+function onAttendanceMonthChange() {
+  const sel = document.getElementById('attendanceMonthSelect');
+  if (sel && sel.value) _attendanceMonth = sel.value;
+  renderAttendancePage();
+}
+
+function editClassRoster(classId) {
+  const c = classes.find(x => x.id === classId);
+  if (!c) return;
+  const current = classRoster(c).join('\n');
+  const text = prompt(`${classLabel(c)}\n\n貼上到課/預約名單，一行一位：`, current);
+  if (text === null) return;
+  const roster = text.split(/[\n,，、]/).map(x=>x.trim()).filter(Boolean);
+  c.roster = [...new Set(roster)];
+  c.rosterText = c.roster.join('\n');
+  c.booked = c.roster.length;
+  save(KEYS.classes, classes);
+  renderAttendancePage();
+}
+
+function confirmClassAttendance(classId) {
+  const c = classes.find(x => x.id === classId);
+  if (!c) return;
+  const roster = classRoster(c);
+  if (!roster.length) return alert('這堂課還沒有名單，請先編輯名單');
+
+  const rows = roster.map(student => ({
+    student,
+    purchase: isStudentDeductedForClass(c.id, student) ? null : findDeductiblePurchase(student, c.date),
+    already: isStudentDeductedForClass(c.id, student),
+  }));
+  const canDeduct = rows.filter(x => x.purchase && !x.already);
+  const missing = rows.filter(x => !x.purchase && !x.already).map(x => x.student);
+  if (!canDeduct.length) {
+    alert(missing.length ? `沒有可扣堂的學員。\n\n找不到有效方案：${missing.join('、')}` : '這堂課已經扣過堂了');
+    return;
+  }
+
+  const msg = `確認扣堂：${classLabel(c)}\n\n將扣 ${canDeduct.length} 人，每人 1 堂。` +
+    (missing.length ? `\n\n找不到有效方案，暫不扣：${missing.join('、')}` : '');
+  if (!confirm(msg)) return;
+
+  const now = new Date().toISOString();
+  canDeduct.forEach(item => {
+    attendanceRecords.push({
+      id: uid(),
+      classId: c.id,
+      date: c.date,
+      timeStart: c.timeStart || '',
+      timeEnd: c.timeEnd || '',
+      className: c.name || '',
+      teacher: c.teacher || '',
+      student: item.student,
+      purchaseId: item.purchase.id,
+      plan: item.purchase.plan,
+      deductedSessions: 1,
+      source: 'class-roster',
+      createdAt: now,
+    });
+  });
+  c.attended = Math.max(Number(c.attended || 0), roster.length);
+  save(KEYS.attendance, attendanceRecords);
+  save(KEYS.classes, classes);
+  refreshCurrentPage();
+  showToast(`✅ 已扣 ${canDeduct.length} 人堂數`, 'success');
+}
+
+function undoClassAttendance(classId) {
+  const count = classAttendanceRecords(classId).length;
+  if (!count) return;
+  if (!confirm(`確定回復這堂課的 ${count} 筆扣堂？`)) return;
+  attendanceRecords = attendanceRecords.filter(r => r.classId !== classId);
+  save(KEYS.attendance, attendanceRecords);
+  refreshCurrentPage();
+  showToast(`已回復 ${count} 筆扣堂`, 'success');
+}
+
+function renderAttendancePage() {
+  const monthSel = document.getElementById('attendanceMonthSelect');
+  if (!monthSel) return;
+  const months = availableAttendanceMonths();
+  const cur = todayStr().slice(0,7);
+  if (!_attendanceMonth || !months.includes(_attendanceMonth)) _attendanceMonth = months.includes(cur) ? cur : months[0];
+  monthSel.innerHTML = months.map(m => `<option value="${m}">${m}</option>`).join('');
+  monthSel.value = _attendanceMonth;
+
+  const keyword = (document.getElementById('attendanceSearch')?.value || '').toLowerCase().trim();
+  let list = classes
+    .filter(c => c.date && c.date.slice(0,7) === _attendanceMonth)
+    .filter(c => c.status !== '停課')
+    .sort((a,b) => `${b.date} ${b.timeStart}`.localeCompare(`${a.date} ${a.timeStart}`));
+  if (keyword) {
+    list = list.filter(c => {
+      const hay = [c.name, c.teacher, c.room, ...classRoster(c)].join(' ').toLowerCase();
+      return hay.includes(keyword);
+    });
+  }
+
+  const monthRecords = attendanceRecords.filter(r => r.date && r.date.slice(0,7) === _attendanceMonth);
+  const classWithRoster = list.filter(c => classRoster(c).length);
+  const confirmedClasses = new Set(monthRecords.map(r=>r.classId)).size;
+  const missingStudents = classWithRoster.flatMap(c => classRoster(c).filter(s => !isStudentDeductedForClass(c.id, s) && !findDeductiblePurchase(s, c.date)));
+  document.getElementById('attendanceStats').innerHTML = `
+    <div class="stat-card gold"><div class="stat-num">${monthRecords.length}</div><div class="stat-label">本月已扣堂</div></div>
+    <div class="stat-card green"><div class="stat-num">${confirmedClasses}</div><div class="stat-label">已確認課程</div></div>
+    <div class="stat-card yellow"><div class="stat-num">${classWithRoster.length}</div><div class="stat-label">有名單課程</div></div>
+    <div class="stat-card red"><div class="stat-num">${new Set(missingStudents.map(normalizeStudentName)).size}</div><div class="stat-label">找不到有效方案</div></div>
+  `;
+
+  const container = document.getElementById('attendanceClassList');
+  if (!list.length) {
+    container.innerHTML = `<div class="empty-state">這個月份沒有課程資料</div>`;
+  } else {
+    container.innerHTML = list.map(c => {
+      const roster = classRoster(c);
+      const records = classAttendanceRecords(c.id);
+      const deductedKeys = new Set(records.map(r => normalizeStudentName(r.student)));
+      const rosterHtml = roster.length ? roster.map(student => {
+        const p = findDeductiblePurchase(student, c.date);
+        const deducted = deductedKeys.has(normalizeStudentName(student));
+        const status = deducted
+          ? `<span class="badge badge-green">已扣</span>`
+          : p
+            ? `<span class="badge badge-purple">可扣 · 剩 ${remainingPurchaseSessions(p)}</span>`
+            : `<span class="badge badge-red">無有效方案</span>`;
+        return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+          <div style="font-weight:700">${escapeHtml(student)}</div>
+          <div style="font-size:12px;color:var(--text3);text-align:right">${p ? escapeHtml(p.plan) : '需要補方案'} ${status}</div>
+        </div>`;
+      }).join('') : `<div style="font-size:12px;color:var(--text3);padding:8px 0">尚未匯入名單</div>`;
+      return `<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;background:var(--surface2)">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+          <div>
+            <div style="font-weight:900;font-size:16px">${escapeHtml(c.name || '')}</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">${fmtDate(c.date)} ${c.timeStart || ''}-${c.timeEnd || ''} · ${escapeHtml(c.teacher || '')} · 名單 ${roster.length} 人 · 已扣 ${records.length} 人</div>
+          </div>
+          <div class="flex gap-8 flex-wrap">
+            <button class="btn btn-secondary btn-sm" onclick="editClassRoster('${c.id}')">編輯名單</button>
+            <button class="btn btn-primary btn-sm" onclick="confirmClassAttendance('${c.id}')">確認扣堂</button>
+            ${records.length ? `<button class="btn btn-danger btn-sm" onclick="undoClassAttendance('${c.id}')">回復扣堂</button>` : ''}
+          </div>
+        </div>
+        <div style="margin-top:10px">${rosterHtml}</div>
+      </div>`;
+    }).join('');
+  }
+
+  const tbody = document.getElementById('attendanceRecordTbody');
+  const latest = [...attendanceRecords]
+    .filter(r => !keyword || [r.student, r.className, r.teacher, r.plan].join(' ').toLowerCase().includes(keyword))
+    .sort((a,b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+    .slice(0, 40);
+  tbody.innerHTML = latest.length ? latest.map(r => {
+    const p = purchases.find(x => x.id === r.purchaseId);
+    return `<tr>
+      <td style="font-family:DM Mono,monospace;font-size:12px">${(r.createdAt || '').replace('T',' ').slice(0,16)}</td>
+      <td>${fmtDate(r.date)} ${r.timeStart || ''} ${escapeHtml(r.className || '')}</td>
+      <td style="font-weight:700">${escapeHtml(r.student || '')}</td>
+      <td>${escapeHtml(r.plan || '')}</td>
+      <td style="text-align:center;font-family:DM Mono,monospace;color:var(--accent)">${p ? remainingPurchaseSessions(p) : '–'}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="5" class="empty-state">尚無扣堂紀錄</td></tr>`;
+}
+
 function remainingMonthOptions() {
   const cur = todayStr().slice(0,7);
   const months = new Set();
@@ -3705,7 +3990,7 @@ function renderRemainingSessions() {
   purchases
     .filter(p => p.student && p.plan && isPurchaseActiveInMonth(p, _remainingMonth))
     .forEach(p => {
-      const sessions = Number(p.sessions || 0) || inferSessionsFromPlan(p.plan);
+      const sessions = remainingPurchaseSessions(p);
       if (sessions <= 0) return;
       const name = p.student.trim();
       if (!groups.has(name)) {
@@ -3838,7 +4123,7 @@ function renderStudentTable() {
       <td style="font-family:DM Mono,monospace;color:${p.amount===0?'var(--text3)':'var(--green)'}">${fmtMoney(p.amount)}</td>
       <td style="font-family:DM Mono,monospace;font-size:12px">${fmtDate(p.startDate)}</td>
       <td style="font-family:DM Mono,monospace;font-size:12px;color:${isExpired?'var(--red)':expireSoon?'var(--yellow)':'var(--text)'}">${fmtDate(p.endDate)}</td>
-      <td style="text-align:center">${p.sessions||'–'}</td>
+      <td style="text-align:center">${totalPurchaseSessions(p) ? remainingPurchaseSessions(p) : '–'}</td>
       <td>${status}</td>
       <td style="color:var(--text3);font-size:12px">${p.note||''}</td>
       <td><button class="btn btn-secondary btn-sm" onclick="editPurchase('${p.id}')">編輯</button></td>
@@ -4161,23 +4446,37 @@ function importClassExcel(input) {
               timeStart: m[4], timeEnd: m[5],
               name: m[6], teacher: m[7],
               status: m[9]==='停課'?'停課':'正常',
-              booked: 0, max: 0, attended: 0,
+              booked: 0, max: 0, attended: 0, roster: [],
             };
           } else if (current && cell0 && cell0 !== '預約時間' && /^\d{4}\//.test(cell0)) {
             const student = String(row[3] || '').trim();
-            if (student) current.booked++;
+            if (student) {
+              current.booked++;
+              current.roster.push(student);
+            }
           }
         });
         if (current) saveCourse(current);
 
         function saveCourse(c) {
           if (!c.date || !c.name) return;
-          const exists = classes.some(x => x.date===c.date && x.timeStart===c.timeStart && x.name===c.name && (x.teacher===c.teacher||!x.teacher||!c.teacher));
-          if (exists) { skipped++; return; }
+          const existIdx = classes.findIndex(x => x.date===c.date && x.timeStart===c.timeStart && x.name===c.name && (x.teacher===c.teacher||!x.teacher||!c.teacher));
+          if (existIdx >= 0) {
+            const incomingRoster = [...new Set(c.roster || [])];
+            if (incomingRoster.length) {
+              classes[existIdx].booked = c.booked;
+              classes[existIdx].roster = incomingRoster;
+              classes[existIdx].status = c.status;
+              added++;
+            } else {
+              skipped++;
+            }
+            return;
+          }
           // 嘗試從現有資料找上限
           const existing = classes.find(x => x.name===c.name && x.teacher===c.teacher);
           c.max = existing ? existing.max : 10;
-          classes.push({ id:uid(), ...c, room:'', note:'📂 Excel匯入' });
+          classes.push({ id:uid(), ...c, room:'', roster:[...new Set(c.roster || [])], note:'📂 Excel匯入' });
           added++;
         }
 
@@ -4300,8 +4599,11 @@ function importScheduleExcel(input) {
         const existIdx = classes.findIndex(x => x.date===c.date && x.timeStart===c.timeStart && x.name===c.name && (x.teacher===c.teacher || !x.teacher || !c.teacher));
         if (existIdx >= 0) {
           // 更新預約人數
-          if (classes[existIdx].booked !== c.booked) {
+          const incomingRoster = [...new Set(c.roster || [])];
+          const rosterChanged = incomingRoster.length && JSON.stringify(classRoster(classes[existIdx])) !== JSON.stringify(incomingRoster);
+          if (classes[existIdx].booked !== c.booked || rosterChanged) {
             classes[existIdx].booked = c.booked;
+            if (incomingRoster.length) classes[existIdx].roster = incomingRoster;
             classes[existIdx].teacher = c.teacher || classes[existIdx].teacher;
             classes[existIdx].status = c.status;
             updated++;
@@ -4323,6 +4625,7 @@ function importScheduleExcel(input) {
             booked: c.booked,
             attended: 0,
             status: c.status,
+            roster: [...new Set(c.roster || [])],
             note: '📂 課表匯入',
           });
           added++;
@@ -4340,10 +4643,14 @@ function importScheduleExcel(input) {
             name: m[6].trim(), teacher: m[7].trim(),
             status: m[9]==='停課' ? '停課' : '正常',
             booked: 0,
+            roster: [],
           };
         } else if (current && cell0 && cell0 !== '預約時間' && studentReg.test(cell0)) {
           const student = String(row[3] || '').trim();
-          if (student) current.booked++;
+          if (student) {
+            current.booked++;
+            current.roster.push(student);
+          }
         }
       });
       if (current) saveCourse(current);
@@ -4354,6 +4661,152 @@ function importScheduleExcel(input) {
     } catch(err) {
       console.error(err);
       showToast('❌ 匯入失敗：' + err.message, 'error');
+    }
+    input.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ═══════════════════════════════
+//  匯入 BookFast 會籍權益 Excel
+// ═══════════════════════════════
+function normalizeExcelDate(value) {
+  if (!value) return '';
+  if (value instanceof Date) {
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, '0');
+    const d = String(value.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(value).trim().replace(/\//g, '-');
+  const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  return m ? `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}` : '';
+}
+
+function parseExcelNumber(value) {
+  const m = String(value ?? '').replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : 0;
+}
+
+function membershipDept(ticketName, planName) {
+  const text = `${ticketName || ''} ${planName || ''}`;
+  if (/兒童|拳擊|跳床/.test(text)) return 'kids';
+  return 'sport';
+}
+
+async function importMembershipExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      if (!window.XLSX) {
+        await new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+          s.onload = res; s.onerror = rej;
+          document.head.appendChild(s);
+        });
+      }
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+      const required = ['會員姓名', '訂單編號', '票券名稱', '方案名稱', '儲值總額', '未核銷額度', '起始時間', '結束時間', '使用狀態'];
+      const missingCols = required.filter(col => !rows.length || !(col in rows[0]));
+      if (missingCols.length) throw new Error('缺少欄位：' + missingCols.join('、'));
+
+      let added = 0, updated = 0, skipped = 0;
+      const pendingMonthly = [];
+      const pendingUnlimited = [];
+      const noRemaining = [];
+
+      rows.forEach(row => {
+        const status = String(row['使用狀態'] || '').trim();
+        if (status && status !== '使用中') { skipped++; return; }
+
+        const student = String(row['會員姓名'] || '').trim();
+        const orderNo = String(row['訂單編號'] || '').trim();
+        const ticketName = String(row['票券名稱'] || '').trim();
+        const planName = String(row['方案名稱'] || '').trim();
+        const storedText = String(row['儲值總額'] || '').trim();
+        const remaining = parseExcelNumber(row['未核銷額度']);
+        const reserved = parseExcelNumber(row['已預約未核銷額度']);
+        const used = parseExcelNumber(row['已核銷額度']);
+        const monthlyMatch = storedText.match(/每月可預約\s*(\d+)\s*堂/);
+        const isUnlimited = /不限可預約堂數|無限|無限制/.test(`${storedText} ${planName} ${ticketName}`);
+        const isMonthlyRule = !!monthlyMatch;
+
+        if (!student || !orderNo) { skipped++; return; }
+        if (remaining <= 0) {
+          if (isMonthlyRule) pendingMonthly.push({ student, orderNo, planName, storedText });
+          else if (isUnlimited) pendingUnlimited.push({ student, orderNo, planName, storedText });
+          else noRemaining.push({ student, orderNo, planName });
+          return;
+        }
+
+        const startDate = normalizeExcelDate(row['起始時間']);
+        const endDate = normalizeExcelDate(row['結束時間']);
+        const date = normalizeExcelDate(row['交易日期']) || startDate || todayStr();
+        const plan = planName || ticketName || '會籍權益';
+        const sourceId = 'membership:' + orderNo;
+        const noteParts = [`會籍權益匯入`, `剩餘 ${remaining} 堂`];
+        if (reserved > 0) noteParts.push(`已預約未核銷 ${reserved} 堂`);
+        if (used > 0) noteParts.push(`已核銷 ${used} 堂`);
+        if (isMonthlyRule) noteParts.push(storedText);
+
+        const record = {
+          id: uid(),
+          date,
+          student,
+          plan,
+          amount: parseExcelNumber(row['已付金額']) || parseExcelNumber(row['總計']),
+          dept: membershipDept(ticketName, plan),
+          payMethod: String(row['付款方式'] || '').includes('現金') ? 'cash' : 'transfer',
+          serviceMonth: startDate ? startDate.slice(0,7) : date.slice(0,7),
+          startDate,
+          endDate,
+          sessions: remaining,
+          note: noteParts.join(' · '),
+          source: 'membership_excel',
+          sourceId,
+          reservedSessions: reserved,
+          usedSessionsAtImport: used,
+        };
+
+        const existingIdx = purchases.findIndex(p => p.sourceId === sourceId);
+        if (existingIdx >= 0) {
+          purchases[existingIdx] = { ...purchases[existingIdx], ...record, id: purchases[existingIdx].id };
+          updated++;
+        } else {
+          purchases.push(record);
+          added++;
+        }
+      });
+
+      if (added || updated) {
+        save(KEYS.purchases, purchases);
+        await cloudPush(true);
+        refreshCurrentPage();
+      }
+
+      const msg = [
+        `會籍權益匯入完成`,
+        `讀取 ${rows.length} 筆`,
+        `新增 ${added} 筆`,
+        `更新 ${updated} 筆`,
+        `月卡待確認 ${pendingMonthly.length} 筆`,
+        `無限卡待確認 ${pendingUnlimited.length} 筆`,
+        `無剩餘堂數 ${noRemaining.length} 筆`,
+      ].join('｜');
+      showToast('✅ ' + msg, 'success');
+      alert(
+        msg +
+        (pendingMonthly.length ? '\n\n月卡待確認：\n' + pendingMonthly.slice(0, 20).map(x => `${x.student}｜${x.planName || x.storedText}`).join('\n') : '') +
+        (pendingUnlimited.length ? '\n\n無限卡待確認：\n' + pendingUnlimited.slice(0, 20).map(x => `${x.student}｜${x.planName || x.storedText}`).join('\n') : '')
+      );
+    } catch (err) {
+      console.error(err);
+      showToast('❌ 會籍權益匯入失敗：' + err.message, 'error');
     }
     input.value = '';
   };
@@ -5478,6 +5931,7 @@ function refreshCurrentPage() {
   if (id==='class') renderClassPage();
   if (id==='teacher') renderTeacherPage();
   if (id==='student') renderStudentPage();
+  if (id==='attendance') renderAttendancePage();
   if (id==='monthly') renderMonthlyPage();
   if (id==='kids') renderKidsPage();
   if (id==='bank') renderBankPage();
