@@ -857,28 +857,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
   <!-- 一般方案列表 -->
   <div id="purchaseSection">
-    <div class="card mb-16">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
-        <div>
-          <div class="card-title">🎫 每月剩餘堂數</div>
-          <div style="font-size:12px;color:var(--text3)">依每日營收匯入的有效方案彙整，先建立每月可用堂數基準</div>
-        </div>
-        <select id="remainingMonthSelect" onchange="onRemainingMonthChange()" style="min-width:130px"></select>
-      </div>
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse">
-          <thead>
-            <tr style="font-size:11px;color:var(--text3);font-weight:700;letter-spacing:1px;text-transform:uppercase">
-              <th style="padding:9px 12px;text-align:left;border-bottom:1px solid var(--border)">學員</th>
-              <th style="padding:9px 12px;text-align:center;border-bottom:1px solid var(--border)">當月有效堂數</th>
-              <th style="padding:9px 12px;text-align:left;border-bottom:1px solid var(--border)">有效方案</th>
-              <th style="padding:9px 12px;text-align:left;border-bottom:1px solid var(--border)">最近到期</th>
-            </tr>
-          </thead>
-          <tbody id="remainingSessionsTbody"></tbody>
-        </table>
-      </div>
-    </div>
     <div class="card">
       <div class="flex flex-wrap gap-8 mb-16" style="align-items:center">
         <input type="text" id="studentSearch" placeholder="搜尋學員姓名..." oninput="renderStudentTable()" style="min-width:160px;flex:1">
@@ -3644,99 +3622,6 @@ function copyTeacherDetail(teacherId, month) {
 // ═══════════════════════════════
 //  RENDER STUDENT PAGE
 // ═══════════════════════════════
-let _remainingMonth = '';
-
-function addMonthsToMonth(month, offset) {
-  const [y, m] = month.split('-').map(Number);
-  const d = new Date(y, m - 1 + offset, 1);
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-}
-
-function monthBounds(month) {
-  const [y, m] = month.split('-').map(Number);
-  const start = `${y}-${String(m).padStart(2,'0')}-01`;
-  const endDate = new Date(y, m, 0);
-  const end = `${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}`;
-  return { start, end };
-}
-
-function inferSessionsFromPlan(plan) {
-  const match = String(plan || '').match(/(\d+)\s*堂/);
-  return match ? Number(match[1]) : 0;
-}
-
-function isPurchaseActiveInMonth(p, month) {
-  const { start, end } = monthBounds(month);
-  const startDate = p.startDate || p.date || '';
-  const endDate = p.endDate || '';
-  return (!startDate || startDate <= end) && (!endDate || endDate >= start);
-}
-
-function remainingMonthOptions() {
-  const cur = todayStr().slice(0,7);
-  const months = new Set();
-  for (let i=-3; i<=12; i++) months.add(addMonthsToMonth(cur, i));
-  purchases.forEach(p => {
-    [p.date, p.startDate, p.endDate, p.serviceMonth].forEach(v => {
-      if (v && String(v).length >= 7) months.add(String(v).slice(0,7));
-    });
-  });
-  return [...months].sort().reverse();
-}
-
-function onRemainingMonthChange() {
-  const sel = document.getElementById('remainingMonthSelect');
-  if (sel && sel.value) _remainingMonth = sel.value;
-  renderRemainingSessions();
-}
-
-function renderRemainingSessions() {
-  const sel = document.getElementById('remainingMonthSelect');
-  const tbody = document.getElementById('remainingSessionsTbody');
-  if (!sel || !tbody) return;
-
-  const months = remainingMonthOptions();
-  const cur = todayStr().slice(0,7);
-  if (!_remainingMonth || !months.includes(_remainingMonth)) _remainingMonth = months.includes(cur) ? cur : months[0];
-  sel.innerHTML = months.map(m => `<option value="${m}">${m}</option>`).join('');
-  sel.value = _remainingMonth;
-
-  const groups = new Map();
-  purchases
-    .filter(p => p.student && p.plan && isPurchaseActiveInMonth(p, _remainingMonth))
-    .forEach(p => {
-      const sessions = Number(p.sessions || 0) || inferSessionsFromPlan(p.plan);
-      if (sessions <= 0) return;
-      const name = p.student.trim();
-      if (!groups.has(name)) {
-        groups.set(name, { student: name, sessions: 0, plans: new Map(), nearestEnd: '' });
-      }
-      const g = groups.get(name);
-      g.sessions += sessions;
-      const planLabel = p.plan.trim();
-      g.plans.set(planLabel, (g.plans.get(planLabel) || 0) + sessions);
-      if (p.endDate && (!g.nearestEnd || p.endDate < g.nearestEnd)) g.nearestEnd = p.endDate;
-    });
-
-  const rows = [...groups.values()].sort((a,b) => b.sessions - a.sessions || a.student.localeCompare(b.student, 'zh-Hant'));
-  if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="4" class="empty-state">這個月份目前沒有可計算堂數的有效方案</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = rows.map(g => {
-    const planText = [...g.plans.entries()]
-      .map(([plan, sessions]) => `${escapeHtml(plan)} <span style="color:var(--text3)">(${sessions}堂)</span>`)
-      .join('<br>');
-    return `<tr>
-      <td style="padding:10px 12px;border-bottom:1px solid var(--border);font-weight:700">${escapeHtml(g.student)}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;font-family:DM Mono,monospace;font-weight:900;color:var(--accent);font-size:16px">${g.sessions}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;line-height:1.7">${planText}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid var(--border);font-family:DM Mono,monospace;font-size:12px">${fmtDate(g.nearestEnd)}</td>
-    </tr>`;
-  }).join('');
-}
-
 function switchStudentTab(tab, el) {
   _currentStudentTab = tab;
   document.querySelectorAll('#page-student .tab').forEach(t=>t.classList.remove('active'));
@@ -3747,10 +3632,7 @@ function switchStudentTab(tab, el) {
   if(subEl) subEl.style.display = isSub?'':'none';
   if(purEl) purEl.style.display = isSub?'none':'';
   if(isSub) renderSubscriptionSection();
-  else {
-    renderRemainingSessions();
-    renderStudentTable();
-  }
+  else renderStudentTable();
 }
 
 function renderStudentPage() {
@@ -3797,7 +3679,6 @@ function renderStudentPage() {
   if (yearSel) yearSel.innerHTML = `<option value="">所有年份</option>` +
     allYears.map(y=>`<option value="${y}"${y===curYear?'selected':''}>${y} 年</option>`).join('');
 
-  renderRemainingSessions();
   renderStudentTable();
 }
 
