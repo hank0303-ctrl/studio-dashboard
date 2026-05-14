@@ -2080,6 +2080,18 @@ function showToast(message, type='success') {
   el._timer = setTimeout(() => { el.style.display = 'none'; }, 2800);
 }
 
+function syncMetaTime(meta) {
+  if (!meta) return 0;
+  return Date.parse(meta.updatedAt || meta.pushedAt || meta.cloudUpdatedAt || '') || 0;
+}
+
+function isLocalNewerThanRemote(remoteMeta) {
+  const localMeta = JSON.parse(localStorage.getItem(SYNC_META_KEY) || '{}');
+  const localTime = syncMetaTime(localMeta);
+  const remoteTime = syncMetaTime(remoteMeta);
+  return localTime > 0 && localTime > remoteTime + 1000;
+}
+
 async function cloudPush(silent=false) {
   const config = loadSyncConfig();
   if (!config.url) {
@@ -2110,6 +2122,25 @@ async function cloudPush(silent=false) {
   }
 }
 
+function flushCloudPushOnLeave() {
+  const config = loadSyncConfig();
+  if (!config.url || !navigator.sendBeacon) return;
+  try {
+    const meta = JSON.parse(localStorage.getItem(SYNC_META_KEY) || '{}');
+    const payload = {
+      action: 'save',
+      app: SYNC_APP_ID,
+      token: config.token || '',
+      meta: { ...meta, pushedAt: new Date().toISOString() },
+      data: collectLocalData(),
+    };
+    const body = new Blob([JSON.stringify(payload)], { type: 'text/plain;charset=utf-8' });
+    navigator.sendBeacon(buildSyncUrl('save'), body);
+  } catch (err) {
+    console.warn('flushCloudPushOnLeave failed', err);
+  }
+}
+
 async function cloudPull() {
   const config = loadSyncConfig();
   if (!config.url) {
@@ -2124,6 +2155,13 @@ async function cloudPull() {
     if (!result.data || !Object.keys(result.data).length) {
       showToast('雲端目前沒有資料，已保留本機資料', 'success');
       await autoSyncPurchasesIfNeeded();
+      return;
+    }
+    if (isLocalNewerThanRemote(result.meta || {})) {
+      showToast('本機資料較新，正在寫回雲端...', 'success');
+      await cloudPush(true);
+      await autoSyncPurchasesIfNeeded();
+      showToast('✅ 已保留本機最新修改並同步到雲端', 'success');
       return;
     }
     isApplyingRemoteData = true;
@@ -6738,6 +6776,8 @@ function init() {
   renderToday();
   if (loadSyncConfig().url) cloudPull();
 }
+
+window.addEventListener('pagehide', flushCloudPushOnLeave);
 
 init();
 
