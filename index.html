@@ -4019,7 +4019,7 @@ function teacherBookingRows(month) {
     map.get(teacher).push(c);
   });
   return [...map.entries()].map(([teacher, list]) => ({ teacher, ...classMonthMetrics(list) }))
-    .sort((a,b)=>b.booked-a.booked || b.active-a.active || a.teacher.localeCompare(b.teacher, 'zh-Hant'));
+    .sort((a,b)=>b.bookingRate-a.bookingRate || b.booked-a.booked || b.active-a.active || a.teacher.localeCompare(b.teacher, 'zh-Hant'));
 }
 
 function renderBookingFilters(rows) {
