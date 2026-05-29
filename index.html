@@ -658,7 +658,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <div style="font-size:24px;font-weight:900">課程管理</div>
     <div class="flex gap-8 flex-wrap">
       <label class="btn btn-secondary" style="cursor:pointer">
-        📂 匯入課表
+        📂 匯入課程／預約報表
         <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importClassExcel(this)">
       </label>
       <button class="btn btn-secondary" onclick="deduplicateClasses()">🧹 清除重複課程</button>
@@ -940,80 +940,150 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
       <div style="font-size:12px;color:var(--text3);margin-top:2px">結帳 · 對帳 · 損益確認</div>
     </div>
     <div class="flex gap-8 flex-wrap">
+      <button class="btn btn-secondary btn-sm" onclick="changeMonthlyMonth(-1)">← 上個月</button>
       <select id="monthlyMonthSelect" onchange="onMonthlyMonthChange()" style="min-width:140px"></select>
+      <button class="btn btn-secondary btn-sm" onclick="changeMonthlyMonth(1)">下個月 →</button>
       <button class="btn btn-secondary btn-sm" onclick="exportMonthly()">📄 匯出老師明細</button>
     </div>
   </div>
 
-  <!-- ── A. 月結完成檢查清單 ── -->
-  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">A · 月結完成檢查清單</div>
-  <div class="card mb-20" id="monthlyChecklist"></div>
-
-  <!-- ── B. 現金對帳 ── -->
-  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">B · 現金對帳</div>
-  <div class="card mb-20" id="monthlyCashReconcile"></div>
-
-  <!-- ── C. 收入（雙視角）── -->
-  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">C · 收入分析</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-    <div class="card">
-      <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:12px">💵 現金流視角（收款月份）</div>
-      <div id="monthlyCashIncome"></div>
-    </div>
-    <div class="card">
-      <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:12px">📊 營運歸屬視角（服務月份）</div>
-      <div id="monthlyOpsIncome"></div>
-    </div>
+  <div class="tab-row">
+    <div class="tab active" id="monthlyTabFinance" onclick="setMonthlyView('finance',this)">財務月結</div>
+    <div class="tab" id="monthlyTabBooking" onclick="setMonthlyView('booking',this)">團課預約分析</div>
   </div>
 
-  <!-- ── D. 部門損益 ── -->
-  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">D · 部門損益</div>
-  <div class="card mb-20" id="monthlyDeptPL"></div>
+  <div id="monthlyFinanceSection">
+    <!-- ── A. 月結完成檢查清單 ── -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">A · 月結完成檢查清單</div>
+    <div class="card mb-20" id="monthlyChecklist"></div>
 
-  <!-- ── E. 應收 / 預收 ── -->
-  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">E · 應收帳款 / 預收款</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-    <div class="card">
-      <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:12px">⚠️ 未收款（應收帳款）</div>
-      <div id="monthlyReceivable"></div>
+    <!-- ── B. 現金對帳 ── -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">B · 現金對帳</div>
+    <div class="card mb-20" id="monthlyCashReconcile"></div>
+
+    <!-- ── C. 收入（雙視角）── -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">C · 收入分析</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="card">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:12px">💵 現金流視角（收款月份）</div>
+        <div id="monthlyCashIncome"></div>
+      </div>
+      <div class="card">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:12px">📊 營運歸屬視角（服務月份）</div>
+        <div id="monthlyOpsIncome"></div>
+      </div>
     </div>
-    <div class="card">
-      <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:12px">📥 預收款（尚未履約）</div>
-      <div id="monthlyDeferred"></div>
+
+    <!-- ── D. 部門損益 ── -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">D · 部門損益</div>
+    <div class="card mb-20" id="monthlyDeptPL"></div>
+
+    <!-- ── E. 應收 / 預收 ── -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">E · 應收帳款 / 預收款</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="card">
+        <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:12px">⚠️ 未收款（應收帳款）</div>
+        <div id="monthlyReceivable"></div>
+      </div>
+      <div class="card">
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:12px">📥 預收款（尚未履約）</div>
+        <div id="monthlyDeferred"></div>
+      </div>
     </div>
+
+    <!-- ── F. 摘要 + 可展開的明細 ── -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">F · 明細（可展開）</div>
+    <div class="card mb-16">
+      <details style="margin-bottom:8px">
+        <summary style="cursor:pointer;font-weight:700;font-size:14px;padding:10px 0;border-bottom:1px solid var(--border);list-style:none;display:flex;justify-content:space-between;align-items:center">
+          <span>👩‍🏫 老師課費明細</span><span style="font-size:11px;color:var(--text3)">點擊展開 ▾</span>
+        </summary>
+        <div style="margin-top:12px;overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">老師</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">開課</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">滿班</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">到課</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">預約率</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">手續費</th><th style="padding:8px;text-align:right;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">課費小計</th></tr></thead>
+            <tbody id="monthlyTeacherTbody"></tbody>
+          </table>
+        </div>
+      </details>
+      <details>
+        <summary style="cursor:pointer;font-weight:700;font-size:14px;padding:10px 0;list-style:none;display:flex;justify-content:space-between;align-items:center">
+          <span>💰 學員購買明細</span><span style="font-size:11px;color:var(--text3)">點擊展開 ▾</span>
+        </summary>
+        <div style="margin-top:12px;overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">日期</th><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">學員</th><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">方案</th><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">部門</th><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">付款</th><th style="padding:8px;text-align:right;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">金額</th></tr></thead>
+            <tbody id="monthlyPurchaseTbody"></tbody>
+          </table>
+          <div style="text-align:right;margin-top:10px;font-size:13px;font-weight:700;color:var(--green)" id="monthlyPurchaseTotal"></div>
+        </div>
+      </details>
+    </div>
+
+    <!-- 銀行摘要（保留）-->
+    <div class="section-title" id="monthlyBankTitle" style="display:none">🏦 本月銀行帳務摘要</div>
+    <div class="card mb-16" id="monthlyBankSummary" style="display:none"></div>
   </div>
 
-  <!-- ── F. 摘要 + 可展開的明細 ── -->
-  <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:8px">F · 明細（可展開）</div>
-  <div class="card mb-16">
-    <details style="margin-bottom:8px">
-      <summary style="cursor:pointer;font-weight:700;font-size:14px;padding:10px 0;border-bottom:1px solid var(--border);list-style:none;display:flex;justify-content:space-between;align-items:center">
-        <span>👩‍🏫 老師課費明細</span><span style="font-size:11px;color:var(--text3)">點擊展開 ▾</span>
-      </summary>
-      <div style="margin-top:12px;overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse">
-          <thead><tr><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">老師</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">開課</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">滿班</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">到課</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">預約率</th><th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">手續費</th><th style="padding:8px;text-align:right;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">課費小計</th></tr></thead>
-          <tbody id="monthlyTeacherTbody"></tbody>
+  <div id="monthlyBookingSection" style="display:none">
+    <div class="flex flex-wrap gap-8 mb-16" style="align-items:center">
+      <div style="font-size:13px;color:var(--text2);font-weight:700">分析月份：<span id="bookingMonthLabel"></span></div>
+      <button class="btn btn-secondary btn-sm" onclick="setMonthlyView('booking');renderMonthlyBookingAnalysis(true)">全部月份比較</button>
+    </div>
+    <div class="grid-4 mb-16" id="bookingOverviewCards"></div>
+    <div class="card mb-16">
+      <div class="card-title">月份比較</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>月份</th><th>排定堂數</th><th>開課堂數</th><th>停課堂數</th><th>停課率</th>
+            <th>預約人次</th><th>約課率</th><th>到課率</th><th>平均每堂預約</th>
+          </tr></thead>
+          <tbody id="bookingMonthCompareTbody"></tbody>
         </table>
       </div>
-    </details>
-    <details>
-      <summary style="cursor:pointer;font-weight:700;font-size:14px;padding:10px 0;list-style:none;display:flex;justify-content:space-between;align-items:center">
-        <span>💰 學員購買明細</span><span style="font-size:11px;color:var(--text3)">點擊展開 ▾</span>
-      </summary>
-      <div style="margin-top:12px;overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse">
-          <thead><tr><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">日期</th><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">學員</th><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">方案</th><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">部門</th><th style="padding:8px;text-align:left;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">付款</th><th style="padding:8px;text-align:right;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">金額</th></tr></thead>
-          <tbody id="monthlyPurchaseTbody"></tbody>
-        </table>
-        <div style="text-align:right;margin-top:10px;font-size:13px;font-weight:700;color:var(--green)" id="monthlyPurchaseTotal"></div>
+    </div>
+    <div class="card mb-16">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+        <div>
+          <div class="card-title">本月課程預約表現</div>
+          <div style="font-size:12px;color:var(--text3)">依課程名稱、星期時間、老師彙整</div>
+        </div>
       </div>
-    </details>
+      <div class="flex flex-wrap gap-8 mb-16" style="align-items:center">
+        <select id="bookingTeacherFilter" onchange="renderMonthlyBookingAnalysis()" style="min-width:130px"><option value="">全部老師</option></select>
+        <select id="bookingCourseFilter" onchange="renderMonthlyBookingAnalysis()" style="min-width:170px"><option value="">全部課程</option></select>
+        <select id="bookingGradeFilter" onchange="renderMonthlyBookingAnalysis()" style="min-width:120px"><option value="">全部評級</option></select>
+        <select id="bookingSortBy" onchange="renderMonthlyBookingAnalysis()" style="min-width:170px">
+          <option value="rate_desc">約課率高到低</option>
+          <option value="rate_asc">約課率低到高</option>
+          <option value="booked_desc">預約人次高到低</option>
+          <option value="stop_desc">停課堂數高到低</option>
+          <option value="avg_desc">平均每堂預約高到低</option>
+        </select>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>課程名稱</th><th>上課時段</th><th>老師</th><th>排定堂數</th><th>開課堂數</th><th>停課堂數</th>
+            <th>可預約名額</th><th>預約人次</th><th>平均每堂預約</th><th>約課率</th><th>到課率</th><th>評級</th>
+          </tr></thead>
+          <tbody id="bookingCourseTbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card mb-16">
+      <div class="card-title">老師本月預約表現</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>老師</th><th>排定堂數</th><th>開課堂數</th><th>停課堂數</th><th>可預約名額</th>
+            <th>預約人次</th><th>平均每堂預約</th><th>約課率</th><th>到課率</th>
+          </tr></thead>
+          <tbody id="bookingTeacherTbody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
-
-  <!-- 銀行摘要（保留）-->
-  <div class="section-title" id="monthlyBankTitle" style="display:none">🏦 本月銀行帳務摘要</div>
-  <div class="card mb-16" id="monthlyBankSummary" style="display:none"></div>
 
   <!-- 隱藏的舊有元素（保留供舊函數相容）-->
   <div id="monthlySummary" style="display:none"></div>
@@ -1292,6 +1362,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
           <option>滿班</option>
         </select>
       </div>
+      <div class="form-group" style="flex:1;min-width:120px">
+        <label>部門</label>
+        <select id="cls_dept">
+          <option value="sport">運動團課</option>
+          <option value="kids">兒童部門</option>
+          <option value="other">其他</option>
+        </select>
+      </div>
       <div class="form-group" style="flex:2">
         <label>備註</label>
         <input type="text" id="cls_note" placeholder="選填">
@@ -1472,6 +1550,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
         <label>狀態</label>
         <select id="edit_cls_status">
           <option>正常</option><option>停課</option><option>滿班</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>部門</label>
+        <select id="edit_cls_dept">
+          <option value="sport">運動團課</option>
+          <option value="kids">兒童部門</option>
+          <option value="other">其他</option>
         </select>
       </div>
       <div class="form-group" style="flex:2">
@@ -2445,6 +2531,7 @@ function saveClass() {
     booked: parseInt(document.getElementById('cls_booked').value)||0,
     attended: parseInt(document.getElementById('cls_attended').value)||0,
     status: document.getElementById('cls_status').value,
+    dept: document.getElementById('cls_dept')?.value || 'sport',
     note: document.getElementById('cls_note').value.trim(),
   };
   if (!c.date || !c.name || !c.teacher) return alert('請填寫日期、課程名稱和老師');
@@ -2469,6 +2556,8 @@ function editClass(id) {
   document.getElementById('edit_cls_booked').value = c.booked;
   document.getElementById('edit_cls_attended').value = c.attended;
   document.getElementById('edit_cls_status').value = c.status;
+  const deptEl = document.getElementById('edit_cls_dept');
+  if (deptEl) deptEl.value = normalizeClassDept(c);
   document.getElementById('edit_cls_note').value = c.note;
   openModal('editClassModal');
 }
@@ -2489,6 +2578,7 @@ function updateClass() {
     booked: parseInt(document.getElementById('edit_cls_booked').value)||0,
     attended: parseInt(document.getElementById('edit_cls_attended').value)||0,
     status: document.getElementById('edit_cls_status').value,
+    dept: document.getElementById('edit_cls_dept')?.value || normalizeClassDept(classes[idx]),
     note: document.getElementById('edit_cls_note').value.trim(),
   };
   save(KEYS.classes, classes);
@@ -3767,6 +3857,30 @@ function renderStudentTable() {
 //  RENDER MONTHLY
 // ═══════════════════════════════
 let _monthlyMonth = '';
+let _monthlyView = 'finance';
+
+function setMonthlyView(view, el) {
+  _monthlyView = view || 'finance';
+  document.querySelectorAll('#page-monthly .tab').forEach(t=>t.classList.remove('active'));
+  const tab = el || document.getElementById(_monthlyView==='booking'?'monthlyTabBooking':'monthlyTabFinance');
+  if (tab) tab.classList.add('active');
+  const finance = document.getElementById('monthlyFinanceSection');
+  const booking = document.getElementById('monthlyBookingSection');
+  if (finance) finance.style.display = _monthlyView==='finance' ? '' : 'none';
+  if (booking) booking.style.display = _monthlyView==='booking' ? '' : 'none';
+  renderMonthlyData();
+}
+
+function changeMonthlyMonth(offset) {
+  const sel = document.getElementById('monthlyMonthSelect');
+  if (!sel || !sel.options.length) return;
+  const idx = sel.selectedIndex;
+  const nextIdx = Math.max(0, Math.min(sel.options.length - 1, idx - offset));
+  sel.selectedIndex = nextIdx;
+  _monthlyMonth = sel.value;
+  renderMonthlyData();
+}
+
 function onMonthlyMonthChange() {
   const sel=document.getElementById('monthlyMonthSelect');
   if(sel&&sel.value) _monthlyMonth=sel.value;
@@ -3780,14 +3894,254 @@ function renderMonthlyPage() {
   if(!_monthlyMonth||!months.includes(_monthlyMonth)) _monthlyMonth=months[0];
   sel.innerHTML=months.map(m=>`<option value="${m}">${m}</option>`).join('');
   sel.value=_monthlyMonth;
+  setMonthlyView(_monthlyView);
   renderMonthlyData();
 }
 // 向後相容
 function renderMonthly() { renderMonthlyData(); }
 
+function normalizeClassDept(c) {
+  const raw = String(c?.dept || '').trim();
+  if (['sport','kids','other'].includes(raw)) return raw;
+  if (/兒童|幼兒|安親|夏令營|營隊/.test(`${c?.name || ''} ${c?.room || ''}`)) return 'kids';
+  return 'sport';
+}
+
+function isSportClass(c) {
+  return normalizeClassDept(c) === 'sport';
+}
+
+function isActiveClass(c) {
+  return c && c.status !== '停課';
+}
+
+function pct1(num, den) {
+  return den > 0 ? (num / den * 100).toFixed(1) + '%' : '0.0%';
+}
+
+function num1(num) {
+  return (Number(num) || 0).toFixed(1);
+}
+
+function classMonthMetrics(list) {
+  const scheduled = list.length;
+  const active = list.filter(isActiveClass);
+  const stopped = scheduled - active.length;
+  const booked = active.reduce((s,c)=>s+(Number(c.booked)||0),0);
+  const capacity = active.reduce((s,c)=>s+(Number(c.max)||0),0);
+  const attended = active.reduce((s,c)=>s+(Number(c.attended)||0),0);
+  return {
+    scheduled,
+    active: active.length,
+    stopped,
+    booked,
+    capacity,
+    attended,
+    stopRate: scheduled ? stopped / scheduled * 100 : 0,
+    bookingRate: capacity ? booked / capacity * 100 : 0,
+    attendanceRate: booked ? attended / booked * 100 : 0,
+    avgBooked: active.length ? booked / active.length : 0,
+  };
+}
+
+function getBookingGrade(metrics) {
+  if (metrics.active < 2) return { label:'資料少', bg:'#eeeeee', color:'var(--text3)' };
+  if (metrics.bookingRate >= 80) return { label:'滿班熱門', bg:'#dff5e7', color:'var(--green)' };
+  if (metrics.bookingRate >= 60) return { label:'穩定', bg:'#e3eef9', color:'#3f6f93' };
+  if (metrics.bookingRate >= 40) return { label:'觀察中', bg:'#fff4ce', color:'var(--yellow)' };
+  return { label:'需調整', bg:'#fde2df', color:'var(--red)' };
+}
+
+function gradeBadge(label) {
+  const styles = {
+    '資料少': { bg:'#eeeeee', color:'var(--text3)' },
+    '滿班熱門': { bg:'#dff5e7', color:'var(--green)' },
+    '穩定': { bg:'#e3eef9', color:'#3f6f93' },
+    '觀察中': { bg:'#fff4ce', color:'var(--yellow)' },
+    '需調整': { bg:'#fde2df', color:'var(--red)' },
+  };
+  const s = styles[label] || styles['資料少'];
+  return `<span style="display:inline-block;padding:3px 9px;border-radius:999px;background:${s.bg};color:${s.color};font-size:11px;font-weight:700;white-space:nowrap">${label}</span>`;
+}
+
+function weekdayLabel(dateStr) {
+  const days = ['日','一','二','三','四','五','六'];
+  const [y,m,d] = String(dateStr || '').split('-').map(Number);
+  if (!y || !m || !d) return '週-';
+  return '週' + days[new Date(y, m - 1, d).getDay()];
+}
+
+function classTimeLabel(c) {
+  return `${weekdayLabel(c.date)} ${c.timeStart || ''}${c.timeEnd ? '–' + c.timeEnd : ''}`;
+}
+
+function bookingCell(value, bold=false) {
+  return `<td style="text-align:right;font-family:DM Mono,monospace;${bold?'font-weight:800;color:var(--accent)':''}">${value}</td>`;
+}
+
+function sportClassesByMonth(month) {
+  return classes.filter(c => c.date && c.date.slice(0,7) === month && isSportClass(c));
+}
+
+function bookingMonths() {
+  const months = [...new Set(classes.filter(isSportClass).map(c=>c.date?.slice(0,7)).filter(Boolean))].sort().reverse();
+  const cur = todayStr().slice(0,7);
+  if (!months.includes(cur)) months.unshift(cur);
+  return months;
+}
+
+function groupedBookingRows(month) {
+  const map = new Map();
+  sportClassesByMonth(month).forEach(c => {
+    const key = [c.name || '', weekdayLabel(c.date), c.timeStart || '', c.timeEnd || '', c.teacher || ''].join('|');
+    if (!map.has(key)) {
+      map.set(key, {
+        name: c.name || '未命名課程',
+        time: classTimeLabel(c),
+        teacher: c.teacher || '未指定',
+        classes: [],
+      });
+    }
+    map.get(key).classes.push(c);
+  });
+  return [...map.values()].map(row => {
+    const metrics = classMonthMetrics(row.classes);
+    const grade = getBookingGrade(metrics);
+    return { ...row, ...metrics, grade: grade.label };
+  });
+}
+
+function teacherBookingRows(month) {
+  const map = new Map();
+  sportClassesByMonth(month).forEach(c => {
+    const teacher = c.teacher || '未指定';
+    if (!map.has(teacher)) map.set(teacher, []);
+    map.get(teacher).push(c);
+  });
+  return [...map.entries()].map(([teacher, list]) => ({ teacher, ...classMonthMetrics(list) }))
+    .sort((a,b)=>b.booked-a.booked || b.active-a.active || a.teacher.localeCompare(b.teacher, 'zh-Hant'));
+}
+
+function renderBookingFilters(rows) {
+  const teacherSel = document.getElementById('bookingTeacherFilter');
+  const courseSel = document.getElementById('bookingCourseFilter');
+  const gradeSel = document.getElementById('bookingGradeFilter');
+  if (!teacherSel || !courseSel || !gradeSel) return;
+
+  const curTeacher = teacherSel.value;
+  const curCourse = courseSel.value;
+  const curGrade = gradeSel.value;
+  const teachersList = [...new Set(rows.map(r=>r.teacher).filter(Boolean))].sort((a,b)=>a.localeCompare(b, 'zh-Hant'));
+  const coursesList = [...new Set(rows.map(r=>r.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b, 'zh-Hant'));
+  const grades = ['滿班熱門','穩定','觀察中','需調整','資料少'];
+
+  teacherSel.innerHTML = '<option value="">全部老師</option>' + teachersList.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  courseSel.innerHTML = '<option value="">全部課程</option>' + coursesList.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  gradeSel.innerHTML = '<option value="">全部評級</option>' + grades.map(g=>`<option value="${g}">${g}</option>`).join('');
+  teacherSel.value = teachersList.includes(curTeacher) ? curTeacher : '';
+  courseSel.value = coursesList.includes(curCourse) ? curCourse : '';
+  gradeSel.value = grades.includes(curGrade) ? curGrade : '';
+}
+
+function renderMonthlyBookingAnalysis(focusCompare=false) {
+  const month = _monthlyMonth || document.getElementById('monthlyMonthSelect')?.value || todayStr().slice(0,7);
+  const label = document.getElementById('bookingMonthLabel');
+  if (label) label.textContent = month;
+
+  const metrics = classMonthMetrics(sportClassesByMonth(month));
+  const cards = document.getElementById('bookingOverviewCards');
+  if (cards) {
+    const card = (title, val, sub='', color='var(--accent)') => `
+      <div class="stat-card">
+        <div class="stat-num" style="color:${color}">${val}</div>
+        <div class="stat-label">${title}</div>
+        ${sub ? `<div class="stat-sub">${sub}</div>` : ''}
+      </div>`;
+    cards.innerHTML = [
+      card('預約人次', metrics.booked, '', 'var(--green)'),
+      card('開課堂數', metrics.active + ' 堂'),
+      card('停課堂數', metrics.stopped + ' 堂', '', 'var(--red)'),
+      card('停課率', metrics.stopRate.toFixed(1) + '%', `排定 ${metrics.scheduled} 堂`, 'var(--yellow)'),
+      card('約課率', metrics.bookingRate.toFixed(1) + '%', `名額 ${metrics.capacity}`, 'var(--accent2)'),
+      card('到課率', metrics.attendanceRate.toFixed(1) + '%', `到課 ${metrics.attended} 人`, 'var(--accent)'),
+    ].join('');
+  }
+
+  const compareBody = document.getElementById('bookingMonthCompareTbody');
+  if (compareBody) {
+    const months = bookingMonths();
+    compareBody.innerHTML = months.map(m => {
+      const mt = classMonthMetrics(sportClassesByMonth(m));
+      return `<tr>
+        <td style="font-family:DM Mono,monospace;font-weight:${m===month?'900':'600'}">${m}</td>
+        ${bookingCell(mt.scheduled)}
+        ${bookingCell(mt.active)}
+        ${bookingCell(mt.stopped)}
+        ${bookingCell(mt.stopRate.toFixed(1)+'%')}
+        ${bookingCell(mt.booked, m===month)}
+        ${bookingCell(mt.bookingRate.toFixed(1)+'%')}
+        ${bookingCell(mt.attendanceRate.toFixed(1)+'%')}
+        ${bookingCell(num1(mt.avgBooked))}
+      </tr>`;
+    }).join('') || '<tr><td colspan="9" class="empty-state">尚無課程資料</td></tr>';
+  }
+
+  const allRows = groupedBookingRows(month);
+  renderBookingFilters(allRows);
+  const tFilter = document.getElementById('bookingTeacherFilter')?.value || '';
+  const cFilter = document.getElementById('bookingCourseFilter')?.value || '';
+  const gFilter = document.getElementById('bookingGradeFilter')?.value || '';
+  const sortBy = document.getElementById('bookingSortBy')?.value || 'rate_desc';
+  let rows = allRows.filter(r => (!tFilter || r.teacher === tFilter) && (!cFilter || r.name === cFilter) && (!gFilter || r.grade === gFilter));
+  rows.sort((a,b)=>{
+    if (sortBy==='rate_asc') return a.bookingRate-b.bookingRate || b.booked-a.booked;
+    if (sortBy==='booked_desc') return b.booked-a.booked || b.bookingRate-a.bookingRate;
+    if (sortBy==='stop_desc') return b.stopped-a.stopped || a.bookingRate-b.bookingRate;
+    if (sortBy==='avg_desc') return b.avgBooked-a.avgBooked || b.booked-a.booked;
+    return b.bookingRate-a.bookingRate || b.booked-a.booked;
+  });
+
+  const courseBody = document.getElementById('bookingCourseTbody');
+  if (courseBody) {
+    courseBody.innerHTML = rows.length ? rows.map(r => `<tr>
+      <td style="font-weight:700">${escapeHtml(r.name)}</td>
+      <td style="white-space:nowrap">${escapeHtml(r.time)}</td>
+      <td>${escapeHtml(r.teacher)}</td>
+      ${bookingCell(r.scheduled)}
+      ${bookingCell(r.active)}
+      ${bookingCell(r.stopped)}
+      ${bookingCell(r.capacity)}
+      ${bookingCell(r.booked, true)}
+      ${bookingCell(num1(r.avgBooked))}
+      ${bookingCell(r.bookingRate.toFixed(1)+'%')}
+      ${bookingCell(r.attendanceRate.toFixed(1)+'%')}
+      <td>${gradeBadge(r.grade)}</td>
+    </tr>`).join('') : '<tr><td colspan="12" class="empty-state">本月沒有符合條件的團課資料</td></tr>';
+  }
+
+  const teacherBody = document.getElementById('bookingTeacherTbody');
+  if (teacherBody) {
+    const teacherRows = teacherBookingRows(month);
+    teacherBody.innerHTML = teacherRows.length ? teacherRows.map(r => `<tr>
+      <td style="font-weight:700">${escapeHtml(r.teacher)}</td>
+      ${bookingCell(r.scheduled)}
+      ${bookingCell(r.active)}
+      ${bookingCell(r.stopped)}
+      ${bookingCell(r.capacity)}
+      ${bookingCell(r.booked, true)}
+      ${bookingCell(num1(r.avgBooked))}
+      ${bookingCell(r.bookingRate.toFixed(1)+'%')}
+      ${bookingCell(r.attendanceRate.toFixed(1)+'%')}
+    </tr>`).join('') : '<tr><td colspan="9" class="empty-state">本月無老師團課資料</td></tr>';
+  }
+
+  if (focusCompare) document.getElementById('bookingMonthCompareTbody')?.closest('.card')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
 function renderMonthlyData() {
   const month=_monthlyMonth||document.getElementById('monthlyMonthSelect')?.value||todayStr().slice(0,7);
   if(!month) return;
+  if (document.getElementById('bookingMonthLabel')) renderMonthlyBookingAnalysis();
 
   // ── 基礎資料計算 ──
   const mClasses   = classes.filter(c=>c.date.slice(0,7)===month&&c.status!=='停課');
@@ -4039,7 +4393,7 @@ function exportMonthly() {
 }
 
 // ═══════════════════════════════
-//  匯入 BookFast Excel 報表（支援兩種格式）
+//  匯入課程／預約報表
 // ═══════════════════════════════
 function importClassExcel(input) {
   const file = input.files[0];
@@ -4059,121 +4413,181 @@ function importClassExcel(input) {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:false});
 
-      // 判斷格式：預約明細版 or 課程報表版
-      const firstCell = String(rows[1]?.[0] || '');
-      const isDetailFormat = /\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}~\d{2}:\d{2}__/.test(firstCell);
+      let added = 0, updated = 0, skipped = 0, invalid = 0;
+      const importedDates = [];
 
-      let added = 0, skipped = 0;
+      const clean = v => String(v ?? '').trim();
+      const parseNum = v => {
+        const n = parseInt(String(v ?? '').replace(/[^\d-]/g,''), 10);
+        return Number.isFinite(n) ? n : 0;
+      };
+      const parseDate = v => {
+        if (v instanceof Date) return dateToStr(v);
+        const s = clean(v);
+        if (!s) return '';
+        const m = s.match(/(\d{4})[\/\-年.](\d{1,2})[\/\-月.](\d{1,2})/);
+        if (m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+        return '';
+      };
+      const parseTimeRange = v => {
+        const s = clean(v).replace(/[－—–]/g,'-');
+        const m = s.match(/(\d{1,2}:\d{2})\s*[~～\-]\s*(\d{1,2}:\d{2})/);
+        return m ? { start:m[1].padStart(5,'0'), end:m[2].padStart(5,'0') } : { start:'', end:'' };
+      };
+      const findCol = (headers, names) => headers.findIndex(h => names.some(n => clean(h).includes(n)));
+      const normalizeStatus = v => {
+        const s = clean(v);
+        if (s.includes('停課') || s.includes('取消')) return '停課';
+        if (s.includes('滿班')) return '滿班';
+        return '正常';
+      };
+      const classKey = c => [c.date, c.timeStart, c.timeEnd, clean(c.name), clean(c.teacher)].join('|').toLowerCase();
+      const upsertCourse = c => {
+        if (!c.date || !c.timeStart || !c.name || !c.teacher) { invalid++; return; }
+        const key = classKey(c);
+        const idx = classes.findIndex(x => classKey(x) === key);
+        if (idx >= 0) {
+          const before = JSON.stringify({
+            max: Number(classes[idx].max)||0,
+            booked: Number(classes[idx].booked)||0,
+            attended: Number(classes[idx].attended)||0,
+            status: classes[idx].status || '正常',
+            dept: normalizeClassDept(classes[idx]),
+          });
+          classes[idx] = {
+            ...classes[idx],
+            timeEnd: c.timeEnd || classes[idx].timeEnd,
+            room: c.room || classes[idx].room || '',
+            max: c.max !== undefined ? (Number(c.max)||0) : (Number(classes[idx].max)||0),
+            booked: Number(c.booked)||0,
+            attended: Number(c.attended)||0,
+            status: c.status || '正常',
+            dept: c.dept || normalizeClassDept(classes[idx]),
+            note: classes[idx].note || '📂 課程／預約報表匯入',
+          };
+          const after = JSON.stringify({
+            max: Number(classes[idx].max)||0,
+            booked: Number(classes[idx].booked)||0,
+            attended: Number(classes[idx].attended)||0,
+            status: classes[idx].status || '正常',
+            dept: normalizeClassDept(classes[idx]),
+          });
+          if (before === after) skipped++; else updated++;
+        } else {
+          classes.push({
+            id: uid(),
+            room: '',
+            attended: 0,
+            dept: 'sport',
+            note: '📂 課程／預約報表匯入',
+            ...c,
+            max: c.max !== undefined ? (Number(c.max)||0) : 10,
+          });
+          added++;
+        }
+        importedDates.push(c.date);
+      };
+
+      const firstCell = rows.map(r=>clean(r[0])).find(Boolean) || '';
+      const isDetailFormat = /\d{4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{2}~\d{1,2}:\d{2}__/.test(firstCell);
 
       if (isDetailFormat) {
-        // ── 格式二：預約明細簽到版 ──
         let current = null;
+        const flush = () => {
+          if (!current) return;
+          const similar = classes.find(x => x.name === current.name && x.teacher === current.teacher);
+          current.max = current.max || Number(similar?.max || 10);
+          upsertCourse(current);
+        };
         rows.forEach(row => {
-          const cell0 = String(row[0] || '').trim();
-          const m = cell0.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}:\d{2})~(\d{2}:\d{2})__(.+?)_(.+?)\((\w+)\)_\d+分鐘_(\w+)_/);
+          const cell0 = clean(row[0]);
+          const m = cell0.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}:\d{2})~(\d{1,2}:\d{2})__(.+?)_(.+?)\(([^)]+)\)_\d+分鐘_([^_]+)/);
           if (m) {
-            if (current) saveCourse(current);
+            flush();
             current = {
-              date: `${m[1]}-${m[2]}-${m[3]}`,
-              timeStart: m[4], timeEnd: m[5],
-              name: m[6], teacher: m[7],
-              status: m[9]==='停課'?'停課':'正常',
-              booked: 0, max: 0, attended: 0,
+              date: `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`,
+              timeStart: m[4].padStart(5,'0'),
+              timeEnd: m[5].padStart(5,'0'),
+              name: clean(m[6]),
+              teacher: clean(m[7]),
+              status: normalizeStatus(m[9]),
+              booked: 0,
+              attended: 0,
+              dept: 'sport',
             };
           } else if (current && cell0 && cell0 !== '預約時間' && /^\d{4}\//.test(cell0)) {
-            const student = String(row[3] || '').trim();
+            const student = clean(row[3]);
             if (student) current.booked++;
+            const attendText = row.map(clean).join(' ');
+            if (/到課|已到|出席|簽到/.test(attendText)) current.attended++;
           }
         });
-        if (current) saveCourse(current);
-
-        function saveCourse(c) {
-          if (!c.date || !c.name) return;
-          const exists = classes.some(x => x.date===c.date && x.timeStart===c.timeStart && x.name===c.name && (x.teacher===c.teacher||!x.teacher||!c.teacher));
-          if (exists) { skipped++; return; }
-          // 嘗試從現有資料找上限
-          const existing = classes.find(x => x.name===c.name && x.teacher===c.teacher);
-          c.max = existing ? existing.max : 10;
-          classes.push({ id:uid(), ...c, room:'', note:'📂 Excel匯入' });
-          added++;
-        }
-
+        flush();
       } else {
-        // ── 格式一：課程報表版（原有邏輯）──
         let headerIdx = -1;
-        for (let i=0;i<rows.length;i++) {
-          if (rows[i].some(c=>String(c).includes('課程日期'))) { headerIdx=i; break; }
-        }
-        if (headerIdx<0) { showToast('❌ 無法識別檔案格式', 'error'); return; }
-
-        const headers = rows[headerIdx];
-        const getCol = name => headers.findIndex(h=>String(h||'').includes(name));
-        const colDate=getCol('課程日期'), colTime=getCol('課程時間'), colName=getCol('課程名稱');
-        const colStatus=getCol('課程狀態'), colTeacher=getCol('授課老師'), colMax=getCol('開課名額');
-        const colBooked=getCol('預約總人數'), colAttended=getCol('到課總人數');
-
-        for (let i=headerIdx+1;i<rows.length;i++) {
-          const row=rows[i];
-          if (!row||!row[colDate]) continue;
-          // ★ 修正：處理 Date 物件、Excel 序列號、字串三種情況
-          let dateStr='';
-          const rawDate=row[colDate];
-          if (rawDate instanceof Date) {
-            // SheetJS 解析成 Date 物件
-            const y=rawDate.getFullYear();
-            const m=String(rawDate.getMonth()+1).padStart(2,'0');
-            const d=String(rawDate.getDate()).padStart(2,'0');
-            dateStr=`${y}-${m}-${d}`;
-          } else if (typeof rawDate==='number') {
-            // Excel 序列號（如 46000）
-            const d=XLSX.SSF.parse_date_code(rawDate);
-            if (d) dateStr=`${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
-          } else {
-            // 字串格式 2026/05/30 或 2026-05-30
-            dateStr=String(rawDate).replace(/\//g,'-').trim();
+        for (let i=0; i<rows.length; i++) {
+          const line = rows[i].map(clean).join('|');
+          if (/(課程日期|日期).*(課程名稱|課名|課程)/.test(line) || /(日期).*(時段|時間).*(老師|授課)/.test(line)) {
+            headerIdx = i;
+            break;
           }
-          if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) continue;
-          const timeParts=String(row[colTime]||'').split(/[~～\-]/);
-          const timeStart=timeParts[0]?.trim()||'';
-          const timeEnd=timeParts[1]?.trim()||'';
-          const name=String(row[colName]||'').trim();
-          const teacher=String(row[colTeacher]||'').trim();
-          const status=String(row[colStatus]||'正常').trim();
-          const max=parseInt(row[colMax])||0;
-          const booked=parseInt(row[colBooked])||0;
-          const attended=parseInt(row[colAttended])||0;
-          if (!name||!dateStr) continue;
-          const exists=classes.some(c=>c.date===dateStr&&c.timeStart===timeStart&&c.name===name);
-          if (exists){skipped++;continue;}
-          classes.push({id:uid(),date:dateStr,timeStart,timeEnd,name,teacher,room:'',max,booked,attended,status,note:'📂 Excel匯入'});
-          added++;
+        }
+        if (headerIdx < 0) {
+          showToast('❌ 無法識別檔案格式：請確認有日期、時間、課程名稱、老師欄位', 'error');
+          return;
+        }
+        const headers = rows[headerIdx].map(clean);
+        const colDate = findCol(headers, ['課程日期','日期']);
+        const colTime = findCol(headers, ['課程時間','時段','時間']);
+        const colStart = findCol(headers, ['開始時間','開始']);
+        const colEnd = findCol(headers, ['結束時間','結束']);
+        const colName = findCol(headers, ['課程名稱','課名','課程']);
+        const colTeacher = findCol(headers, ['授課老師','老師','教練']);
+        const colStatus = findCol(headers, ['課程狀態','狀態']);
+        const colMax = findCol(headers, ['開課名額','人數上限','上限','可預約名額']);
+        const colBooked = findCol(headers, ['預約總人數','預約人數','預約']);
+        const colAttended = findCol(headers, ['到課總人數','到課人數','到課','出席']);
+        const colRoom = findCol(headers, ['教室','場地']);
+        const colDept = findCol(headers, ['部門','所屬部門']);
+
+        for (let i=headerIdx+1; i<rows.length; i++) {
+          const row = rows[i];
+          if (!row || !row.some(v=>clean(v))) continue;
+          const date = parseDate(row[colDate]);
+          const range = colTime >= 0 ? parseTimeRange(row[colTime]) : { start: clean(row[colStart]), end: clean(row[colEnd]) };
+          const name = clean(row[colName]);
+          const teacher = clean(row[colTeacher]);
+          if (!date || !range.start || !name || !teacher) { invalid++; continue; }
+          const deptText = clean(row[colDept]);
+          upsertCourse({
+            date,
+            timeStart: range.start,
+            timeEnd: range.end,
+            name,
+            teacher,
+            room: colRoom >= 0 ? clean(row[colRoom]) : '',
+            max: colMax >= 0 ? parseNum(row[colMax]) : undefined,
+            booked: parseNum(row[colBooked]),
+            attended: parseNum(row[colAttended]),
+            status: normalizeStatus(row[colStatus]),
+            dept: /兒童/.test(deptText) ? 'kids' : /其他/.test(deptText) ? 'other' : 'sport',
+          });
         }
       }
 
       save(KEYS.classes, classes);
-      showToast(`✅ 匯入完成！新增 ${added} 堂，跳過 ${skipped} 筆重複`, 'success');
+      showToast(`✅ 匯入完成：新增 ${added} 堂，更新 ${updated} 堂，略過 ${skipped} 堂，無法辨識 ${invalid} 列`, 'success');
       renderClassPage();
+      if (_monthlyView === 'booking') renderMonthlyBookingAnalysis();
 
-      // ★ 匯入後自動跳到週課表，並定位到最新匯入課程的那週
-      if (added > 0) {
-        // 找最新匯入課程的日期
-        const newClasses = classes.filter(c=>c.note==='📂 Excel匯入');
-        if (newClasses.length > 0) {
-          const latestDate = newClasses.map(c=>c.date).sort().reverse()[0];
-          // 計算那個日期相對本週的 offset
-          const today = new Date();
-          today.setHours(0,0,0,0);
-          const target = new Date(latestDate);
-          // 找本週一
-          const todayDow = today.getDay();
-          const thisMonday = new Date(today);
-          thisMonday.setDate(today.getDate() - (todayDow===0?6:todayDow-1));
-          // 目標日期在哪週
-          const diffMs = target - thisMonday;
-          const diffWeeks = Math.floor(diffMs / (7*24*60*60*1000));
-          weekOffset = diffWeeks;
-        }
-        showPage('week');
+      if (importedDates.length > 0) {
+        const latestDate = importedDates.sort().reverse()[0];
+        const today = new Date(); today.setHours(0,0,0,0);
+        const target = new Date(latestDate);
+        const todayDow = today.getDay();
+        const thisMonday = new Date(today);
+        thisMonday.setDate(today.getDate() - (todayDow===0?6:todayDow-1));
+        weekOffset = Math.floor((target - thisMonday) / (7*24*60*60*1000));
       }
     } catch(err) {
       console.error(err);
