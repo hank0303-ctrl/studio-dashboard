@@ -68,8 +68,8 @@ function loadAppData(appId) {
 }
 
 function getGmailPurchases(params) {
-  const query = params.query || 'newer_than:90d from:wushujoyful@gmail.com subject:每日營收';
-  const max = Math.min(Number(params.max || 80), 150);
+  const query = params.query || 'newer_than:180d from:wushujoyful@gmail.com subject:每日營收';
+  const max = Math.min(Number(params.max || 150), 300);
   const messages = uniqueMessages(searchGmailMessages(query, max));
   const purchases = [];
 

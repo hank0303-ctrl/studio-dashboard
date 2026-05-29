@@ -1911,12 +1911,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 // ═══════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════
-const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', subscriptions:'studio_subscriptions', fixedExp:'studio_fixed_expenses', salaryRec:'studio_salary_records', bankCats:'studio_bank_categories', notes:'studio_quick_notes' };
+const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', deletedPurchases:'studio_deleted_purchase_imports', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', subscriptions:'studio_subscriptions', fixedExp:'studio_fixed_expenses', salaryRec:'studio_salary_records', bankCats:'studio_bank_categories', notes:'studio_quick_notes' };
 const EXTRA_DATA_KEYS = ['studio_staff_data'];
 const SYNC_CONFIG_KEY = 'studio_cloud_sync_config';
 const SYNC_META_KEY = 'studio_cloud_sync_meta';
 const SYNC_APP_ID = 'studio-dashboard';
 const AUTO_PURCHASE_SYNC_KEY = 'studio_auto_purchase_sync_date';
+const AUTO_PURCHASE_SYNC_INTERVAL_MS = 2 * 60 * 60 * 1000;
 
 let isApplyingRemoteData = false;
 let syncTimer = null;
@@ -1984,6 +1985,7 @@ function reloadLocalData() {
   teachers = load(KEYS.teachers);
   classes = load(KEYS.classes);
   purchases = load(KEYS.purchases);
+  deletedPurchaseImports = load(KEYS.deletedPurchases);
   cleanupImportedPurchaseErrors(false);
   kids = load(KEYS.kids);
   kidBills = loadObj(KEYS.kidBills);
@@ -2178,13 +2180,37 @@ function purchaseDedupKey(p) {
   ].join('|').toLowerCase();
 }
 
+function deletedPurchaseImportKeys() {
+  return new Set((deletedPurchaseImports || []).flatMap(item => [item.sourceId, item.key]).filter(Boolean));
+}
+
+function rememberDeletedPurchaseImport(p) {
+  if (!p) return;
+  const sourceId = p.sourceId || '';
+  const key = purchaseDedupKey(p);
+  if (!sourceId && !key) return;
+  const exists = (deletedPurchaseImports || []).some(item => item.sourceId === sourceId || item.key === key);
+  if (!exists) {
+    deletedPurchaseImports.push({
+      id: uid(),
+      sourceId,
+      key,
+      student: p.student || '',
+      plan: p.plan || '',
+      amount: Number(p.amount || 0),
+      date: p.date || '',
+      deletedAt: new Date().toISOString(),
+    });
+  }
+}
+
 async function autoSyncPurchasesIfNeeded() {
   const config = loadSyncConfig();
   if (!config.url) return false;
-  const today = todayStr();
-  if (localStorage.getItem(AUTO_PURCHASE_SYNC_KEY) === today) return false;
+  const lastSync = Date.parse(localStorage.getItem(AUTO_PURCHASE_SYNC_KEY) || '') || 0;
+  if (lastSync && Date.now() - lastSync < AUTO_PURCHASE_SYNC_INTERVAL_MS) return false;
   const ok = await syncGmailPurchases({ silent: true, auto: true });
-  if (ok) localStorage.setItem(AUTO_PURCHASE_SYNC_KEY, today);
+  if (ok) localStorage.setItem(AUTO_PURCHASE_SYNC_KEY, new Date().toISOString());
   return ok;
 }
 
@@ -2196,14 +2222,14 @@ async function syncGmailPurchases(options={}) {
     return false;
   }
 
-  const query = 'newer_than:90d from:wushujoyful@gmail.com subject:每日營收';
+  const query = 'newer_than:180d from:wushujoyful@gmail.com subject:每日營收';
 
   try {
     if (!silent) showToast('正在讀取信箱購買紀錄...', 'success');
     const url = buildSyncUrl('gmailPurchases');
     const reqUrl = new URL(url);
     reqUrl.searchParams.set('query', query);
-    reqUrl.searchParams.set('max', '80');
+    reqUrl.searchParams.set('max', '150');
     const res = await fetch(reqUrl.toString(), { method: 'GET' });
     const result = await parseJsonResponse(res);
     if (!result.ok) throw new Error(result.error || '信箱同步失敗');
@@ -2211,8 +2237,10 @@ async function syncGmailPurchases(options={}) {
     const incoming = (result.purchases || []).filter(p => p.date && p.student && p.plan);
     const removed = cleanupImportedPurchaseErrors(false);
     const existingKeys = new Set(purchases.map(purchaseDedupKey));
+    const deletedKeys = deletedPurchaseImportKeys();
     let added = 0;
     let updated = 0;
+    let skippedDeleted = 0;
 
     incoming.forEach(p => {
       const record = {
@@ -2231,6 +2259,11 @@ async function syncGmailPurchases(options={}) {
         source: 'gmail',
         sourceId: p.sourceId || '',
       };
+      const key = purchaseDedupKey(record);
+      if ((record.sourceId && deletedKeys.has(record.sourceId)) || deletedKeys.has(key)) {
+        skippedDeleted++;
+        return;
+      }
       const sourceIdx = record.sourceId ? purchases.findIndex(x=>x.sourceId===record.sourceId) : -1;
       if (sourceIdx >= 0) {
         purchases[sourceIdx] = { ...purchases[sourceIdx], ...record, id: purchases[sourceIdx].id };
@@ -2238,7 +2271,6 @@ async function syncGmailPurchases(options={}) {
         updated++;
         return;
       }
-      const key = purchaseDedupKey(record);
       if (existingKeys.has(key)) return;
       purchases.push(record);
       existingKeys.add(key);
@@ -2251,7 +2283,7 @@ async function syncGmailPurchases(options={}) {
       await cloudPush(true);
     }
     refreshCurrentPage();
-    const msg = `✅ 同步完成：讀取每日營收 ${result.messageCount || 0} 封，解析 ${incoming.length} 筆，新增 ${added} 筆，修正 ${updated} 筆，清除舊錯誤 ${removed} 筆，略過 ${incoming.length - added - updated} 筆重複`;
+    const msg = `✅ 同步完成：讀取每日營收 ${result.messageCount || 0} 封，解析 ${incoming.length} 筆，新增 ${added} 筆，修正 ${updated} 筆，清除舊錯誤 ${removed} 筆，略過 ${incoming.length - added - updated - skippedDeleted} 筆重複，保留刪除 ${skippedDeleted} 筆`;
     showToast(silent ? (changed ? '✅ 已自動同步信箱購買並寫回雲端' : '✅ 信箱購買已是最新') : msg, 'success');
     if (!silent) {
       alert(
@@ -2288,6 +2320,7 @@ function configureCloudSync() {
 let teachers = load(KEYS.teachers);
 let classes  = load(KEYS.classes);
 let purchases = load(KEYS.purchases);
+let deletedPurchaseImports = load(KEYS.deletedPurchases);
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
 // seed demo data if empty
@@ -2718,7 +2751,10 @@ function updatePurchase() {
 
 function deletePurchase(id) {
   if (!confirm('確定刪除？')) return;
+  const p = purchases.find(x=>x.id===id);
+  rememberDeletedPurchaseImport(p);
   purchases = purchases.filter(x=>x.id!==id);
+  save(KEYS.deletedPurchases, deletedPurchaseImports);
   save(KEYS.purchases, purchases);
   closeModal('editPurchaseModal');
   refreshCurrentPage();
