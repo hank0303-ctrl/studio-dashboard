@@ -659,7 +659,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <div class="flex gap-8 flex-wrap">
       <label class="btn btn-secondary" style="cursor:pointer">
         📂 匯入課程／預約報表
-        <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importClassExcel(this)">
+        <input type="file" accept=".xlsx,.xls,.numbers" style="display:none" onchange="importClassExcel(this)">
       </label>
       <button class="btn btn-danger" onclick="clearCurrentMonthClasses()">🗑️ 清除本月課程</button>
       <button class="btn btn-primary" onclick="openModal('addClassModal')">＋ 新增課程</button>
@@ -4398,6 +4398,12 @@ function exportMonthly() {
 function importClassExcel(input) {
   const file = input.files[0];
   if (!file) return;
+  if (/\.numbers$/i.test(file.name || '')) {
+    showToast('❌ Numbers 檔目前無法在網頁直接解析，請在 Numbers 選「檔案 → 輸出至 → Excel」後上傳 .xlsx', 'error');
+    alert('Numbers 檔是 Apple 專用格式，瀏覽器無法像 Excel 一樣直接讀取內容。\n\n請在 Numbers 打開檔案後：\n檔案 → 輸出至 → Excel\n再上傳匯出的 .xlsx 檔。');
+    input.value = '';
+    return;
+  }
   const reader = new FileReader();
   reader.onload = async e => {
     try {
@@ -4434,7 +4440,11 @@ function importClassExcel(input) {
         const m = s.match(/(\d{1,2}:\d{2})\s*[~～\-]\s*(\d{1,2}:\d{2})/);
         return m ? { start:m[1].padStart(5,'0'), end:m[2].padStart(5,'0') } : { start:'', end:'' };
       };
-      const findCol = (headers, names) => headers.findIndex(h => names.some(n => clean(h).includes(n)));
+      const findCol = (headers, names) => {
+        const exact = headers.findIndex(h => names.some(n => clean(h) === n));
+        if (exact >= 0) return exact;
+        return headers.findIndex(h => names.some(n => clean(h).includes(n)));
+      };
       const normalizeStatus = v => {
         const s = clean(v);
         if (s.includes('停課') || s.includes('取消')) return '停課';
@@ -4541,7 +4551,7 @@ function importClassExcel(input) {
         const colTime = findCol(headers, ['課程時間','時段','時間']);
         const colStart = findCol(headers, ['開始時間','開始']);
         const colEnd = findCol(headers, ['結束時間','結束']);
-        const colName = findCol(headers, ['課程名稱','課名','課程']);
+        const colName = findCol(headers, ['課程名稱','課名']);
         const colTeacher = findCol(headers, ['授課老師','老師','教練']);
         const colStatus = findCol(headers, ['課程狀態','狀態']);
         const colMax = findCol(headers, ['開課名額','人數上限','上限','可預約名額']);
