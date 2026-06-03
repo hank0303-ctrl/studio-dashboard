@@ -743,7 +743,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
               <th style="padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)">老師</th>
               <th style="padding:10px 14px;text-align:center;border-bottom:1px solid var(--border)">堂數</th>
               <th style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)">課費</th>
-              <th style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)">滿班加給</th>
+              <th style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)">滿班加給（已含）</th>
               <th style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)">手續費</th>
               <th style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)">應付薪資</th>
               <th style="padding:10px 14px;text-align:right;border-bottom:1px solid var(--border)">已發金額</th>
@@ -6936,7 +6936,7 @@ function calcTeacherMonthSalary(t, month) {
     if(c.status==='滿班') fullBonus += (t.fullBonus||0);
   });
   const deduct = (t.deductFee!==false) && basePay>0 ? 15 : 0;
-  const net = basePay + fullBonus - deduct;
+  const net = basePay - deduct;
   return { mClasses, basePay, fullBonus, deduct, net };
 }
 
@@ -7020,7 +7020,7 @@ function showTeacherSalaryDetail(teacherName, month) {
         <th style="padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)">課程</th>
         <th style="padding:8px 12px;text-align:center;border-bottom:1px solid var(--border)">人數</th>
         <th style="padding:8px 12px;text-align:right;border-bottom:1px solid var(--border)">課費</th>
-        <th style="padding:8px 12px;text-align:right;border-bottom:1px solid var(--border)">加給</th>
+        <th style="padding:8px 12px;text-align:right;border-bottom:1px solid var(--border)">滿班加給（已含）</th>
         <th style="padding:8px 12px;text-align:right;border-bottom:1px solid var(--border)">小計</th>
       </tr></thead>
       <tbody>${mClasses.map(c=>{
@@ -7032,7 +7032,7 @@ function showTeacherSalaryDetail(teacherName, month) {
           <td style="${tdS};text-align:center">${c.attended||c.booked}</td>
           <td style="${tdS};text-align:right;font-family:DM Mono,monospace">${fmtMoney(pay)}</td>
           <td style="${tdS};text-align:right;font-family:DM Mono,monospace;color:var(--yellow)">${bonus>0?'+'+fmtMoney(bonus):'—'}</td>
-          <td style="${tdS};text-align:right;font-family:DM Mono,monospace;font-weight:700">${fmtMoney(pay+bonus)}</td>
+          <td style="${tdS};text-align:right;font-family:DM Mono,monospace;font-weight:700">${fmtMoney(pay)}</td>
         </tr>`;
       }).join('')}</tbody>
       <tfoot>
@@ -7040,7 +7040,7 @@ function showTeacherSalaryDetail(teacherName, month) {
           <td style="${tdS}" colspan="3">課費小計</td>
           <td style="${tdS};text-align:right;font-family:DM Mono,monospace">${fmtMoney(basePay)}</td>
           <td style="${tdS};text-align:right;font-family:DM Mono,monospace;color:var(--yellow)">${fullBonus>0?'+'+fmtMoney(fullBonus):'—'}</td>
-          <td style="${tdS};text-align:right;font-family:DM Mono,monospace">${fmtMoney(basePay+fullBonus)}</td>
+          <td style="${tdS};text-align:right;font-family:DM Mono,monospace">${fmtMoney(basePay)}</td>
         </tr>
         ${deduct>0?`<tr style="background:var(--surface2)"><td style="${tdS}" colspan="5">扣除轉帳手續費</td><td style="${tdS};text-align:right;font-family:DM Mono,monospace;color:var(--red)">-$${deduct}</td></tr>`:''}
         <tr style="background:var(--surface2)">
