@@ -832,6 +832,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
             <option value="">選擇要匯入的方案...</option>
           </select>
           <button class="btn btn-secondary btn-sm" onclick="importSubscriptionsByPlan()">📥 批量匯入有效學員</button>
+          <label class="btn btn-secondary btn-sm" style="cursor:pointer">
+            📥 匯入月扣名單
+            <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importSubscriptionsFile(this)">
+          </label>
           <select id="subMonthSelect" onchange="onSubMonthChange()" style="min-width:120px"></select>
         </div>
       </div>
@@ -6549,8 +6553,10 @@ let subscriptions = load(KEYS.subscriptions);
 
 // 判斷某個訂閱在指定月份是否有效
 function isSubActiveInMonth(sub, month) {
-  if (!sub.startMonth || month < sub.startMonth) return false;
-  if (sub.endMonth && month > sub.endMonth) return false;
+  const startMonth = sub.startDate ? sub.startDate.slice(0,7) : sub.startMonth;
+  const endMonth = sub.endDate && sub.endDate !== '永久有效' ? sub.endDate.slice(0,7) : sub.endMonth;
+  if (startMonth && month < startMonth) return false;
+  if (endMonth && month > endMonth) return false;
   return true;
 }
 
@@ -6665,6 +6671,207 @@ function importSubscriptionsByPlan() {
   renderSubscriptionSection();
 }
 
+function normalizeSubKeyText(v) {
+  return String(v ?? '')
+    .replace(/[－—–-]/g, '')
+    .replace(/[（]/g, '(')
+    .replace(/[）]/g, ')')
+    .replace(/\s+/g, '')
+    .toLowerCase();
+}
+
+function subscriptionKey(student, plan) {
+  return `${normalizeSubKeyText(student)}|${normalizeSubKeyText(plan)}`;
+}
+
+function compareSubEndDate(a, b) {
+  if (a === b) return 0;
+  if (a === '永久有效') return 1;
+  if (b === '永久有效') return -1;
+  if (!a) return -1;
+  if (!b) return 1;
+  return a > b ? 1 : a < b ? -1 : 0;
+}
+
+function parseSubDate(v) {
+  if (v instanceof Date) return dateToStr(v);
+  const s = String(v ?? '').trim();
+  if (!s) return '';
+  if (/永久有效/.test(s)) return '永久有效';
+  const m = s.match(/(\d{4})[\/\-年.](\d{1,2})[\/\-月.](\d{1,2})/);
+  if (m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  return '';
+}
+
+function normalizeSubscriptionPlan(row, col) {
+  const plan = String(row[col(['方案名稱','方案','商品名稱'])] ?? '').trim();
+  const ticketName = String(row[col(['票券名稱'])] ?? row[col(['票券種類'])] ?? '').trim();
+  const duration = String(row[col(['使用時長(數量)','使用時長','時長'])] ?? '').trim();
+  if (plan) {
+    return plan
+      .replace(/[－—–]/g, '-')
+      .replace(/月卡-/, '月卡－')
+      .replace(/\(/g, '（')
+      .replace(/\)/g, '）');
+  }
+  if (/永久有效/.test(duration)) return '永久有效舊月卡';
+  if (/無限制月卡/.test(ticketName)) return Number(duration) >= 12 ? '舊制全年無限制月卡' : '舊制單月無限制月卡';
+  return ticketName || plan;
+}
+
+function inferSubscriptionAmount(row, col, existing) {
+  if (existing && Number(existing.amount) > 0) return Number(existing.amount);
+  const total = parseInt(String(row[col(['總計','金額','每月金額','每月扣款'])] ?? '').replace(/[^\d-]/g,''), 10) || 0;
+  const durationText = String(row[col(['使用時長(數量)','使用時長','月數'])] ?? '').trim();
+  const duration = parseInt(durationText.replace(/[^\d]/g,''), 10) || 1;
+  if (/永久有效/.test(durationText)) return total || 0;
+  return duration > 1 ? Math.round(total / duration) : total;
+}
+
+async function ensureXlsxLoaded() {
+  if (window.XLSX) return;
+  await new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = res;
+    s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+function findSubscriptionHeaderRow(rows, clean) {
+  for (let i=0; i<Math.min(rows.length, 20); i++) {
+    const line = rows[i].map(clean).join('|');
+    if (/(會員姓名|會員|姓名).*(方案名稱|方案|票券名稱).*(結束時間|到期日|到期日期)/.test(line)) return i;
+  }
+  return -1;
+}
+
+function importSubscriptionsRows(rows) {
+  const clean = v => String(v ?? '').trim();
+  const headerIdx = findSubscriptionHeaderRow(rows, clean);
+  if (headerIdx < 0) throw new Error('找不到「會員／方案／到期日」欄位');
+  const headers = rows[headerIdx].map(clean);
+  const col = names => {
+    const exact = headers.findIndex(h => names.some(n => clean(h) === n));
+    if (exact >= 0) return exact;
+    return headers.findIndex(h => names.some(n => clean(h).includes(n)));
+  };
+  const colStudent = col(['會員姓名','會員','姓名']);
+  const colStart = col(['起始時間','啟用日期','開始日期','開始月份']);
+  const colEnd = col(['結束時間','到期日','到期日期','有效期限','結束日期']);
+  const colOrderDate = col(['交易日期','購買日期','訂閱日期']);
+  const colStatus = col(['使用狀態','狀態']);
+  if (colStudent < 0 || colEnd < 0) throw new Error('缺少會員姓名或到期日欄位');
+
+  const index = new Map(subscriptions.map((s, i) => [subscriptionKey(s.student, s.plan), i]));
+  let added = 0, updated = 0, skipped = 0, invalid = 0;
+
+  for (let i=headerIdx+1; i<rows.length; i++) {
+    const row = rows[i] || [];
+    if (!row.some(v => clean(v))) continue;
+    const student = clean(row[colStudent]);
+    const plan = normalizeSubscriptionPlan(row, col);
+    const endDate = parseSubDate(row[colEnd]);
+    const startDate = colStart >= 0 ? parseSubDate(row[colStart]) : '';
+    const orderDate = colOrderDate >= 0 ? parseSubDate(row[colOrderDate]) : '';
+    const statusText = colStatus >= 0 ? clean(row[colStatus]) : '';
+    if (statusText && !/(使用中|有效|啟用)/.test(statusText)) { skipped++; continue; }
+    if (!student || !plan || !endDate) { invalid++; continue; }
+
+    const key = subscriptionKey(student, plan);
+    const idx = index.get(key);
+    const existing = idx !== undefined ? subscriptions[idx] : null;
+    const amount = inferSubscriptionAmount(row, col, existing);
+    const startMonth = startDate && startDate !== '永久有效' ? startDate.slice(0,7) : (existing?.startMonth || orderDate.slice(0,7) || todayStr().slice(0,7));
+    const endMonth = endDate && endDate !== '永久有效' ? endDate.slice(0,7) : '';
+    const dayOfMonth = existing?.dayOfMonth || (orderDate && orderDate !== '永久有效' ? Number(orderDate.slice(8,10)) : 22);
+
+    if (existing) {
+      if (compareSubEndDate(existing.endDate || '', endDate) > 0) {
+        skipped++;
+        continue;
+      }
+      const before = JSON.stringify({
+        student: existing.student,
+        plan: existing.plan,
+        amount: existing.amount,
+        dayOfMonth: existing.dayOfMonth,
+        startDate: existing.startDate || '',
+        endDate: existing.endDate || '',
+        startMonth: existing.startMonth || '',
+        endMonth: existing.endMonth || '',
+      });
+      subscriptions[idx] = {
+        ...existing,
+        student,
+        plan,
+        amount,
+        dayOfMonth,
+        startDate: startDate || existing.startDate || '',
+        endDate,
+        startMonth,
+        endMonth,
+        note: existing.note || '會籍權益匯入',
+        confirmedMonths: existing.confirmedMonths || [],
+      };
+      const after = JSON.stringify({
+        student: subscriptions[idx].student,
+        plan: subscriptions[idx].plan,
+        amount: subscriptions[idx].amount,
+        dayOfMonth: subscriptions[idx].dayOfMonth,
+        startDate: subscriptions[idx].startDate || '',
+        endDate: subscriptions[idx].endDate || '',
+        startMonth: subscriptions[idx].startMonth || '',
+        endMonth: subscriptions[idx].endMonth || '',
+      });
+      if (before === after) skipped++; else updated++;
+    } else {
+      subscriptions.push({
+        id: uid(),
+        student,
+        plan,
+        amount,
+        dayOfMonth,
+        startDate: startDate || '',
+        endDate,
+        startMonth,
+        endMonth,
+        note: '會籍權益匯入',
+        confirmedMonths: [],
+      });
+      index.set(key, subscriptions.length - 1);
+      added++;
+    }
+  }
+
+  save(KEYS.subscriptions, subscriptions);
+  renderSubscriptionSection();
+  showToast(`✅ 月扣名單更新完成：新增 ${added} 筆，更新 ${updated} 筆，略過 ${skipped} 筆，無法辨識 ${invalid} 列`, 'success');
+  alert(`✅ 月扣名單更新完成\n\n新增 ${added} 筆\n更新 ${updated} 筆\n略過 ${skipped} 筆\n無法辨識 ${invalid} 列`);
+}
+
+function importSubscriptionsFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      await ensureXlsxLoaded();
+      const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:'', raw:false});
+      importSubscriptionsRows(rows);
+    } catch(err) {
+      console.error(err);
+      showToast('❌ 月扣名單匯入失敗：' + err.message, 'error');
+      alert('月扣名單匯入失敗：' + err.message);
+    }
+    input.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 let _subMonth='';
 function onSubMonthChange() {
   const sel=document.getElementById('subMonthSelect');
@@ -6731,6 +6938,9 @@ function renderSubData() {
   const tdS='padding:11px 14px;border-bottom:1px solid var(--border)';
   tbody.innerHTML=activeSubs.map(s=>{
     const isConf=(s.confirmedMonths||[]).includes(month);
+    const periodText = s.endDate === '永久有效'
+      ? `${s.startDate ? fmtDate(s.startDate) + ' ~ ' : ''}永久有效`
+      : `${s.startDate ? fmtDate(s.startDate) : (s.startMonth || '—')}${s.endDate ? ' ~ ' + fmtDate(s.endDate) : (s.endMonth ? ' ~ ' + s.endMonth : ' ~ 持續中')}`;
     return `<tr style="${isConf?'opacity:0.6':''}">
       <td style="${tdS};font-weight:600">${s.student}</td>
       <td style="${tdS};font-size:12px;color:var(--text2)">${s.plan||'—'}</td>
@@ -6743,7 +6953,7 @@ function renderSubData() {
           ${isConf?'✅ 已收款':'⏳ 待確認'}
         </button>
       </td>
-      <td style="${tdS};font-size:12px;color:var(--text3)">${s.startMonth||'—'}${s.endMonth?' ~ '+s.endMonth:' ~ 持續中'}</td>
+      <td style="${tdS};font-size:12px;color:var(--text3)">${periodText}</td>
       <td style="${tdS}"><button class="btn btn-secondary btn-sm" onclick="editSubscription('${s.id}')">編輯</button></td>
     </tr>`;
   }).join('');
