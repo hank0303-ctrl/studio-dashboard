@@ -1290,10 +1290,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:14px">
       <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">加給 / 扣款</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
-        <button class="btn btn-secondary btn-sm" onclick="selectAdjustmentPreset('勞保','deduct')">勞保</button>
-        <button class="btn btn-secondary btn-sm" onclick="selectAdjustmentPreset('健保','deduct')">健保</button>
-        <button class="btn btn-secondary btn-sm" onclick="selectAdjustmentPreset('勞退','deduct')">勞退</button>
-        <button class="btn btn-secondary btn-sm" onclick="selectAdjustmentPreset('獎金','bonus')">獎金</button>
+        <button class="btn btn-secondary btn-sm" onclick="selectAdjustmentPreset('勞保','deduct')">勞保 <span id="adjPresetLabor"></span></button>
+        <button class="btn btn-secondary btn-sm" onclick="selectAdjustmentPreset('健保','deduct')">健保 <span id="adjPresetHealth"></span></button>
+        <button class="btn btn-secondary btn-sm" onclick="selectAdjustmentPreset('勞退','deduct')">勞退 <span id="adjPresetPension"></span></button>
+        <button class="btn btn-secondary btn-sm" onclick="selectAdjustmentPreset('獎金','bonus')">獎金 <span id="adjPresetBonus"></span></button>
       </div>
       <div class="form-row">
         <div class="form-group" style="flex:2"><label>項目名稱</label><input type="text" id="adj_name" placeholder="如：獎金、勞保、健保"></div>
@@ -2007,7 +2007,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 // ═══════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════
-const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', deletedPurchases:'studio_deleted_purchase_imports', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', subscriptions:'studio_subscriptions', fixedExp:'studio_fixed_expenses', salaryRec:'studio_salary_records', bankCats:'studio_bank_categories', notes:'studio_quick_notes' };
+const KEYS = { teachers:'studio_teachers', classes:'studio_classes', purchases:'studio_purchases', deletedPurchases:'studio_deleted_purchase_imports', kids:'studio_kids', kidBills:'studio_kid_bills', bankTx:'studio_bank_tx', kidCosts:'studio_kid_costs', staff:'studio_staff', staffAdjPresets:'studio_staff_adjustment_presets', subscriptions:'studio_subscriptions', fixedExp:'studio_fixed_expenses', salaryRec:'studio_salary_records', bankCats:'studio_bank_categories', notes:'studio_quick_notes' };
 const EXTRA_DATA_KEYS = ['studio_staff_data'];
 const SYNC_CONFIG_KEY = 'studio_cloud_sync_config';
 const SYNC_META_KEY = 'studio_cloud_sync_meta';
@@ -2091,6 +2091,7 @@ function reloadLocalData() {
   quickNotes = loadObj(KEYS.notes);
   staffList = load(KEYS.staff);
   staffData = loadObj('studio_staff_data');
+  staffAdjustmentPresets = loadObj(KEYS.staffAdjPresets);
   subscriptions = load(KEYS.subscriptions);
   fixedExp = load(KEYS.fixedExp);
   salaryRecords = load(KEYS.salaryRec);
@@ -6201,6 +6202,7 @@ function renderBankMonthlySummary(month) {
 // ═══════════════════════════════
 let staffList = load(KEYS.staff);
 let staffData  = loadObj('studio_staff_data');
+let staffAdjustmentPresets = loadObj(KEYS.staffAdjPresets);
 
 function saveStaff() {
   const name=document.getElementById('staff_name').value.trim();
@@ -6246,6 +6248,7 @@ function openShiftModal(staffId,month) {
   document.getElementById('adj_amount').value='';
   document.getElementById('adj_amount').placeholder='輸入金額即可';
   _adjType='bonus';
+  renderAdjustmentPresetButtons();
   renderShiftCalendar(); renderAdjList(); renderStaffPayPreview();
   openModal('staffShiftModal');
 }
@@ -6384,6 +6387,19 @@ function removeShiftDay(dateStr) {
   renderShiftCalendar(); renderStaffPayPreview();
 }
 let _adjType = 'bonus';
+function renderAdjustmentPresetButtons() {
+  const targets = {
+    '勞保': 'adjPresetLabor',
+    '健保': 'adjPresetHealth',
+    '勞退': 'adjPresetPension',
+    '獎金': 'adjPresetBonus',
+  };
+  Object.entries(targets).forEach(([name, id]) => {
+    const el = document.getElementById(id);
+    const amount = Number(staffAdjustmentPresets[name] || 0);
+    if (el) el.textContent = amount > 0 ? fmtMoney(amount) : '';
+  });
+}
 function selectAdjustmentPreset(name, type) {
   _adjType = type === 'deduct' ? 'deduct' : 'bonus';
   const nameInput = document.getElementById('adj_name');
@@ -6391,6 +6407,8 @@ function selectAdjustmentPreset(name, type) {
   if (nameInput) nameInput.value = name;
   if (amountInput) {
     amountInput.placeholder = _adjType === 'deduct' ? '輸入扣款金額' : '輸入加給金額';
+    const savedAmount = Number(staffAdjustmentPresets[name] || 0);
+    if (savedAmount > 0) amountInput.value = savedAmount;
     amountInput.focus();
     amountInput.select();
   }
@@ -6399,11 +6417,17 @@ function normalizeAdjustmentAmount(name, amount) {
   const isDeduct = _adjType === 'deduct' || /勞保|健保|勞退|扣款|代扣|請假|遲到|早退/.test(name);
   return isDeduct ? -Math.abs(amount) : Math.abs(amount);
 }
+function rememberAdjustmentAmount(name, amount) {
+  if (!name || !/勞保|健保|勞退|獎金/.test(name)) return;
+  staffAdjustmentPresets[name] = Math.abs(amount);
+  save(KEYS.staffAdjPresets, staffAdjustmentPresets);
+}
 function addAdjustment() {
   const name=document.getElementById('adj_name').value.trim();
   let amount=parseInt(document.getElementById('adj_amount').value)||0;
   if(!name||amount===0) return alert('請填寫項目名稱和金額（負數=扣款）');
   amount=normalizeAdjustmentAmount(name,amount);
+  rememberAdjustmentAmount(name,amount);
   const entry=getStaffEntry();
   entry.adjustments=entry.adjustments||[];
   entry.adjustments.push({name,amount});
@@ -6412,6 +6436,7 @@ function addAdjustment() {
   document.getElementById('adj_amount').value='';
   document.getElementById('adj_amount').placeholder='輸入金額即可';
   _adjType='bonus';
+  renderAdjustmentPresetButtons();
   renderAdjList(); renderStaffPayPreview();
 }
 function removeAdj(idx) {
