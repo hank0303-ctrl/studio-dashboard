@@ -1289,9 +1289,15 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     <!-- 加/扣項目 -->
     <div style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:14px">
       <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:10px">加給 / 扣款</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+        <button class="btn btn-secondary btn-sm" onclick="selectAdjustmentPreset('勞保','deduct')">勞保</button>
+        <button class="btn btn-secondary btn-sm" onclick="selectAdjustmentPreset('健保','deduct')">健保</button>
+        <button class="btn btn-secondary btn-sm" onclick="selectAdjustmentPreset('勞退','deduct')">勞退</button>
+        <button class="btn btn-secondary btn-sm" onclick="selectAdjustmentPreset('獎金','bonus')">獎金</button>
+      </div>
       <div class="form-row">
         <div class="form-group" style="flex:2"><label>項目名稱</label><input type="text" id="adj_name" placeholder="如：獎金、勞保、健保"></div>
-        <div class="form-group" style="flex:1"><label>金額（負數=扣）</label><input type="number" id="adj_amount" placeholder="2000"></div>
+        <div class="form-group" style="flex:1"><label>金額</label><input type="number" id="adj_amount" placeholder="輸入金額即可"></div>
       </div>
       <button class="btn btn-secondary btn-sm" onclick="addAdjustment()" style="width:100%;justify-content:center">＋ 加入項目</button>
       <div id="adjList" style="margin-top:10px"></div>
@@ -2452,9 +2458,28 @@ function seedIfEmpty() {
   }
 }
 
+function getTaipeiDateParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Taipei',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short',
+  }).formatToParts(date).reduce((acc, part) => {
+    acc[part.type] = part.value;
+    return acc;
+  }, {});
+  const weekdayMap = { Sun:'日', Mon:'一', Tue:'二', Wed:'三', Thu:'四', Fri:'五', Sat:'六' };
+  return {
+    year: parts.year,
+    month: parts.month,
+    day: parts.day,
+    weekday: weekdayMap[parts.weekday] || parts.weekday,
+  };
+}
 function todayStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const d = getTaipeiDateParts();
+  return `${d.year}-${d.month}-${d.day}`;
 }
 function fmtDate(d) {
   if (!d) return '-';
@@ -4711,7 +4736,7 @@ function importScheduleExcel(input) {
 let weekOffset = 0; // 0=本週, -1=上週, 1=下週
 
 function getWeekDates(offset) {
-  const today = new Date();
+  const today = new Date(`${todayStr()}T12:00:00`);
   const day = today.getDay(); // 0=日, 1=一
   // 本週一
   const monday = new Date(today);
@@ -6217,6 +6242,10 @@ function openShiftModal(staffId,month) {
   document.getElementById('shift_staff_id').value=staffId;
   document.getElementById('shift_month').value=month;
   document.getElementById('shift_time_editor').style.display='none';
+  document.getElementById('adj_name').value='';
+  document.getElementById('adj_amount').value='';
+  document.getElementById('adj_amount').placeholder='輸入金額即可';
+  _adjType='bonus';
   renderShiftCalendar(); renderAdjList(); renderStaffPayPreview();
   openModal('staffShiftModal');
 }
@@ -6354,16 +6383,35 @@ function removeShiftDay(dateStr) {
   document.getElementById('shift_time_editor').style.display='none';
   renderShiftCalendar(); renderStaffPayPreview();
 }
+let _adjType = 'bonus';
+function selectAdjustmentPreset(name, type) {
+  _adjType = type === 'deduct' ? 'deduct' : 'bonus';
+  const nameInput = document.getElementById('adj_name');
+  const amountInput = document.getElementById('adj_amount');
+  if (nameInput) nameInput.value = name;
+  if (amountInput) {
+    amountInput.placeholder = _adjType === 'deduct' ? '輸入扣款金額' : '輸入加給金額';
+    amountInput.focus();
+    amountInput.select();
+  }
+}
+function normalizeAdjustmentAmount(name, amount) {
+  const isDeduct = _adjType === 'deduct' || /勞保|健保|勞退|扣款|代扣|請假|遲到|早退/.test(name);
+  return isDeduct ? -Math.abs(amount) : Math.abs(amount);
+}
 function addAdjustment() {
   const name=document.getElementById('adj_name').value.trim();
-  const amount=parseInt(document.getElementById('adj_amount').value)||0;
+  let amount=parseInt(document.getElementById('adj_amount').value)||0;
   if(!name||amount===0) return alert('請填寫項目名稱和金額（負數=扣款）');
+  amount=normalizeAdjustmentAmount(name,amount);
   const entry=getStaffEntry();
   entry.adjustments=entry.adjustments||[];
   entry.adjustments.push({name,amount});
   saveStaffEntry(entry);
   document.getElementById('adj_name').value='';
   document.getElementById('adj_amount').value='';
+  document.getElementById('adj_amount').placeholder='輸入金額即可';
+  _adjType='bonus';
   renderAdjList(); renderStaffPayPreview();
 }
 function removeAdj(idx) {
@@ -7314,14 +7362,13 @@ function init() {
   seedIfEmpty();
   isApplyingRemoteData = false;
   cleanupImportedPurchaseErrors(true);
-  const now = new Date();
-  const days = ['日','一','二','三','四','五','六'];
+  const now = getTaipeiDateParts();
   const mobileDate = document.getElementById('mobileDate');
-  if (mobileDate) mobileDate.textContent = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`;
+  if (mobileDate) mobileDate.textContent = `${now.year}/${now.month}/${now.day} (${now.weekday})`;
   document.getElementById('navDate').textContent =
-    `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} (${days[now.getDay()]})`;
+    `${now.year}/${now.month}/${now.day} (${now.weekday})`;
   document.getElementById('todayDateLabel').textContent =
-    `${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日（星期${days[now.getDay()]}）`;
+    `${now.year} 年 ${Number(now.month)} 月 ${Number(now.day)} 日（星期${now.weekday}）`;
   const notesText = document.getElementById('quickNotesText');
   if (notesText) notesText.value = quickNotes.text || '';
   renderQuickNotesSavedAt();
