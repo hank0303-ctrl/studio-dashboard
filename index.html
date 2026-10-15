@@ -1447,6 +1447,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     </div>
     <div id="tch_tier_section" style="display:none"></div>
     <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:12px;color:var(--accent)" id="tch_pay_preview">基本 $800</div>
+    <div class="form-row">
+      <div class="form-group"><label><input type="checkbox" id="tch_deductFee" checked> 扣除轉帳手續費</label></div>
+      <div class="form-group"><label>手續費 ($)</label><input type="number" id="tch_transferFee" min="0" step="1" value="15"></div>
+    </div>
     <div class="form-group"><label>備註（留空自動產生）</label><input type="text" id="tch_note" placeholder="自動產生"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('addTeacherModal')">取消</button>
@@ -1639,6 +1643,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
     </div>
     <div id="edit_tch_tier_section" style="display:none"></div>
     <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:12px;color:var(--accent)" id="edit_tch_pay_preview"></div>
+    <div class="form-row">
+      <div class="form-group"><label><input type="checkbox" id="edit_tch_deductFee"> 扣除轉帳手續費</label></div>
+      <div class="form-group"><label>手續費 ($)</label><input type="number" id="edit_tch_transferFee" min="0" step="1" value="15"></div>
+    </div>
     <div class="form-group"><label>備註（留空自動產生）</label><input type="text" id="edit_tch_note"></div>
     <div class="modal-footer">
       <button class="btn btn-danger btn-sm" onclick="deleteTeacher(document.getElementById('edit_tch_id').value)">刪除</button>
@@ -2720,6 +2728,12 @@ function previewTeacherPay(mode) {
   if (el) el.textContent = '💰 ' + desc;
 }
 
+function getTeacherTransferFee(teacher, grossPay) {
+  if (teacher.deductFee === false || grossPay <= 0) return 0;
+  const fee = Number(teacher.transferFee ?? 15);
+  return Number.isFinite(fee) ? Math.min(grossPay, Math.max(0, Math.round(fee))) : Math.min(grossPay, 15);
+}
+
 function saveTeacher() {
   const tiers = getRangesFromModal('add');
   const firstPay = tiers.length ? tiers[0].pay : 0;
@@ -2728,6 +2742,8 @@ function saveTeacher() {
     pay: firstPay,
     minPeople: parseInt(document.getElementById('tch_minPeople').value)||1,
     fullBonus: parseInt(document.getElementById('tch_fullBonus').value)||0,
+    deductFee: document.getElementById('tch_deductFee').checked,
+    transferFee: Math.max(0, parseInt(document.getElementById('tch_transferFee').value)||0),
     payMode: 'tier',
     bonusFrom: 0, bonusPerPerson: 0,
     tiers: tiers,
@@ -2746,6 +2762,8 @@ function editTeacher(id) {
   document.getElementById('edit_tch_minPeople').value = t.minPeople||1;
   document.getElementById('edit_tch_pay').value = t.pay||0;
   document.getElementById('edit_tch_fullBonus').value = t.fullBonus||0;
+  document.getElementById('edit_tch_deductFee').checked = t.deductFee !== false;
+  document.getElementById('edit_tch_transferFee').value = t.transferFee ?? 15;
   document.getElementById('edit_tch_note').value = t.note||'';
   // 填入區間費用到表格
   const container = document.getElementById('tch_ranges_edit');
@@ -2785,6 +2803,8 @@ function updateTeacher() {
     pay: editFirstPay,
     minPeople: parseInt(document.getElementById('edit_tch_minPeople').value)||1,
     fullBonus: parseInt(document.getElementById('edit_tch_fullBonus').value)||0,
+    deductFee: document.getElementById('edit_tch_deductFee').checked,
+    transferFee: Math.max(0, parseInt(document.getElementById('edit_tch_transferFee').value)||0),
     payMode: 'tier',
     bonusFrom: 0, bonusPerPerson: 0,
     tiers: editTiers,
@@ -3065,7 +3085,7 @@ function renderDashContent() {
   teachers.forEach(t=>{
     const tc=doneC.filter(c=>c.teacher===t.name);
     const raw=tc.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
-    teacherPay += t.deductFee!==false&&raw>0?raw-15:raw;
+    teacherPay += raw-getTeacherTransferFee(t,raw);
   });
   const staffPay = staffList.reduce((s,st)=>{
     const e=staffData[st.id+'_'+thisMonth]||{};
@@ -3139,7 +3159,7 @@ function renderDashContent() {
     teachers.forEach(t=>{
       const tc=prevActiveC.filter(c=>c.teacher===t.name);
       const raw=tc.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
-      prevTeacherPay += t.deductFee!==false&&raw>0?raw-15:raw;
+      prevTeacherPay += raw-getTeacherTransferFee(t,raw);
     });
     const prevSP = staffList.reduce((s,st)=>{
       const e=staffData[st.id+'_'+prevMonth]||{};
@@ -3183,7 +3203,7 @@ function renderDashContent() {
   teachers.forEach(t=>{
     const tc=prevActiveC2.filter(c=>c.teacher===t.name);
     const raw=tc.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
-    prevTP += t.deductFee!==false&&raw>0?raw-15:raw;
+    prevTP += raw-getTeacherTransferFee(t,raw);
   });
   const prevSP2 = staffList.reduce((s,st)=>{
     const e=staffData[st.id+'_'+prevMonth]||{};
@@ -3597,8 +3617,9 @@ function renderTeacherPage() {
     const totalMax     = tClasses.reduce((s,c)=>s+c.max,0);
     const avgRate      = totalMax > 0 ? Math.round(totalBooked/totalMax*100) : 0;
     const totalPay     = tClasses.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
-    const shouldDeduct = t.deductFee !== false;
-    const netPay       = shouldDeduct ? totalPay - 15 : totalPay;
+    const transferFee = getTeacherTransferFee(t,totalPay);
+    const shouldDeduct = transferFee > 0;
+    const netPay       = totalPay - transferFee;
 
     let payDesc = '';
     const _mode = t.payMode || (t.payGrid && Object.keys(t.payGrid||{}).length>0 ? 'grid' : 'step');
@@ -3723,7 +3744,7 @@ function renderTeacherPage() {
             </tr>
             <tr style="background:var(--surface2)">
               <td colspan="9" style="padding:8px 10px;font-size:12px;color:var(--red)">扣除轉帳手續費</td>
-              <td style="padding:8px 10px;text-align:right;font-size:15px;color:var(--red);font-family:DM Mono,monospace">-$15</td>
+              <td style="padding:8px 10px;text-align:right;font-size:15px;color:var(--red);font-family:DM Mono,monospace">-${fmtMoney(transferFee)}</td>
             </tr>` : ''}
             <tr style="background:var(--surface2)">
               <td colspan="9" style="padding:14px 10px;font-weight:700;font-size:13px;color:var(--text2)">本月課費合計（停課不計費）</td>
@@ -4180,7 +4201,6 @@ function renderMonthlyData() {
   const mBank      = bankTx.filter(t=>t.date.slice(0,7)===month&&t.cat!=='略過');
   const bankIn     = mBank.filter(t=>!t.isOut).reduce((s,t)=>s+t.amount,0);
   const bankOut    = mBank.filter(t=>t.isOut).reduce((s,t)=>s+t.amount,0);
-  const TRANSFER_FEE=15;
 
   // 老師課費
   let teacherPayTotal=0;
@@ -4192,8 +4212,9 @@ function renderMonthlyData() {
     const tMax=tc.reduce((s,c)=>s+c.max,0);
     const rate=tMax>0?Math.round(tBooked/tMax*100):0;
     const base=tc.reduce((s,c)=>s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)),0);
-    const shouldDeduct=t.deductFee!==false;
-    const net=shouldDeduct?base-TRANSFER_FEE:base;
+    const transferFee=getTeacherTransferFee(t,base);
+    const shouldDeduct=transferFee>0;
+    const net=base-transferFee;
     teacherPayTotal+=net;
     return `<tr style="font-size:13px">
       <td style="padding:8px;font-weight:600">${t.name}</td>
@@ -4201,7 +4222,7 @@ function renderMonthlyData() {
       <td style="padding:8px;text-align:center">${fullC}</td>
       <td style="padding:8px;text-align:center">${totalS}</td>
       <td style="padding:8px;text-align:center;font-family:DM Mono,monospace">${rate}%</td>
-      <td style="padding:8px;text-align:center;color:${shouldDeduct?'var(--red)':'var(--text3)'}">${shouldDeduct?'-$'+TRANSFER_FEE:'—'}</td>
+      <td style="padding:8px;text-align:center;color:${shouldDeduct?'var(--red)':'var(--text3)'}">${shouldDeduct?'-$'+transferFee:'—'}</td>
       <td style="padding:8px;text-align:right;font-family:DM Mono,monospace;font-weight:700;color:var(--accent)">${fmtMoney(net)}</td>
     </tr>`;
   }).filter(Boolean);
@@ -5589,8 +5610,9 @@ function downloadTeacherImage(teacherId, month) {
   const stopC   = allC.filter(c => c.status === '停課');
   const fullC   = activeC.filter(c => c.status === '滿班');
   const totalPay = activeC.reduce((s,c) => s+(c.customPay!==undefined?c.customPay:calcTeacherPay(t,c)), 0);
-  const shouldDeduct = t.deductFee !== false;
-  const netPay = shouldDeduct ? totalPay - 15 : totalPay;
+  const transferFee = getTeacherTransferFee(t,totalPay);
+  const shouldDeduct = transferFee > 0;
+  const netPay = totalPay - transferFee;
 
   // 課費設定描述
   let payDesc = '';
@@ -5789,7 +5811,7 @@ function downloadTeacherImage(teacherId, month) {
     ctx.fillStyle = '#f87171';
     ctx.font = '12px sans-serif';
     ctx.fillText('扣除轉帳手續費', pad, footerY + 50);
-    const feeStr = '-$15';
+    const feeStr = '-$' + transferFee.toLocaleString();
     ctx.fillText(feeStr, W - pad - ctx.measureText(feeStr).width, footerY + 50);
 
     // 分隔線
@@ -7218,7 +7240,7 @@ function calcTeacherMonthSalary(t, month) {
     basePay += p;
     if(c.status==='滿班') fullBonus += (t.fullBonus||0);
   });
-  const deduct = (t.deductFee!==false) && basePay>0 ? 15 : 0;
+  const deduct = getTeacherTransferFee(t,basePay);
   const net = basePay - deduct;
   return { mClasses, basePay, fullBonus, deduct, net };
 }
